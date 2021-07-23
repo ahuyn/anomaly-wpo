@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<string_table>
+
+	<!-- Jammin -->
+	<string id="kb_unjam">
+		<text>Unjam weapon</text>
+	</string>
+	<string id="ui_st_misfire">
+		<text>Weapon misfired!</text>
+	</string>
+	<string id="ui_st_jam">
+		<text>Weapon jammed!</text>
+	</string>
+	<string id="ui_st_superjam">
+		<text>Weapon severely jammed!</text>
+	</string>
+	<string id="ui_st_nothing">
+		<text>Nothing to unjam</text>
+	</string>
+	<string id="ui_st_unjam">
+		<text>Weapon unjammed successfully</text>
+	</string>
+	<string id="ui_st_functional">
+		<text>Weapon functional</text>
+	</string>
+	<string id="ui_st_oldjam">
+		<text>Weapon jammed from condition. Reload weapon.</text>
+	</string>
+	<string id="ui_st_unjam_fail">
+		<text>Weapon severely jammed - unload your magazine before unjamming.</text>
+	</string>
+	<string id="ui_st_parts_damage">
+		<text>Weapon has suffered internal component damage.</text>
+	</string>
+	<string id="st_news_parts_alreadygood">
+		<text>Part does not need to be replaced.</text>
+	</string>
+	
+	<!-- Messages -->
+	<string id="st_news_parts_success">
+		<text>Successfully replaced part.</text>
+	</string>
+	<string id="st_news_parts_fail">
+		<text>%c[d_red]Weapon already has higher condition part.</text>
+	</string>
+	<string id="st_news_parts_incompatible">
+		<text>%c[d_red]Part is not compatible with weapon.</text>
+	</string>
+	<string id="st_news_parts_barrel">
+		<text>%c[d_red]Barrels cannot be replaced in the field.</text>
+	</string>
+	<string id="st_news_parts_rusty">
+		<text>%c[d_red]Weapon is too rusty to take apart in the field.</text>
+	</string>
+	<string id="st_news_dis_items">
+		<text>%c[d_red]A proper disassembling tool is required.</text>
+	</string>
+
+	<!-- MCM -->
+	<string id="ui_mcm_menu_wpo">
+		<text>Weapon Parts Overhaul</text>
+	</string>
+	<string id="ui_mcm_wpo_title">
+		<text>Weapon Parts Overhaul Config</text>
+	</string>
+	<string id="ui_mcm_wpo_profanity">
+		<text>Profanity on weapon jam</text>
+	</string>
+	<string id="ui_mcm_wpo_profanity_desc">
+		<text>Enables colorful dialogue on a malfunction.</text>
+	</string>
+	<string id="ui_mcm_wpo_profanity_language">
+		<text>Profanity language</text>
+	</string>
+	<string id="ui_mcm_wpo_jamchance">
+		<text>Jam Chance coefficient</text>
+	</string>
+	<string id="ui_mcm_wpo_jamchance_desc">
+		<text>Chance for your weapons to jam in the new way.</text>
+	</string>
+	<string id="ui_mcm_wpo_superjam">
+		<text>Enable super jams</text>
+	</string>
+	<string id="ui_mcm_wpo_superjam_desc">
+		<text>Enables (or disables) those pesky super-jams. Super-jams are jams that require removing the loaded ammunition to clear properly.</text>
+	</string>
+	<string id="ui_mcm_wpo_cleancoef">
+		<text>Technician weapon cleaning multiplier</text>
+	</string>
+	<string id="ui_mcm_wpo_cleancoef_desc">
+		<text>Cost adjustment of technician weapon cleaning.</text>
+	</string>
+	<string id="ui_mcm_wpo_verbosity">
+		<text>Jam message verbosity</text>
+	</string>
+	<string id="ui_mcm_wpo_verbosity_desc">
+		<text>Verbosity of HUD jamming messages. There are three levels:\nNone: Only condition-based jam is alerted (because it is confusing otherwise).\nNormal (recommended): You will be notified when your weapon jams, when your weapon unjams successfully.\nFull: Everything with Normal, but you will also know when you have a severe jam that requires unloading the weapon and unjamming to clear, and when your weapon suffers component damage.</text>
+	</string>
+	<string id="ui_mcm_wpo_minpart">
+		<text>Sale parts condition minimum</text>
+	</string>
+	<string id="ui_mcm_wpo_minpart_desc">
+		<text>Minimum condition for ALL parts for a weapon to be eligible for sale. If a weapon has ANY part below this condition, it will be blacklisted from sale. Set to 0 to disable.</text>
+	</string>
+	<string id="ui_mcm_wpo_repairmin">
+		<text>Technician part repair condition minimum</text>
+	</string>
+	<string id="ui_mcm_wpo_repairmin_desc">
+		<text>Above this part threshold, you pay the cheaper cleaning price when repairing part at a mechanic. Below this threshold, you pay the higher replacement cost.</text>
+	</string>
+	<string id="ui_mcm_wpo_repairmin_desc">
+		<text>Condition at which parts repaired are eligible for a lower price (cleaning). If a part is below this you will pay the replacement fee.</text>
+	</string>
+	<string id="ui_mcm_wpo_title">
+		<text>Weapon Parts Overhaul</text>
+	</string>
+	<string id="ui_mcm_lst_eng">
+		<text>English</text>
+	</string>
+	<string id="ui_mcm_lst_rus">
+		<text>Russian</text>
+	</string>
+	<string id="ui_mcm_lst_verbosity_none">
+		<text>None</text>
+	</string>
+	<string id="ui_mcm_lst_verbosity_normal">
+		<text>Normal</text>
+	</string>
+	<string id="ui_mcm_lst_verbosity_full">
+		<text>Full</text>
+	</string>
+	<string id="ui_mcm_wpo_debug">
+		<text>Debug logging</text>
+	</string>
+	<string id="ui_mcm_wpo_debug_desc">
+		<text>Debug logging, enables a whole bunch of additional information in console log.</text>
+	</string>
+	<string id="ui_mcm_wpo_newdrops">
+		<text>Enable alternate part rolls</text>
+	</string>
+	<string id="ui_mcm_wpo_newdrops_desc">
+		<text>Roll parts with a new formula. The chance of good parts below is adjusted by weapon condition and a further hidden weight. Makes your game harder with low enough weights. To use the old method, disable this.</text>
+	</string>
+	<string id="ui_mcm_wpo_newdropschance">
+		<text>Chance for good parts with alternate part rolls</text>
+	</string>
+	<string id="ui_mcm_wpo_degradation">
+		<text>Doubled weapon degradation </text>
+	</string>
+	<string id="ui_mcm_wpo_degradation_desc">
+		<text>Check to double your weapon degradation. For those who feel like their guns stay clean too easily.</text>
+	</string>
+	
+	
+	<string id="st_arti_jamming_ask">
+		<text>I am having some issues with my weapon. It keeps jamming. Can you help me?</text>
+	</string>
+	<string id="st_arti_jamming_explain">
+		<text>There are a lot of reasons why your weapon can be malfunctioning. Even though you've kept it clean. </text>
+	</string>
+	<string id="st_field_strip">
+		<text>field strip</text>
+	</string>
+	<string id="st_field_strip_fail">
+		<text>This weapon has no parts to remove.</text>
+	</string>
+	<string id="ui_st_missing">
+		<text>This weapon is missing parts.</text>
+	</string>
+
+
+</string_table>

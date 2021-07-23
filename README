@@ -1,0 +1,125 @@
+Complete overhaul of weapon parts and jamming.
+
+Motivation
+Weapons dropping at 7% makes no sense. Added an extra couple of layers to weapon components to make the tradeoffs feel worthy and make the parts system easier to use and a bit worthwhile. Weapon condition is now treated as general cleanliness and not holistic weapon quality. Weapon part condition represents amount of wear and pitting on that part, e.g. if it received any permanent damage during operation. While good quality weapons will be easier to maintain, crappy weapons with crappy parts will be less usable than they are now.
+
+MAJOR FEATURES:
+
+This is the meaty stuff. For an easier start guide, consult Maintenance Guide.
+
+Condition overhaul:
+- Weapon parts are no longer tied to condition. Weapon jamming from low condition will still happen, and additionally different types of jams from poor-condition parts will occur.
+- Mechanic repair is cheaper - you're only cleaning the weapon (Configurable with MCM).
+- Keeping weapons in good condition is easier in general. Cleaning tools are much more effective and last longer, but they are more expensive.
+- Weapons drop at higher condition from stalkers. This does not mean they are more usable.
+
+Parts overhaul:
+- Weapon parts are now a separate subsystem to manage.
+- Weapon parts are MUCH easier to replace. Parts replacement requires only clicking and dragging parts onto guns. Barrels cannot be replaced in the field.
+- Field replacement of parts will degrade gun condition. This is reduced if you have a Leatherman.
+- Replacing weapon parts will not affect the condition of the weapon.
+- Replacing parts with a toolkit at a workbench does not consume charges. Installing upgrades still does.
+- Parts are harder to repair. Parts can only be restored from 65% condition. Beyond that you need to replace them at mechanics (for a price, which is configurable with MCM)
+- Using a repair kit on a weapon will replace the most damaged part with a brand new one.
+- (OPTIONAL FEATURE) Doubled ammo wear on gun, to better simulate accumulation of dirt and residues. Also buffs slugs and darts.
+
+Technician changes (PLEASE READ):
+- Technicians will NOT restore parts condition. They will only restore base gun condition (they are only cleaning the weapon)
+- Technicians will repair parts. There are two levels to this:
+1. Part is above a certain condition. This simulates part is simply dirty or scratched - they will clean it for a low price.
+2. Part is below that condition. This simulates part is FUBAR - they will replace it instead. This is very costly.
+
+Field stripping (NEW):
+- Weapons with parts can be field stripped.
+- Field stripping removes all the parts from a weapon that can be reasonably removed (everything but the barrel)
+- Weapons with missing parts will be unable to fire, obviously.
+- Parts can be replaced in a field stripped gun either at workbench or with drag and drop like normal.
+
+Weapon damage:
+Weapons under 85% condition can suffer internal parts damage with use, rolling per shot to damage one part. The worse condition the weapon, the greater the chance. Reliability upgrades affect the chance of internal damage, so more reliable weapons will damage their parts less than more finicky weapons (AKs will damage their parts far less than SVDs). Keep your weapons as clean as possible. Amount of damage applied is controlled in arti_jamming.script.
+
+Jamming and weapons failure:
+A dedicated, bindable unjam/clear weapon button is available and needed to take advantage of the new mechanics. Use this button.
+There are three additional types of weapon failure:
+1. Misfires. Misfires are a failure of the trigger components and prevent a shot from being fired.
+2. Type 1 malfunctions, analogous to failure to eject. The shot is fired but mechanical failure prevents the next shot from loading and/or firing.
+3. Type 2 malfunctions, analogous to double-feed. Similar to type 1, but requires unloading the magazine to properly clear the malfunction. Can disable completely with MCM.
+The jam chance can be adjusted through MCM.
+The old style of jamming from condition is still around and until I figure out how to override it through script, I instead inform the user to not confuse them.
+In addition, barrel damage will reduce gun damage if the barrel condition is below 75%, up to a 50% reduction at 0% condition barrel.
+
+Only weapons with parts will suffer these failures. Gauss Rifle, Armsel Protecta, and P90 lack parts so they do not suffer parts-related failures.
+
+Quick guide to addressing jams:
+1. Note the type of jam you have.
+2. Press the unjam button.
+3. If your weapon is severely jammed, unload your weapon from the inventory. Press the unjam button.
+
+Calculation of jamming (formula subject to tweaking):
+Averages condition of non-trigger and non-barrel parts based on the following:
+0-24% = 75% jam chance
+25-49% = 15% jam chance
+50-74% = 3% jam chance
+75-99% = 0% jam chance
+Misfires roll independently of jam chance for trigger with chances:
+0-24% = 25% jam chance
+25-49% = 5% jam chance
+50-74% = 1% jam chance
+75-99% = 0% jam chance
+
+Barrel quality affects damage dealt, because modifying dispersion dynamically is not possible.
+Barrels below 75% condition will lose damage up to 50% less damage at 0% condition.
+
+Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
+
+Changelog
+1.6.1.2
+- Dynamic support for wuut_mags and arti mags.
+1.6.1.1
+- Fixed wuut_mags item_weapon.
+1.6.1 
+- Fixed alt parts drop bug.
+- Unjam is now Alt+Reload. No more keybind conflicts! You can revert back to the old one with optional.
+- Made the parts kit useless.
+- Firing weapon always has 0.1% chance to damage parts. 
+- Doubled wear is now an optional feature instead of being done via weapon_ammo.
+1.6 - Overhauled parts condition assignment for weapons. Fixed ammo having fieldstrip option. Better RUS translation. Forced full percentage parts.
+1.5.5 - Jam chance and double-feed chance is modifiable in MCM. You can replace parts without a Leatherman, but this will dirty the weapon way faster. Reduced max condition of drops.
+1.5.4 - Reconciled RUS translation with TDLemon. Monkey patched out need for item_repair.script, and reduced cost of cleaning weapon parts at tech.
+1.5.3 - RUS translation provided by mix73
+1.5.2 - Fix issue with wuut_mags superjams
+1.5.1 - Fix bug with repair kit fixing weapon without part. Reduced prices of cleaning items.
+1.5 - Major update:
+- Implemented field stripping of weapons. NO LONGER BACKWARDS COMPATIBLE - This update will cause problems if used and removed, as it will set part conditions to negative values to represent missing parts. If you do plan on removing it, make sure your weapons have parts and none are field-stripped. 
+- Using a repair kit on a weapon will replace its lowest condition part.
+- Prices for toolkits adjusted accordingly. Pistol toolkit cheaper and 3 uses, other kits more expensive but 5 uses.
+- Workbenches no longer eat parts (hooray!). 
+- Drop conditions for guns are equalized across the board.
+- Part cleaning and repair costs now take into account repair cost coefficient.
+- Patch for wuut_mags.
+1.4.7.1 - Fixed some serious bugs where having weapon with parts -> switching to weapon without parts would calculate damage based on previous weapon.
+1.4.7 - Integrated Blindside's idle animations, now unjam button will work like inspect button if there is no problem. Handgun part cleaning at mechanic is cheaper. Replacing a damaged part at a mechanic now has a varied price, depending on rarity of the weapons it is found in, but overall cheaper. Threshold for cleaning is adjustable via MCM.
+1.4.6 - MCM support, fixed issues with verbosity printing. English swearing now toggleable.
+1.4.5 - Previous unlisted fixes for crashes with missing animations or sounds. Fixed variants of guns playing the normal unjam animation. Fixed missing sounds for some unjams.
+1.4.4 - Implicit compatibility with Blindside's weapon animations. Now if a weapon has a custom unjam animation, this mod will play it instead of the placeholder. Fix to cause weapon to stop firing if it jams during full auto (thanks Lucy), restored some strings I mistakenly removed.
+1.4.3 - Cleanup and compatibility with 1.5.1
+1.4.2 - Fix for crash with wuut_mags replacing parts in weapons without magazines. Removed weapon parts kit from trader stocks. Increased price of parts repair below 60% (part is too damaged to be repaired properly)
+1.4.1 - Fix for CTD when repairing items at a mechanic.
+1.4 - Reworked parts replacement. Parts can be replaced arbitrarily, but doing so will reduce weapon condition a little bit above a certain threshold (you need to relube whenever you replace a part). Raised default damage threshold. Optional doubled wear (guns stay clean for too long imo). Implicit wuut mags compatibility - this addon should work regardless if you have wuut_mags installed or not.
+1.3.5 - Small compatibility fix for RC19 - nothing major, just updating some text.
+1.3.4 - Barrels no longer suffer from random damage (suggested by Aquamarine). Instead they slowly wear out and have an expected lifetime of 5000 rounds, with damage effects kicking in at 1250 rounds fired. Old ammo increases this wear rate on the barrel and confers a flat 2% chance to jam, even in working guns.
+1.3.3 - Fix for attachments on guns without parts.
+1.3.2 - Adjusted price of parts kit, added one use, and dropped leatherman repair condition to match that of ramrod/file.
+1.3.1 - Replaced swearing sounds to be less cheesy (using AyyKyu's Tarkov voices). Optional English profanity.
+1.3 - Actor swears when gun jams (thanks andrejchudoba)
+1.2 - Replacing parts unloads your current weapon. Barrel damage now reduces your gun damage by up to 50%. Fixed broken text again.
+1.1.4 - Fixed bug with replacing parts in current weapon not updating condition immediately. Prevent player from replacing parts if part is already good. RUS translations from TDLemon.
+1.1.3 - Items with damaged parts can no longer be sold. Zombies now drop absolutely crappy weapons (and novices as well, as a side effect)
+1.1.2 - Changed jam chance calculation to be configurable. Base rates start lower and ramp faster (now 6, 18, 54% chances)
+1.1.1 - Moved unjam button to weapons section in keybinds
+1.1 - Cannot field replace parts if weapon is below 25% condition. Parts cannot be replaced under a configurable condition threshold (default is 0.2). Mechanics will repair parts for you...but it's not cheap.
+
+Credits: 
+Arszi for help and ideas
+Michiko for providing unjam sounds
+TDLemon for RUS translate

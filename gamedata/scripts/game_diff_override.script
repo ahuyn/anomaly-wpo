@@ -1,0 +1,6 @@
+GetEcoFactor = game_difficulties.get_eco_factor
+
+function game_difficulties.get_eco_factor(str)
+    if (str == "percentage_parts") then return true
+    else return GetEcoFactor(str) end
+end

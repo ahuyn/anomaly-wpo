@@ -1,0 +1,168 @@
+<string_table>
+
+    <!-- Jammin -->
+	<string id="kb_unjam">
+		<text>Убрать Клин</text>
+	</string>
+    <string id="ui_st_misfire">
+    	<text>Оружие дало осечку!</text>
+    </string>
+    <string id="ui_st_jam">
+    	<text>Оружие заклинило!</text>
+    </string>
+    <string id="ui_st_superjam">
+    	<text>Оружие сильно заклинило!</text>
+    </string>
+    <string id="ui_st_nothing">
+    	<text>В руках нет стрелкового оружия.</text>
+    </string>
+    <string id="ui_st_unjam">
+    	<text>Заклинивание оружия устранено.</text>
+    </string>
+    <string id="ui_st_functional">
+    	<text>Оружие готово к стрельбе.</text>
+    </string>
+    <string id="ui_st_oldjam">
+    	<text>Из-за плохого состояния оружие заклинило. Перезаряди его.</text>
+    </string>
+    <string id="ui_st_unjam_fail">
+    	<text>Оружие сильно заклинило - сначала разряди магазин, а затем передёрни затвор.</text>
+    </string>
+    <string id="ui_st_parts_damage">
+    	<text>Внутри оружия что-то сломалось.</text>
+    </string>
+    <string id="st_news_parts_alreadygood">
+    	<text>Эта деталь не требует замены.</text>
+    </string>
+	
+	<!-- Messages -->
+    <string id="st_news_parts_success">
+    	<text>%c[d_green]Деталь успешно заменена.</text>
+    </string>
+    <string id="st_news_parts_fail">
+    	<text>%c[d_red]На оружии установлена деталь лучшего качества.</text>
+    </string>
+    <string id="st_news_parts_incompatible">
+    	<text>%c[d_red]Эта деталь не совместима с данным оружием.</text>
+    </string>
+    <string id="st_news_parts_barrel">
+    	<text>%c[d_red]Ствол нельзя сменить в полевых условиях.</text>
+    </string>
+    <string id="st_news_parts_rusty">
+    	<text>%c[d_red]Невозможно разобрать это оружие в полевых условиях, так как оно слишком ржавое.</text>
+    </string>
+    <string id="st_news_dis_items">
+    	<text>%c[d_red]Для разборки требуется подходящий инструмент.</text>
+    </string>
+	<!-- ITEMS -->
+    <string id="st_partskit_tool">
+    	<text>Инструменты для ремонта оружейных частей</text>
+    </string>
+	<string id="st_partskit_tool_descr">
+    	<text>Данный набор инструментов позволяет ремонтировать оружейные части и компоненты, для последующей замены в оружии.\n
+		%c[d_red] • %c[ui_gray_2] чинит только оружейные части [тест и отладка]\n
+		</text>
+    </string>
+	<!-- MCM -->
+	<string id="ui_mcm_menu_wpo">
+		<text>Переработака запчастей оружия</text>
+	</string>
+	<string id="ui_mcm_wpo_title">
+		<text>Настройка аддона Weapon Parts Overhaul</text>
+	</string>
+	<string id="ui_mcm_wpo_profanity">
+		<text>Ненормативная лексика при клине</text>
+	<string id="ui_mcm_wpo_profanity_desc">
+		<text>Включает ругательства главного героя при заклинивании оружия.</text>
+	</string>
+	</string>
+	<string id="ui_mcm_wpo_profanity_language">
+		<text>"Мат" выбор языка</text>						 
+	</string>
+	<string id="ui_mcm_wpo_jamchance">
+		<text>Коэффициент шанса клина</text>
+	</string>
+	<string id="ui_mcm_wpo_superjam">
+		<text>Включить "супер-клин"</text>
+	</string>
+	<string id="ui_mcm_wpo_superjam_desc">
+		<text>Включает (или отключает) так называемый "супер-клин". При "супер-клине" нужно полностью разрядить оружие.</text>
+	</string>
+	<string id="ui_mcm_wpo_cleancoef">
+		<text>Множитель очистки оружия техником</text>
+	<string id="ui_mcm_wpo_cleancoef_desc">
+		<text>Настройка мнодителя цены при чистке оружия у техника.</text>
+	</string>
+	</string> 
+	<string id="ui_mcm_wpo_verbosity">
+		<text>Подробная информация в сообщении о клине</text>
+	</string>
+	<string id="ui_mcm_wpo_verbosity_desc">
+		<text>Три варианта сообщений о состоянии оружия:\nНет сообщений: уведомления появляются по факту, иначе сбивают с толку.\nНормальный вариант (рекомендуется): будет предупреждать о заклинивании и разрядке оружия.\nПолный вариант : получаете предупреждения о всех нюансах состояния вашего оружия - когда заклинивает, о повреждении компонентов, потребуется чистка и разбор ствола.</text>
+	</string>
+	<string id="ui_mcm_wpo_minpart">
+		<text>Состояние запчастей для продажи Торговцам</text>
+	</string>
+	<string id="ui_mcm_wpo_minpart_desc">
+		<text>Минимальное состояние для возможности продажи ВСЕХ оружейных частей. Если оружейная часть имеет состояние ниже данного, то её нельзя будет продать. Для отключения, установите значение на 0.</text>
+	</string>
+	<string id="ui_mcm_wpo_repairmin">
+		<text>Состояние запчастей для ремонта у Техников</text>
+	</string>
+	<string id="ui_mcm_wpo_repairmin_desc">
+		<text>Вовремя отданные детали на ремонт требуют более низкой цены (чистка) или вам придется заплатить полную цену.</text>
+	</string>
+	<string id="ui_mcm_wpo_repairmin_desc">
+		<text>Состояние частей оружия при котором на них распространяется скидка у техника (чистка). Если состояние компонента менее данного значения, то вы заплатите полную цену за замену компонента.</text>
+	</string>
+	<string id="ui_mcm_wpo_title">
+		<text>Weapon Parts Overhaul</text>
+	</string>
+	<string id="ui_mcm_lst_eng">
+		<text>Английский</text>
+	</string>
+	<string id="ui_mcm_lst_rus">
+		<text>Русский</text>
+	</string>
+	<string id="ui_mcm_lst_verbosity_none">
+		<text>Выключен</text>
+	</string>
+	<string id="ui_mcm_lst_verbosity_normal">
+		<text>Обычный</text>
+	</string>
+	<string id="ui_mcm_lst_verbosity_full">
+		<text>Полный</text>
+	</string>
+	<string id="ui_mcm_wpo_debug">
+		<text>Журнал отладки</text>
+	</string>
+	<string id="ui_mcm_wpo_debug_desc">
+		<text>Журнал отладки отображает дополнительную информацию в консоли.</text>																																																			  
+	</string>
+	<string id="ui_mcm_wpo_newdrops">
+		<text>Включает альтернативные значения состояния выпадаемых частей</text>
+	</string>
+	<string id="ui_mcm_wpo_newdrops_desc">
+		<text>Для определения значения состояния частей оружия используется новая формула. На шанс частей в хорошем состоянии влияет состояние оружия и скрытый вес. Усложняет игровой процесс. Отключите что бы использовать старый метод.</text>
+	</string>
+	<string id="ui_mcm_wpo_newdropschance">
+		<text>Шанс извлечь части в хорошем состоянии по альтернативной формуле</text>
+	</string>
+	<string id="st_arti_jamming_ask">
+		<text>У меня какие-то проблемы с моим оружием. Оно часто клинит. Можете помочь?</text>
+	</string>
+	<string id="st_arti_jamming_explain">
+		<text>Есть много причин почему твоё оружие могло сломаться. Даже несмотря на то что ты поддерживал его в хорошем состоянии. </text>
+	</string>
+	<string id="st_field_strip">
+		<text>снять запчасти</text>
+	</string>
+	<string id="st_field_strip_fail">
+		<text>Из оружия больше нечего извлечь</text>
+	</string>
+	<string id="ui_st_missing">
+		<text>В оружии отсутствуют запчасти.</text>
+	</string>
+
+
+</string_table>

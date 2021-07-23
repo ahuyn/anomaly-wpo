@@ -1,0 +1,40 @@
+Weapon Parts Overhaul documentation (by Grok):
+
+Weapon Parts Overhaul changes the way guns are repaired, maintained, and how they jam.
+
+
+What WPO does:
+
+- New gun disassembly mechanism:
+
+	- You can now remove gun's parts without "disassembling" (and thus destroying) it. Holt Alt and right click on the gun > Field Strip it. Only the guns barrel cannot be removed that way.
+	- Gun's barrel can be obtained by disassembling a gun the classic way (drag and drop Multitool on the gun holding Alt key).
+
+- New gun parts replacement and repair system:
+
+	- You can now replace gun parts by drag and dropping parts on a gun. 
+	- Gun barrels need to be replaced the classic way at the vice using the appropriate tool.
+	- Using the vice and the appropriate weapon repair toolkit doesn't consume toolkit uses.
+	- Gun parts can only be repaired from 65% onward using the appriorate part repair tool (Multitool, Ramrod, etc).
+	- Appropriate gun repair toolkits can be used on a gun to clean it as well as increasing the lowest condition part to 100% automatically. Right click on the Repair Tool > Use. Select the desired gun.
+	- It is recommended to activate the "full part condition" option in Difficulty Setting in the game options after a save is loaded.
+
+- New gun maintenance system:
+
+	- Gun condition now represents how clean or dirty a gun is, now how destroyed it is. Gun condition and parts condition are now separated.
+	- Guns condition is now easier to maintain with items cleaning them from a lower condition and that clean them for more condition at each uses.
+	- Guns are cheaper to clean at mechanics (Repair / Upgrade Item option, top right corner "Repair"). Mechanics will only clean the gun, not repair the parts.
+	- Guns get dirtier quicker under the rain.
+
+- New gun jamming system:
+
+	- Guns will jam based on parts condition as well as clean condition.
+	- Different jams require different type of unjamming. Most unjamming can be performed by reloading the weapon.
+	- New "Unjam" key introduced. Set it in the keybinds option menu. Press the key to unjam the gun.
+
+- Gun acquisition flow, i.e. how WPO impacts your playthrough.
+
+	- Overall, WPO allows to use bigger guns quicker in a playthrough by allowing easier gun cleaning and parts replacement.
+	- Most guns that are dropped by Stalkers are usable, but don't trust them too much : they can jam pretty often if parts are in bad condition!
+	- The parts repair / tetris can be avoided by spamming gun repair kits on a given gun.
+	- WPO makes parts hunting more engaging.

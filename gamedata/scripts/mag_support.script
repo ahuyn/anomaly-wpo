@@ -1,0 +1,32 @@
+function is_mag_loaded(wpn)
+    if not supports_mags then return false end
+    if wuut_mags then
+        return wuut_mags.MagazineInWeaponIsValid(wpn)
+    elseif magazines then
+        return magazine_binder.get_data(wpn:id()) ~= nil
+    else return nil end
+end
+
+function eject_mag(wpn)
+    if not supports_mags then return false end
+    if wuut_mags and supports_mags(wpn) then
+        return wuut_mags.weapon_eject_mag_functor(wpn)
+    elseif magazines then
+        magazines.eject_magazine(wpn)
+    else return nil end
+end
+
+function supports_mags(wpn)
+    if wuut_mags then
+		local defaultMagSection = wuut_mags.WeaponGetDefaulMagSection(wpn)
+		local defaultMagSectionExists = system_ini():section_exist(defaultMagSection)
+		return defaultMagSectionExists
+    elseif magazines then
+        return magazine_binder.is_supported_weapon(wpn)
+    else return false
+    end
+end
+
+function using_mags()
+    return wuut_mags ~= nil or magazines ~= nil
+end

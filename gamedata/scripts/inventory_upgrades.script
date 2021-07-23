@@ -1,0 +1,864 @@
+---------------------------------------------------------------------------------------------
+--' funtions for upgrade items ----------------------------------------------------
+--' Made by Distemper ----------------------------------------------------------------
+--' 03.08 --------------------------------------------------------------------------------
+-- Altered by Alundaio to allow npc to keep items for an amount of time
+--' Upg by Suhar_ --------------------------------------------------------------------------
+--' 08-09.2016 -----------------------------------------------------------------------------
+--' Update ---------------------------------------------------------------------------------
+--' 12.2016 --------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+-- =======================================================================================
+-- Modified by Tronex
+-- 2018/7/29 - Added support for new upgrade properties (binoculars)
+-- =======================================================================================
+	--' accessibility upgrade function
+		--' function precondition_functor_a( param1, section )
+	--' the function of applying an upgrade (taking money from GG and the required materials)
+		--' function effect_functor_a( param2, section )
+	--' function of displaying the reasons for which the upgrade is not available (in the description)
+		--' function prereq_functor_a( param3, section )
+	--' The function of outputting the amount of money and materials necessary for installation (in the header)
+		--' function get_upgrade_cost( section )
+	--' functions for displaying upgrade properties
+		--' function property_functor_a( param1, name )
+		--' function property_functor_b( param1, name )
+		--' function property_functor_c( param1, name )
+		--'	function property_functor_d( param1, name )
+--------------------------------------------------------------------------------------------
+force_upgrade = false
+cur_hint = nil
+local issue_condlist = true
+local char_ini = ini_file("item_upgrades.ltx")
+local param_ini = ini_file("misc\\stalkers_upgrade_info.ltx")
+local eco_ini = ini_file("plugins\\difficulty.ltx")
+local cur_price_percent = 2
+local upgr_tier_con = {
+	[1] = 0.3,
+	[2] = 0.6,
+	[3] = 0.9,
+}
+local upg_ind = {
+	["a"] = 1,
+	["b"] = 1,
+	["c"] = 2,
+	["d"] = 2,
+	["e"] = 3,
+	["f"] = 3,
+}
+local RepairItemList = {}
+local check_items
+local weapon_upgrades = {}
+local effect_funct
+local last_item_id
+
+local ctt = utils_data.CTime_to_table
+local cft = utils_data.CTime_from_table
+
+function save_state(m_data)
+	--utils_data.debug_write("inventory_upgrades.save_state")
+	m_data.RepairItemList = RepairItemList
+end
+
+function load_state(m_data)
+	delayed_upgrades_fix(m_data)
+	RepairItemList = m_data.RepairItemList or RepairItemList
+	m_data.RepairItemList = nil
+end
+
+-------------------------------
+-- Dialog delayed repairs
+-------------------------------
+function lend_item_for_repair(itm,mechanic_name,rt)
+	local npc = get_story_object(mechanic_name)
+	if (npc) then
+		db.actor:transfer_item(itm,npc)
+		give_info(npc:section().."_is_repairing")
+		news_manager.relocate_item(db.actor, "out", itm:section(), 1)
+
+		local longest_time = 0
+		if not (RepairItemList[mechanic_name]) then
+			RepairItemList[mechanic_name] = {}
+		else
+			for id,t in pairs(RepairItemList[mechanic_name]) do
+				if (t.gt ~= nil) then
+					local item_time = clamp(t.rt - game.get_game_time():diffSec(cft(t.gt)),0,t.rt)
+					if (item_time > longest_time) then
+						longest_time = item_time
+					end
+				end
+			end
+		end
+		rt = rt + longest_time
+
+		--printf("mechanic name = %s [sec = %s, id = %s]  repair_time = %s",mechanic_name,itm:section(),itm:id(),rt)
+		RepairItemList[mechanic_name][itm:id()] = {gt = ctt(game.get_game_time()), rt = rt}
+
+		hide_hud_inventory()
+	end
+end
+
+function has_repair_info(a,b)
+	local npc = dialogs.who_is_npc(a,b)
+	if (has_alife_info(npc:section().."_is_repairing")) then
+		return true
+	end
+	return false
+end
+
+function has_repaired_items(a,b)
+	local npc = dialogs.who_is_npc(a,b)
+	local sec = npc:section()
+	if not (RepairItemList[sec]) then
+		return false
+	end
+	for id,t in pairs(RepairItemList[sec]) do
+		if (game.get_game_time():diffSec(cft(t.gt)) >= t.rt) then
+			return true
+		end
+	end
+	return false
+end
+
+function dont_has_repaired_items(a,b)
+	local npc = dialogs.who_is_npc(a,b)
+	local sec = npc:section()
+	if not (RepairItemList[sec]) then
+		return true
+	end
+	for id,t in pairs(RepairItemList[sec]) do
+		if (game.get_game_time():diffSec(cft(t.gt)) >= t.rt) then
+			return false
+		end
+	end
+	return true
+end
+
+function give_repaired_items(a,b)
+	local npc = dialogs.who_is_npc(a,b)
+	local sec = npc:section()
+	if not (RepairItemList[sec]) then
+		return false
+	end
+
+	local process_list = {}
+	local itm
+	local index = 0
+	for id,t in pairs(RepairItemList[sec]) do
+		index = index + 1
+		if (game.get_game_time():diffSec(cft(t.gt)) >= t.rt) then
+			itm = level.object_by_id(id)
+			if (itm) then
+				npc:transfer_item(itm,db.actor)
+				news_manager.relocate_item(db.actor, "in", itm:section(), 1)
+				process_list[id] = index
+				process_list[#process_list+1] = id
+			end
+		end
+	end
+
+	for i=1,#process_list do
+		RepairItemList[sec][process_list[i]] = nil
+	end
+
+	disable_info(npc:section().."_is_repairing")
+
+	for k,v in pairs(RepairItemList[sec]) do
+		if (k) then
+			give_info(npc:section().."_is_repairing")
+			break
+		end
+	end
+
+	return true
+end
+
+function dm_repair_not_done(a,b)
+	local npc = dialogs.who_is_npc(a,b)
+	local sec = npc:section()
+	if not (RepairItemList[sec]) then
+		return "ERROR in dm_repair_not_done [RepairItemList["..sec.."] = nil"
+	end
+
+	local lowest,itm_id,gts
+	for id,t in pairs(RepairItemList[sec]) do
+		gts = t.rt - game.get_game_time():diffSec(cft(t.gt))
+		if not (lowest) then
+			lowest = gts
+			itm_id = id
+		end
+
+		if (gts < lowest) then
+			lowest = gts
+			itm_id = id
+		end
+	end
+
+	if (lowest and itm_id) then
+		local seconds = lowest
+		local minutes = seconds/60
+		local hours = minutes/60
+
+		local itm = level.object_by_id(itm_id)
+		local itm_sec = itm and itm:section()
+
+		local inv_name = itm_sec and ui_item.get_sec_name(itm_sec)
+		
+		--> adjustments here for english translations
+		local text = {}
+		for i=1,9 do 
+			text[#text+1] = "st_inventory_upgrade_reply_"..i
+		end
+
+		local function set_text(str,...)
+			local p = {...}
+			local i = 0
+			local function sr(a)
+				i = i + 1
+				return tostring(p[i])
+			end
+			str = game.translate_string(str) or str
+			return string.gsub(str,"%%s",sr)
+		end
+
+		if (hours < 1) then
+			local m = math.floor(minutes)
+			if (m <= 1) then
+				return set_text(text[9])
+			end
+
+			if (npc:section() == "zat_a2_stalker_mechanic") then
+				return set_text(text[math.random(3)],inv_name,m)
+			end
+			return set_text(text[math.random(2)],inv_name,m)
+		elseif (hours < 2) then
+			local m = math.floor(minutes - 60)
+			if (npc:section() == "zat_a2_stalker_mechanic") then
+				return set_text(text[math.random(3,#text)],inv_name,m)
+			end
+			return set_text(text[7],inv_name,m)
+		else
+			local h = math.floor(hours)
+			local m = math.floor(minutes - (60*h))
+			return set_text(text[8],inv_name,h,m)
+		end
+	end
+	return "ERROR in dm_repair_not_done no itm_id"
+end
+
+
+-------------------------------
+-- Upgrades functors
+-------------------------------
+local property_table = {
+-- prop_name - name of the property
+-- parameter_caption - parameter string in the section
+-- koeff - multiplier
+-- use_sign - do not use the +
+-- parameter_description - a string of characteristic values
+--|				prop_name				|	=	|		parameter_caption			|	koeff	|use_sign	|parameter_description	|
+	["prop_restore_health"]		    =	{[1]="health_restore_speed",		[2]=10000,	[3]=false,	[4]="ui_inv_per_10sec",},
+	["prop_restore_bleeding"]		=	{[1]="bleeding_restore_speed",		[2]=10000,	[3]=false,	[4]="ui_inv_per_10sec",},
+	["prop_power"]				    =	{[1]="power_restore_speed",			[2]=1000,	[3]=false,	[4]="ui_inv_per_sec",},
+	["prop_stamina"]				=	{[1]="power_loss",					[2]=-100,	[3]=true,	[4]="ui_inv_percent",},
+	["prop_restore_radiation"]	    =	{[1]="radiation_restore_speed",		[2]=10000,	[3]=false,	[4]="ui_inv_per_10sec",},
+	["prop_chem"]					=	{[1]="chemical_burn_protection",	[2]=100,	[3]=false,	[4]="",},
+	["prop_psy"]					=	{[1]="telepatic_protection",		[2]=200,	[3]=false,	[4]="",},
+	["prop_radio"]				    =	{[1]="radiation_protection",		[2]=200,	[3]=false,	[4]="",},
+	["prop_thermo"]				    =	{[1]="burn_protection",				[2]=100,	[3]=false,	[4]="",},
+	["prop_electro"]				=	{[1]="shock_protection",			[2]=100,	[3]=false,	[4]="",},
+	["prop_damage"]				    =	{[1]="wound_protection",			[2]=100,	[3]=false,	[4]="",},
+	["prop_armor"]				    =	{[1]="armor_value",					[2]=1,		[3]=false,	[4]="",},
+	["prop_durability"]			    =	{[1]="durability_value",			[2]=1,		[3]=false,	[4]="ui_inv_percent",},
+	["prop_tonnage"]				=	{[1]="additional_inventory_weight",	[2]=1,		[3]=false,	[4]="st_kg",},
+	["prop_weightoutfit"]			=	{[1]="inv_weight",					[2]=1,		[3]=false,	[4]="st_kg",},
+	["prop_weighthelm"]			    =	{[1]="inv_weight",					[2]=1,		[3]=false,	[4]="st_kg",},
+	["prop_weight"]				    =	{[1]="inv_weight",					[2]=1,		[3]=false,	[4]="st_kg",},
+	["prop_artefact"]				=	{[1]="artefact_count",				[2]=1,		[3]=false,	[4]="",},
+	["prop_max_health"]			    =	{[1]="max_health_add",				[2]=100,	[3]=false,	[4]="",},
+	["prop_jump_speed"]			    =	{[1]="jump_speed_add",				[2]=25,		[3]=false,	[4]="",},
+	["prop_walk_speed"]			    =	{[1]="walk_accel_add",				[2]=10,		[3]=false,	[4]="",},
+	["prop_binoc_weight"]			=	{[1]="inv_weight",					[2]=1,		[3]=false,	[4]="st_kg",},
+	["prop_ammo_size"]			    =	{[1]="ammo_mag_size",				[2]=1,		[3]=false,	[4]="",},
+	["prop_rpm"]					=	{[1]="rpm",							[2]=1,		[3]=false,	[4]="",},
+}
+
+function get_upgrade_cost(section)
+	-- The text variable to be displayed
+	local str = " "
+	if db.actor then
+		-- Read the amount necessary for installation
+		local price = math.floor(char_ini:r_u32(section, "cost")*cur_price_percent)
+		
+		-- Enter into the text variable the cost of the upgrade
+		str = " " .. game.translate_string("st_upgr_cost") .. ": " .. price
+	end
+	return str
+end
+
+function get_possibility_string(mechanic_name, possibility_table)
+	local str = ""
+	if (cur_hint) then
+		for k,v in pairs(cur_hint) do
+			str = str.."\\n - "..game.translate_string(v)
+		end
+	end
+	if (str == "") then
+		str = " - add hints for this upgrade"
+	end
+	return str
+end
+
+function get_global_precondition_functor(victim, section) -- Tronex
+
+-- 0 = available
+-- 1 = unavailable
+-- 2 = unavailable due to precondition
+
+	local ret = 0
+	local custom = false
+	local mechanic_name = victim:section()
+	
+	-- Read upgrade section parameter
+	if (param_ini:line_exist(mechanic_name .. "_upgr", section)) then
+		local param = param_ini:r_string_ex(mechanic_name .. "_upgr", section)
+		if (param) then
+			custom = true
+			if (param=="false") then
+				ret = 1
+			elseif (param~="true") then
+				local possibility_table = xr_logic.parse_condlist(victim, mechanic_name.."_upgr", section, param)
+				local possibility = xr_logic.pick_section_from_condlist(db.actor, victim, possibility_table)
+				if not(possibility) or (possibility=="false") then
+					ret = 2
+				end
+			end
+		end
+	end
+	
+	-- Read global precondition if upgrade has no defined precondition
+	if (ret == 0) and (not custom) then
+		local indx = section:sub(14,14)
+		local tier = indx and upg_ind[indx] or 1
+		local tier_con = param_ini:r_float_ex(mechanic_name, "def_upgr_tier_" .. tier)
+		--printf("upgrade global precond | mechanic_name: %s - tier: %s - tier_con: %s ", mechanic_name, tier, tier_con)
+		
+		-- check if mechanic has tools suitable upgrade's tier
+		if (tier_con == 0) then
+			if (not has_alife_info(mechanic_name .. "_upgrade_tier_" .. tier)) then
+				--cur_hint = {"st_upgr_condlist"}
+				ret = 2
+				--printf("Need tools!")
+			end
+			
+		-- permanently locked
+		elseif (tier_con == 1) then
+			ret = 1
+			
+		-- permanently unlocked
+		elseif (tier_con == 2) then
+			
+		end
+	end
+	
+	return ret
+end
+
+function precondition_functor_a( param1, section ) -- disable upgrade
+	--printf("precondition_functor_a(%s, %s)", param1, section)
+	
+	if force_upgrade then
+		return 0
+	end
+	
+	local actor = db.actor
+	local victim = get_speaker()
+	if not (victim) then 
+		return 2 
+	end
+
+	local ret = get_global_precondition_functor(victim, section)
+	
+	if not (actor) then -- needed
+		return ret 
+	end
+	if actor then
+		-- We check the availability of the required amount
+		local price = math.floor(char_ini:r_u32(section, "cost")*cur_price_percent)
+		local cash = actor:money()
+		if(cash<price) then
+			ret = 2
+		end
+	end
+	
+	--[[
+	local item_id = ui_item.get_list_highlight()
+	local upgr_sec = string.gsub(section,"sect_","") -- get upgrade base section
+	if item_id and upgr_sec and char_ini:section_exist(upgr_sec) then
+		printf("1")
+		local item = level.object_by_id(item_id)
+		if item then
+			printf("2")
+			local con = item:condition()
+			local scheme = char_ini:r_string_ex(upgr_sec,"scheme_index")
+			scheme = scheme and str_explode(scheme,",") or {}
+			if (#scheme > 0) then
+				printf("3")
+				local upgr_tier = tonumber(scheme[1]) or 1
+				if upgr_tier_con[upgr_tier] and (con < upgr_tier_con[upgr_tier]) then
+					ret = 2 
+					printf("4")
+				end
+			end
+		end
+	end--]]
+
+	return ret
+end
+
+function effect_functor_a( param2, section, loading ) --( string, string, int ) -- action on upgrading
+	--printf("effect_functor_a(%s, %s, %s)", param2, section, loading)
+	
+	if force_upgrade then
+		return
+	end
+	
+	if loading == 0 then
+		local price = math.floor(char_ini:r_u32(section, "cost")*cur_price_percent)
+		db.actor:give_money( -1 * price )
+		
+		effect_funct = true
+
+		-- Do I need to hide the menu after the upgrade?
+		if char_ini:section_exist(section) and (char_ini:r_bool_ex(section, "hide_menu") == true) then
+			hide_hud_inventory()
+		end
+		
+		-- Clear cached ammo types for ammo wheel, cause player might change weapon calibre so this will force updating types
+		item_weapon.clear_cache()
+	end
+end
+
+function prereq_functor_a( param3, section )
+	
+	local victim = get_speaker()
+	if not (victim) then 
+		return ""
+	end
+	
+	local mechanic_name = victim:section()
+	local str = ""
+	local custom = false
+	
+	-- check section precondition
+	if (param_ini:line_exist(mechanic_name.."_upgr", section)) then
+		local param = param_ini:r_string_ex(mechanic_name.."_upgr", section)
+		if (param) then
+			custom = true
+			if (param=="false") then
+				return str
+			else
+				cur_hint = nil
+				local possibility_table = xr_logic.parse_condlist(victim, mechanic_name.."_upgr", section, param)
+				local possibility = xr_logic.pick_section_from_condlist(db.actor, victim, possibility_table)
+				if not(possibility) or (possibility=="false") then
+					str = str .. get_possibility_string(mechanic_name, possibility_table)
+				end
+			end
+		end
+	end
+
+	-- Check global precondition
+	if (not custom) then
+		local indx = section:sub(14,14)
+		local tier = indx and upg_ind[indx] or 1
+		local tier_con = param_ini:r_float_ex(mechanic_name, "def_upgr_tier_" .. tier)
+		--printf("upgrade global precond | mechanic_name: %s - tier: %s - tier_con: %s ", mechanic_name, tier, tier_con)
+		
+		-- check if mechanic has tools suitable upgrade's tier
+		if (tier_con == 0) then
+			if (not has_alife_info(mechanic_name .. "_upgrade_tier_" .. tier)) then
+				str = str .. "\\n - " .. game.translate_string("st_upgr_condlist")
+			end
+		-- permanently locked
+		elseif (tier_con == 1) then
+			str = str .. "\\n - " .. game.translate_string("st_upgr_cant_do")
+		end
+	end
+	
+	-- Check money
+	local actor = db.actor
+	if actor then
+		-- We read from the upgrade section its price
+		local price = math.floor(char_ini:r_u32(section, "cost")*cur_price_percent)
+		-- Read the number of dough from YY
+		local cash = actor:money()
+		-- If the bubble is not enough, then we list the corresponding line
+		if (cash < price) then
+			str = str .. "\\n - "..game.translate_string("st_upgr_enough_money").."\\n   � "..price-cash.." RU"
+		end
+	end
+	--
+	--[[
+	printf("prereq_functor_a")
+	local item_id = ui_item.get_list_highlight()
+	local upgr_sec = string.gsub(section,"sect_","") -- get upgrade base section
+	if item_id and upgr_sec and char_ini:section_exist(upgr_sec) then
+		local item = level.object_by_id(item_id)
+		if item then
+			local con = item:condition()
+			local scheme = char_ini:r_string_ex(upgr_sec,"scheme_index")
+			scheme = scheme and str_explode(scheme,",") or {}
+			if (#scheme > 0) then
+				local upgr_tier = tonumber(scheme[1]) or 1
+				if upgr_tier_con[upgr_tier] and (con < upgr_tier_con[upgr_tier]) then
+					str = str.."\\n - ".. game.translate_string("st_ui_workshop_no_upgr_3") .."\\n   � " .. game.translate_string("st_ui_upgr_required_con") .. ": " .. math.ceil(con*100).." %"
+				end
+			end
+		end
+	end--]]
+	
+	return str
+end
+
+function property_functor_a(param1, name)
+	--printf("-property_functor_a(%s,%s)",param1,name)
+	local prorerty_name = char_ini:r_string(name, "name")
+	local t_prorerty_name = game.translate_string(prorerty_name)
+	local section_table = parse_names(param1)
+	local section_table_n = #section_table
+	local section = section_table[1]
+	if(section_table_n==0) then
+		return ""
+	end
+	if	name=="prop_night_vision_1"		or
+		name=="prop_night_vision_2"		or
+		name=="prop_night_vision_3"		or
+		name=="prop_sprint"				or
+		name=="prop_scanner"			or
+		name=="prop_dozimeter"			or
+		name=="prop_psy_controller"		then
+			return t_prorerty_name
+	end
+	local value = 0
+	local sum = 0
+	for i = 1,section_table_n do
+		if not(char_ini:line_exist(section_table[i], "value")) or not(char_ini:r_string(section_table[i], "value")) then
+			return t_prorerty_name
+		end
+		value = char_ini:r_string(section_table[i], "value")
+		if(name~="prop_night_vision") then
+			sum = sum + tonumber(value)
+		else
+			sum = tonumber(value)
+		end
+		
+	end
+	if(sum<0) then
+		value = sum
+	else
+		value = "+"..sum
+	end
+	
+	if(name=="prop_ammo_size" or name=="prop_artefact") then
+		return t_prorerty_name.." "..value
+	elseif(name=="prop_restore_bleeding" or name=="prop_restore_health" or name=="prop_power") then
+		if(name=="prop_power") then
+			value = "+"..tonumber(value)*2
+		end
+ --		local str = string.format("%s %4.1f", t_prorerty_name, value)
+ --		return str
+		return t_prorerty_name.." "..value
+	elseif(name=="prop_tonnage" or name=="prop_weightoutfit" or name=="prop_weight") then
+			local str = string.format("%s %5.2f %s", t_prorerty_name, value, game.translate_string("st_kg"))
+			return str
+	elseif(name=="prop_night_vision") then
+		if(tonumber(value)==1) then
+			return t_prorerty_name
+		else
+			return game.translate_string(prorerty_name.."_"..tonumber(value))
+		end
+	elseif(name=="prop_no_buck" or name=="prop_autofire") then
+
+		return t_prorerty_name
+	end
+	if	name=="prop_reliability"	or
+		name=="prop_recoil"			or
+		name=="prop_dispersion"		or
+		name=="prop_bullet_speed"	or
+		name=="prop_chem"			or
+		name=="prop_psy"			or
+		name=="prop_radio"			or
+		name=="prop_thermo"			or
+		name=="prop_electro"		or
+		name=="prop_damage"			or
+		name=="prop_armor"			or
+		name=="prop_rpm"			or
+		name=="prop_durability"		or
+		name=="prop_inertion"		then
+			value = value.."%"
+	end
+	return t_prorerty_name.." "..value
+end
+
+function property_functor_b( param1, name )
+	--printf("-property_functor_b(%s,%s)",param1,name)
+	return issue_property( param1, name )
+end
+
+function property_functor_c( param1, name )
+	--printf("-property_functor_c(%s,%s)",param1,name)
+	return issue_property( param1, name )
+end
+
+function property_functor_t(param1, name) 		
+	--printf("-property_functor_t(%s,%s)",param1,name)
+	local section_table = parse_names(param1)
+	if (#section_table == 0) then 
+		return ""
+	end
+
+	local prop_name = ini_sys:r_string_ex(name, "name")
+	local sum = 0
+	local val
+	
+	for i=1,#section_table do
+		if (name == "prop_binoc_nightvision") then
+			if (ini_sys:line_exist(section_table[i],"scope_nightvision")) then
+				val = ini_sys:r_float_ex(section_table[i], "value")
+				if (val) then
+					if (val > sum) then 
+						sum = val 
+					end
+				end
+			end
+		elseif (name == "prop_binoc_zoom") then
+			sum = ini_sys:r_float_ex(section_table[i],"value",0)
+		end
+	end
+	
+	local val_s
+	if (sum > 0) then
+		val_s = "+" .. round_idp(sum)
+	else 
+		val_s = round_idp(sum)
+	end 
+	
+	if (name == "prop_binoc_nightvision") then
+		return game.translate_string(prop_name .. "_" .. tostring(sum))
+	elseif (name == "prop_binoc_zoom") then
+		return game.translate_string(prop_name) .. " x" .. sum
+	elseif (name == "prop_binoc_autolock") then
+		return game.translate_string(prop_name)
+	end
+end
+
+function property_functor_d(param1, name)
+	--printf("-property_functor_d(%s,%s)",param1,name)
+	-- We read a line that refers to the name of the upgrade
+	local prorerty_name = char_ini:r_string(name, "name")
+	-- Convert the name string to the human form
+	local t_prorerty_name = game.translate_string(prorerty_name)
+	-- We parse the incoming line with the names of the sections used
+	local section_table = parse_names(param1)
+	-- Count the number of sections
+	local section_table_n = #section_table
+	-- If no partitions are attached or there is no such property in the table,
+	if (section_table_n==0) or (not property_table[name]) then
+		-- then return an empty string
+		return ""
+	end
+	-- The numeric value that we will display in the properties
+	local value = 0
+	-- Sign
+	local sign = " +"
+	-- Characteristic values
+	local additional_parameter = game.translate_string(property_table[name][4])
+	-- Read the desired value from all the sections provided
+	for i = 1,section_table_n do
+		-- From the section we read the required parameter and add it to the already existing value
+		value = value + tonumber(char_ini:r_string(section_table[i], property_table[name][1]))
+	end
+	-- Multiply the resulting value by the calibration factor from the table
+	value = value * tonumber(property_table[name][2])
+	-- Check the sign
+	if property_table[name][3] or value<0 then
+		sign = " "
+	end
+	-- Further we will write down all characteristics of an upgrade in a line
+	local str = ""
+	-- If the property has a character of changing the weight characteristics,
+	if	name=="prop_tonnage"		or
+		name=="prop_weightoutfit"	or
+		name=="prop_weighthelm"		or
+		name=="prop_weight"			or
+		name=="prop_binoc_weight"	then
+			-- it is necessary to display the value in the form of a number with two decimal places
+			str = string.format("%s%s%4.2f %s", t_prorerty_name, sign, value, additional_parameter)
+	-- Otherwise we go according to the standard algorithm
+	else
+		-- We round the resulting value
+		value = math.floor(value)
+		-- Convert the resulting value into a string of the form "[property name] [+ / - /] [value] [value characteristic]"
+		str = string.format("%s%s%d %s", t_prorerty_name, sign, value, additional_parameter)
+	end
+	-- Return the resulting line
+	return str
+end
+
+function issue_property( param1, name )
+	local prorerty_name = char_ini:r_string_ex(name, "name")
+	local t_prorerty_name = game.translate_string(prorerty_name)
+	local value_table = parse_names(param1)
+	local section = value_table[1]
+	if section then
+		if not char_ini:line_exist(section, "value") or not char_ini:r_string_ex(section, "value") then
+			return t_prorerty_name
+		end
+		local value = char_ini:r_string_ex(section, "value")
+		return t_prorerty_name.." "..string.sub(value, 2, -2)
+	else
+		return t_prorerty_name
+	end
+end
+
+
+local function how_much_repair( item_name, item_condition )
+	local cost = ini_sys:r_u32(item_name, "cost")
+	local class = ini_sys:r_string_ex(item_name, "class")
+	local cof = game_difficulties.get_eco_factor("repair") or 1.67
+	if string.find(item_name, "prt_w") then
+		return arti_jamming.get_parts_price(item_name, item_condition * 100) * cof
+	end
+	local stored_coef = arti_jamming_mcm.get_config("cleancoef")
+	local wpncoef = (item_name and arti_jamming.section_has_parts(item_name)) and stored_coef or 1
+	--return math.floor( cost * factor * math.pow(1 - item_condition , 1.63) )
+	return math.floor( cost * (1 - item_condition) * cof * wpncoef ) -- CoP formula, adjusted down further (arti)
+end
+
+function can_afford_repair_item( item_name, item_condition )
+	local price = how_much_repair( item_name, item_condition )
+	if db.actor:money() < price then
+		return false
+	end
+	
+	return true
+end
+
+function can_repair_item( sec, cond, mechanic ) --( string, float, string )
+	if (sec == "pri_a17_gauss_rifle") then
+		return false
+	end
+	
+	if IsItem("battery", sec) 
+	or IsItem("device", sec)
+	or (IsItem("part", sec) and not string.find(sec, "prt_w"))
+	or IsItem("consumable",sec)
+	then
+		return false
+	end
+		
+	local obj = db.actor:object(sec)
+	if obj then
+		local clsid = obj:clsid()
+		
+		if IsWeapon(nil,clsid)
+		or IsOutfit(nil,clsid)
+		or IsHeadgear(nil,clsid)
+		then
+			return true
+		elseif IsArtefact(nil,clsid) then
+			return false
+		end
+	end
+
+	return ini_sys:r_bool_ex(sec,"use_condition")
+end
+
+function question_repair_item( item_name, item_condition, can, mechanic ) --( string, float, bool, string )
+	if(item_name=="pri_a17_gauss_rifle") then
+		return game.translate_string("st_gauss_cannot_be_repaired")
+	end
+
+	if can then
+		local price = how_much_repair( item_name, item_condition )
+		if db.actor:money() < price then
+			return game.translate_string("st_upgr_cost")..": "..price.." RU\\n"..game.translate_string("ui_inv_not_enought_money")..": "..price-db.actor:money().." RU"
+		end
+		return game.translate_string("st_upgr_cost").." "..price.." RU. "..game.translate_string("ui_st_inv_repair").."?"
+	end
+	
+	return nil
+end
+
+function effect_upgrade_item(item,upgrade_section) -- Alundaio: called from engine (UIInventoryUpgradeWnd.cpp)
+	--printf("effect_upgrade_item (%s)[%s]: %s", item:id(), item:section(), upgrade_section)
+	
+	if (item:section() == "wpn_binoc") or (ui_options.get("gameplay/general/mechanic_feature") ~= true) then 
+		return
+	end
+	
+	local victim = get_speaker()
+	if (victim) then
+		lend_item_for_repair(item,victim:section(),1800)
+	end
+end 
+
+function effect_repair_item( item_name, item_condition)
+	local price = how_much_repair( item_name, item_condition )
+	db.actor:give_money(-price)
+
+	if (item_name == "wpn_binoc") or (ui_options.get("gameplay/general/mechanic_feature") ~= true) then 
+		return
+	end
+
+	local item
+	local function itr(actor,itm)
+		if (itm and itm:section() == item_name and itm:condition() == item_condition) then
+			item = itm
+			return true
+		end
+		return false
+	end
+
+	db.actor:iterate_inventory(itr,db.actor)
+
+	if (item) then
+		local victim = get_speaker()
+		if (victim) then
+			local damage_factor = 1.0 - clamp(item_condition, 0.0, 1.0)
+			lend_item_for_repair(item,victim:section(),6000*damage_factor)
+		end
+	end
+end
+
+function can_upgrade_item( item_name, mechanic )
+	local victim = get_speaker()
+	if not (victim) then 
+		return 
+	end
+	local mechanic_name = victim:section()
+	if param_ini:line_exist(mechanic_name, "discount_condlist") then
+		local parsed = param_ini:r_string_to_condlist(mechanic_name,"discount_condlist")
+		if (parsed) then
+			xr_logic.pick_section_from_condlist(db.actor, nil, parsed)
+		end
+	end
+	return true
+end
+
+function mech_discount(perc)
+	local eco_factor = game_difficulties.get_eco_factor("upgrade") or 1
+	cur_price_percent = perc * eco_factor
+end
+
+function get_price_percent()
+	return cur_price_percent
+end
+
+function delayed_upgrades_fix(m_data)
+	if not alife_storage_manager.get_state().delayed_upgrades_fix then
+		alife_storage_manager.get_state().delayed_upgrades_fix = true
+		m_data.RepairItemList = nil
+	end
+end
