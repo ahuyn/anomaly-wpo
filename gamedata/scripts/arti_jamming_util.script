@@ -1,0 +1,78 @@
+
+-------------------
+-- SECTION utils --
+-------------------
+
+function print_dbg(txt, ...)
+	local enable_debug = get_config("debug") or false
+	if enable_debug then
+		printf("arti_jamming | %s | " .. txt, time_global(), ...)
+	end
+end
+
+function send_msg(msg, verbosity)
+	local v = get_config("verbosity") or 1
+	if (v >= verbosity) then
+		actor_menu.set_msg(1, msg,3)
+	end
+end
+
+--gun jam play swearing sound
+function jam_swearing()
+	if get_config("profanity") and math_random(1,100) > 50 then
+		local lang = get_config("profanity_language") or "rus"
+		utils_obj.play_sound("cutscenes\\"..lang.."\\gun_jam_"..math_random(1,7), 1 )
+    end
+end
+
+
+function is_part(part)
+	-- return string.find(part, "prt_w")
+	return IsItem("part", part)
+end
+
+function is_barrel(part)
+	return is_part(part) and string.find(part, "barrel")
+end
+function is_trigger(part)
+	return is_part(part) and  string.find(part, "trigger")
+end
+
+-- true if item is a firearm with parts
+function has_parts(wpn)
+	if wpn and IsWeapon(wpn) and (not IsMelee(wpn)) then
+		-- print_dbg("Checking if %s is a gun", wpn:section())
+		local sec = ini_sys:r_string_ex(wpn:section(),"parent_section") or wpn:section()
+		local parts = ini_parts:r_string_ex("con_parts_list", sec)
+		return parts ~= nil
+	else 
+		return false
+	end
+end
+
+function section_has_parts(sec)
+	local parts = ini_parts:r_string_ex("con_parts_list", sec)
+	return parts ~= nil
+end
+
+function missing_parts(wpn)
+	if wpn:id() == current_gun then
+		for k,v in pairs(current_gun_parts_con) do
+			if v == -1 then return true end
+		end
+	else
+		local parts = item_parts.get_parts_con(wpn, nil, true)
+		for k,v in pairs(parts) do
+			if is_part(k) and v == -1 then return true end
+		end
+	end
+	return false
+end
+
+
+function play_anim(weapon, anim, sound)
+	weapon:play_hud_motion(anim, true, 0, 1, 0)
+	if sound then
+		utils_obj.play_sound(sound)
+	end
+end
