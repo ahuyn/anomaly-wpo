@@ -1,91 +1,11 @@
-
+local ini_parts   = itms_manager.ini_parts
 local parts_info = {}
-
-function get_parts_price(prt_name, prt_cond)
-	if prt_cond < arti_jamming_mcm.get_config("repairmin") then
-		-- replace
-		print_dbg("looking for "..prt_name)
-		return parts_info[prt_name].price or 8000
-	else
-		-- repair
-		return string.find(prt_name, "_p_") and 500 or 1000
-	end
-end
-
-
-function try_replace_part(wpn, table, part, using_tool)
-	if (is_barrel(part:section())) then
-		news_manager.send_tip(db.actor, game.translate_string("st_news_parts_barrel"), nil, "swiss_knife", 6000)
-	elseif (wpn:condition() < REPLACE_THRESHOLD) then
-		news_manager.send_tip(db.actor, game.translate_string("st_news_parts_rusty"), nil, "swiss_knife", 6000)
-	else
-		print_dbg("Replacing %s", part:section())
-		local tmp = table[part:section()]
-		table[part:section()] = math_floor(part:condition() * 100)
-		if tmp == -1 then
-			-- part missing, do not swap conditions
-			alife_release_id(part:id())
-		else
-			part:set_condition(tmp/100)
-		 end
-		item_parts.set_parts_con(wpn:id(), table)
-		if (wpn:id() == current_gun) then
-			arti_jamming.current_gun_parts_con[part:section()] = table[part:section()]
-		end
-		-- lose a little condition when replacing parts
-		local wpn_cond = math_floor(wpn:condition() * 100)
-		if wpn:condition() > 0.6 then
-			local range = using_tool and 3 or 13
-			wpn:set_condition(wpn:condition() - (math_random(3, 3 + range)/100)) 
-		end
-		if mag_support.using_mags() and mag_support.is_mag_loaded(wpn) then 
-			mag_support.eject_mag(wpn)
-		else
-			wpn:force_unload_magazine(true)
-		end
-
-		news_manager.send_tip(db.actor, game.translate_string("st_news_parts_success"), nil, "swiss_knife", 6000)
-	end
-end
-
-function field_strip(wpn)
-	local chk = ui_options.get("control/general/disassembly_warning")
-	if chk and (not d_flag) then
-		actor_menu.set_item_news("success", "detail", "st_awr_ctrl")
-		return
-	end
-	
-	if wpn and has_parts(wpn) then
-		local is_current = wpn:id() == current_gun
-		local parts = is_current and current_gun_parts_con or item_parts.get_parts_con(wpn, nil, true)
-		for k,v in pairs(parts) do
-			if is_part(k) and v ~= -1 and not is_barrel(k) then
-				print_dbg("Removing part %s with condition %s", k, v)
-				parts[k] = -1
-				-- taken from spawn_with_condition to create w. condition
-				local part_to_spawn = alife_create(k, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id(), false)
-				local data = utils_stpk.get_item_data(part_to_spawn)
-				data.condition = v/100
-				utils_stpk.set_item_data(data,part_to_spawn)
-				alife():register(part_to_spawn)
-			end
-			if mag_support.using_mags() and mag_support.is_mag_loaded(wpn) then 
-				-- wuut_mags.weapon_eject_mag_functor(wpn)
-				mag_support.eject_mag(wpn)
-			else
-				wpn:force_unload_magazine(true)
-			end
-		end
-		item_parts.set_parts_con(wpn:id(), parts)
-	else
-		-- complain
-		news_manager.send_tip(db.actor, game.translate_string("st_field_strip_fail"), nil, "swiss_knife", 6000)
-	end
-end
+has_parts = arti_jamming.has_parts
+print_dbg = arti_jamming.print_dbg
 
 function repair_weapon_toolkit(weapon, toolkit_section)
 	if string.find(toolkit_section, "toolkit_") and has_parts(weapon) then
-		local parts = weapon:id() == current_gun and current_gun_parts_con or item_parts.get_parts_con(weapon, nil, true)
+		local parts = item_parts.get_parts_con(weapon, nil, true)
 		-- find the lowest condition part, and restore it to 100
 		local lowest = nil
 		for k,v in pairs(parts) do
@@ -96,9 +16,11 @@ function repair_weapon_toolkit(weapon, toolkit_section)
 		if lowest then 
 			print_dbg("Replacing part %s in weapon %s", lowest, weapon:section())
 			parts[lowest] = 99
+			if weapon:id() == arti_jamming.current_id() then
+				arti_jamming.reset_cgd()
+			end
 			item_parts.set_parts_con(weapon:id(), parts)
 		end
-		-- item_parts.set_parts_con(weapon:id(), parts)
 	end
 end
 -- what is good part, what is not
@@ -110,14 +32,14 @@ function weapon_eval_parts(wpn)
 	local base_chance = tonumber(arti_jamming_mcm.get_config("newdropschance")) or 50
 	local adjusted = base_chance * wpn:condition()
 	local parts_data = {}
-	parts_data[sec] = math.ceil(wpn:condition())
+	parts_data[sec] = math.ceil(wpn:condition() * 100)
 	for i=1,#parts do
 		local part = parts[i]
-		local final_chance = math.ceil(adjusted * parts_info[part].weight)
-		printf("Part %s has a %s chance to be good.", part, final_chance)
+		local final_chance = math.ceil(adjusted)-- * parts_info[part].weight)
+		print_dbg("Part %s has a %s chance to be good.", part, final_chance)
 		
 		if wpn:condition() > 0.98 then
-			printf("Short circuiting")
+			print_dbg("Short circuiting")
 			parts_data[part] = 99
 		elseif math.random(100) < final_chance then
 			parts_data[part] = math.random(good_breakpoint, 99)
@@ -179,10 +101,10 @@ function on_game_start()
 
 	for i=0, n-1 do
 		local result, sec, value = parts_list:r_line("wpo_part_prices" , i , "", "")
-		local result1, sec1, value1 = parts_list:r_line("wpo_part_weights" , i , "", "")
+		-- local result1, sec1, value1 = parts_list:r_line("wpo_part_weights" , i , "", "")
 		print_dbg("Set %s to price %s, weight %s", sec, value, value1)
 		parts_info[sec] = {}
 		parts_info[sec].price = tonumber(value)
-		parts_info[sec].weight = tonumber(value1)
+		-- parts_info[sec].weight = tonumber(value1)
 	end
 end

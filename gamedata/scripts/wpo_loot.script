@@ -69,9 +69,9 @@ function on_game_start()
 	for i=0, n-1 do
 		local result, sec, value = parts_list:r_line("wpo_part_prices" , i , "", "")
         if string.find(sec, "_p_") then
-            parts_list.s[#parts_list.s] = sec
+            -- parts_list.s[#parts_list.s] = sec
         else
-            parts_list.l[#parts_list.l] = sec
+            -- parts_list.l[#parts_list.l] = sec
         end
 	end
 	RegisterScriptCallback("ActorMenu_on_trade_started",on_trade_opened)
