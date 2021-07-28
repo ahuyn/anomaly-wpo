@@ -73,6 +73,11 @@ Barrels below 75% condition will lose damage up to 50% less damage at 0% conditi
 Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
 
 Changelog
+1.7
+- No more parts repair at mechanics! That annoying cleaning/replacement system is gone!
+- Now mechanics stock a random selection of parts - at a markup. Giving them more toolkits increases the amount of parts they stock.
+- Added an option to disable profanity spam.
+- Weapon degradation in rain now only happens above 60%.
 1.6.1.2
 - Dynamic support for wuut_mags and arti mags.
 1.6.1.1

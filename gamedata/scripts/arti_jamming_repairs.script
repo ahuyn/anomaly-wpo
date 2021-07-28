@@ -1,0 +1,326 @@
+local ini_parts   = itms_manager.ini_parts
+local disassembly_chance
+local max_con_obj = 0.999
+local min_con_obj = 0.001
+local spare_parts = utils_data.collect_section(ini_parts,"weapons_spare_parts")
+local parts_info = {}
+has_parts = arti_jamming.has_parts
+is_part = arti_jamming.is_part
+print_dbg = arti_jamming.print_dbg
+math_floor = math.floor
+
+function repair_weapon_toolkit(weapon, toolkit_section)
+	if string.find(toolkit_section, "toolkit_") and has_parts(weapon) then
+		local parts = item_parts.get_parts_con(weapon, nil, true)
+		-- find the lowest condition part, and restore it to 100
+		local lowest = nil
+		for k,v in pairs(parts) do
+			if not lowest or parts[k] < parts[lowest] then
+				lowest = k
+			end
+		end
+		if lowest then 
+			print_dbg("Replacing part %s in weapon %s", lowest, weapon:section())
+			parts[lowest] = 99
+			if weapon:id() == arti_jamming.current_id() then
+				arti_jamming.reset_cgd()
+			end
+			item_parts.set_parts_con(weapon:id(), parts)
+		end
+	end
+end
+-- what is good part, what is not
+local good_breakpoint = 65
+function weapon_eval_parts(wpn)
+    local sec = ini_sys:r_string_ex(wpn:section(),"parent_section") or wpn:section()
+    local parts = ini_parts:r_string_ex("con_parts_list", sec)
+	parts = str_explode(parts,",")
+	local base_chance = tonumber(arti_jamming_mcm.get_config("newdropschance")) or 50
+	local adjusted = base_chance * wpn:condition()
+	local parts_data = {}
+	parts_data[sec] = math.ceil(wpn:condition() * 100)
+	for i=1,#parts do
+		local part = parts[i]
+		local final_chance = math.ceil(adjusted)-- * parts_info[part].weight)
+		print_dbg("Part %s has a %s chance to be good.", part, final_chance)
+		
+		if wpn:condition() > 0.98 then
+			print_dbg("Short circuiting")
+			parts_data[part] = 99
+		elseif math.random(100) < final_chance then
+			parts_data[part] = math.random(good_breakpoint, 99)
+		else
+			parts_data[part] = math.random(1, good_breakpoint - 1)
+		end
+    end
+	se_save_var( wpn:id(), wpn:name(), "parts", parts_data )
+end
+
+-- monkey patching
+OnRepair = item_repair.UIRepair.OnRepair
+
+function item_repair.UIRepair:OnRepair()
+	local obj_1 = self.CC[1]:GetCell_Selected(true)
+	repair_weapon_toolkit(obj_1, self.obj:section())
+	OnRepair(self)
+end
+
+EvaluateParts = item_parts.evaluate_parts
+
+function item_parts.evaluate_parts(obj)
+    local sec = obj:section()
+	sec = ini_sys:r_string_ex(sec,"parent_section") or sec -- for weapons with scopes
+	local id = obj:id()
+	local m_con = math.ceil(obj:condition() * 100) -- default condition of the item
+	
+	local parts = ini_parts:r_string_ex("con_parts_list",sec)
+	if parts then
+		parts = str_explode(parts,",")
+		
+		local data = se_load_var(id, obj:name(), "parts")
+
+		-- Savegame compatibility. Recalculate with changed parts
+		if data and data[sec] then
+			for i=1,#parts do
+				if (not data[parts[i]]) then
+					empty_table(data)
+					break
+				end
+			end
+		end
+
+		-- premature terminate if data exists for weapons
+		if data and IsWeapon(obj) and not is_empty(parts)  then return
+        elseif has_parts(obj) and arti_jamming_mcm.get_config("newdrops") then
+			print_dbg("Alternate evaluation.")
+            weapon_eval_parts(obj)
+        else
+            EvaluateParts(obj)
+		end
+    end
+end
+
+local temp_con = {}
+
+-- Prevent weapons with damaged/deformed parts from selling by temp setting condition to 0.
+local function on_trade_opened()
+	local function check_parts(temp, wpn)
+		-- print_dbg("Evaluating item %s", wpn:id())
+		if has_parts(wpn) then
+			local parts = item_parts.get_parts_con(wpn, nil, true)
+			for k,v in pairs(parts) do
+				local minpart = arti_jamming_mcm.get_config("minpart") or 51
+				if is_part(k) and v <= minpart then
+					print_dbg("Weapon %s (%s) has low quality part. Blacklisting for sale.", wpn:section(), wpn:id())
+					temp_con[wpn:id()] = wpn:condition()
+					wpn:set_condition(0)
+					break
+				end
+			end
+		end
+	end
+	db.actor:iterate_inventory(check_parts,nil)
+	
+	local wpn1 = db.actor:item_in_slot(1)
+	if wpn1 and (not temp_con[wpn1:id()]) then
+		check_parts(nil, wpn1)
+	end
+	
+	local wpn2 = db.actor:item_in_slot(2)
+	if wpn2 and (not temp_con[wpn2:id()]) then
+		check_parts(nil, wpn2)
+	end
+	
+	local wpn3 = db.actor:item_in_slot(3)
+	if wpn3 and (not temp_con[wpn3:id()]) then
+		check_parts(nil, wpn3)
+	end
+end
+
+local function on_trade_closed()
+	for k,v in pairs(temp_con) do
+		local obj = level.object_by_id(k)
+		if obj then
+			local p = obj:parent()
+			if (p and p:id() == AC_ID) then
+				alife_process_item(obj:section(),k, {cond = v})
+			end
+		end
+	end
+	temp_con = empty_table(temp_con)
+end
+
+-- gotta do this whole ass thing to monkey patch 1 line
+
+local function disassembly_weapon_spare_parts(sec, condition)
+	local single_handed = ini_sys:r_float_ex(sec,"single_handed") or 1
+	local weight = ini_sys:r_float_ex(sec,"inv_weight") or 2
+	local number,finale = 0,0
+	
+	number = math_floor(weight)
+	if (single_handed == 1) then number = 1 end
+	
+	for i=1,number do
+		if (math.random(100) < condition) then
+			finale = finale + 1
+		end
+	end
+	
+	return finale
+end
+
+
+local function timer_disassembly_weapon(npc_id, result_details, result_conditions, name)
+
+	-- Who is item owner? we must give them the parts
+	local npc = npc_id and get_object_by_id(npc_id)
+	if (not npc) then
+		printf("~ item_parts timer | no owner found")
+		return
+	end
+	
+	-- Send messages to the actor
+	if #result_details > 0 then
+		local parts_text = item_parts.create_disassemble_list(result_details)
+		actor_menu.set_item_news('success', 'weapon_ammo', "st_dis_text_7", name, game.translate_string('st_dis_text_9'), parts_text)
+	else
+		actor_menu.set_item_news('fail', 'weapon', "st_dis_text_2", name)
+	end
+	
+	-- Creating parts in inventory
+	for i=1,#result_details do
+		if result_conditions[i] and result_conditions[i] > 0 then
+			local se_result = alife_create(result_details[i], npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id(), false)
+			local data_result = utils_stpk.get_item_data(se_result)
+			data_result.condition = clamp( (result_conditions[i]/100) , min_con_obj , max_con_obj )
+			utils_stpk.set_item_data(data_result,se_result)
+			alife():register(se_result)
+		else
+			alife_create_item(result_details[i], npc)
+		end
+	end
+	
+	return true
+end
+
+function item_parts.disassembly_weapon(obj, obj_d)
+
+	-- Defines
+	local id = obj:id()
+	local se_obj = alife_object(id)
+	local sec = obj:section()
+	local sec_p = ini_sys:r_string_ex(sec,"parent_section") or sec
+	local name = ui_item.get_sec_name(sec)
+	local con = obj:condition()
+	local parts = item_parts.get_parts_con(obj, nil, true)
+	local npc = obj:parent()
+	if (not npc) then
+		printf("~ item_parts | no owner found for [%s]", obj:name())
+		return
+	end
+	
+	local result_details = {}
+	local result_conditions = {}
+	local get_ammo = {}
+	local with_scope = nil
+	local delay = actor_effects.is_animations_on() and 3 or 0
+
+	-- Collect attachments
+	with_scope = utils_item.has_scope(sec)
+	if with_scope then
+		with_scope = string.format('_%s', utils_item.has_scope(sec))
+		table.insert(result_details, with_scope:sub(2))
+		sec = sec:gsub(with_scope, "")
+	end	
+	if (obj:weapon_scope_status() == 2) and (utils_item.addon_attached(obj,"sc")) then
+		local scope_section = utils_data.read_from_ini(nil,sec,"scopes_sect","string",nil)
+		local scope = utils_data.read_from_ini(nil,scope_section,"scope_name","string",nil)
+		table.insert(result_details, scope)
+	end
+	if (obj:weapon_silencer_status() == 2) and (utils_item.addon_attached(obj,"sl")) then
+		local sil = utils_data.read_from_ini(nil,sec,"silencer_name","string",nil)
+		table.insert(result_details, sil)
+	end	
+	if (obj:weapon_grenadelauncher_status() == 2) and (utils_item.addon_attached(obj,"gl")) then
+		local gl = utils_data.read_from_ini(nil,sec,"grenade_launcher_name","string",nil)
+		table.insert(result_details, gl)
+	end
+	
+	-- Unload mag and get ammo
+	obj:force_unload_magazine(true)
+	
+	-- Collect weapon parts
+	for k,v in pairs(parts) do
+		if (k ~= sec_p) and v > 0 and (math.random(100) <= (disassembly_chance + con*100)) then
+			local index = #result_details
+			result_details[index + 1] = k
+			result_conditions[index + 1] = IsItem("part",k) and utils_item.get_cond_static(v) or v
+		end
+	end
+	
+	-- Collect weapon spare parts
+	for i=1,#spare_parts do
+		local num = disassembly_weapon_spare_parts(sec, disassembly_chance/2)
+		if (num > 0) then
+			for j=1,num do
+				table.insert(result_details,spare_parts[i])
+			end
+		end
+	end
+	
+	-- Collect installed upgrades
+	local installed_upgrades = utils_item.get_upgrades_installed(obj)
+	local upgr_tools = {}
+	
+	for i=1,#installed_upgrades do
+		local tool = utils_item.get_upgrade_sect_tool(sec, installed_upgrades[i])
+		table.insert(upgr_tools,tool)
+	end
+	
+	for i=1,#upgr_tools do
+		if math.random(100) < con*50 then
+			table.insert(result_details,upgr_tools[i])
+		end
+	end
+	
+	-- Release weapon
+	alife_release(se_obj)
+	
+	-- Degrade disassemble tool
+	local diss_tools = GetItemList("disassemble")
+	local degr_val = diss_tools[obj_d:section()]
+	utils_item.degrade( obj_d , degr_val )
+
+	-- Increase Statistic
+	game_statistics.increment_statistic("items_disassembled")
+	item_parts.clear_parts_con(id)
+	
+	-- Play animation
+	actor_effects.play_item_fx("disassemble_metal_fast")
+	
+	-- Process
+	CreateTimeEvent(0,"delay_disassembly" .. id, delay, timer_disassembly_weapon, npc:id(), result_details, result_conditions, name)
+end
+
+function on_game_start()
+	
+	disassembly_chance  = ini_parts:r_float_ex("settings","disassembly_chance") or 40
+    local parts_list = ini_file("items\\settings\\part_prices.ltx")
+	local part_section = utils_data.collect_section(parts_list, "wpo_part_prices")
+	local n = parts_list:line_count("wpo_part_prices") or 0
+
+	for i=0, n-1 do
+		local result, sec, value = parts_list:r_line("wpo_part_prices" , i , "", "")
+		-- local result1, sec1, value1 = parts_list:r_line("wpo_part_weights" , i , "", "")
+		print_dbg("Set %s to price %s, weight %s", sec, value, value1)
+		parts_info[sec] = {}
+		parts_info[sec].price = tonumber(value)
+		-- parts_info[sec].weight = tonumber(value1)
+	end
+end
+
+function on_game_start()
+	
+	RegisterScriptCallback("ActorMenu_on_trade_started",on_trade_opened)
+	RegisterScriptCallback("ActorMenu_on_trade_closed",on_trade_closed)
+end

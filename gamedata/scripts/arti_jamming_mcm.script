@@ -1,13 +1,13 @@
 -- If you don't use MCM, change your defaults from here.
 local defaults = {
     ["profanity"] = true,
+    ["profanity_timeout"] = true,
     ["profanity_language"] = "rus",
     ["verbosity"] = 1,
     ["jamchance"] = 1,
     ["superjam"] = true,
     ["cleancoef"] = 0.4,
     ["minpart"] = 51,
-    ["repairmin"] = 65,
     ["newdrops"] = false,
     ["newdropschance"] = 50,
     ["degradation"] = 1.4,
@@ -22,6 +22,7 @@ function on_mcm_load()
     op = { id= "wpo",sh=true ,gr={
             { id= "title",type= "slide",link= "ui_options_slider_player",text="ui_mcm_wpo_title",size= {512,50},spacing= 20 },
             {id = "profanity", type = "check", val = 1, def = true},
+            {id = "profanity_timeout", type = "check", val = 1, def = true},
             {id = "profanity_language", type = "radio_h",  content={ {"eng","eng"} , {"rus","rus"}} ,val = 0, def ="rus"},
             {id = "verbosity", type = "radio_h", val = 2, content={ {0,"verbosity_none"} , {1,"verbosity_normal"} , {2,"verbosity_full"} }, def = 1 },
             {id = "jamchance", type = "track", val = 2, min=0.5,max=2,step=0.01, def = 1},
@@ -30,11 +31,9 @@ function on_mcm_load()
             {id = "newdropschance", type = "track", val = 2, min=10,max=120,step=1, def = 50},
             {id = "cleancoef", type = "track", val = 2, min=0.1,max=0.7,step=0.01, def = 0.4},
             {id = "minpart", type = "track", val = 2, min=0,max=99,step=1, def = 51},
-            {id = "repairmin", type = "track", val = 2, min=30,max=70,step=1, def = 65},
             {id = "degradation", type = "check", val = 1, def = true},
             {id = "debug", type = "check", val = 1, def=false},
         }
     }
-        
     return op
 end

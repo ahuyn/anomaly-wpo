@@ -69,6 +69,12 @@
 	<string id="ui_mcm_wpo_profanity_desc">
 		<text>Enables colorful dialogue on a malfunction.</text>
 	</string>
+	<string id="ui_mcm_wpo_profanity_timeout">
+		<text>Disable profanity spam</text>
+	</string>
+	<string id="ui_mcm_wpo_profanity_timeout_desc">
+		<text>Adds a timeout to jam profanity if true. Use if you hate fun.</text>
+	</string>
 	<string id="ui_mcm_wpo_profanity_language">
 		<text>Profanity language</text>
 	</string>
