@@ -1,0 +1,27 @@
+local parts_list = {}
+GetCost = utils_item.get_item_cost
+-- for mechanics, part prices are very high to buy
+function utils_item.get_item_cost(obj, profile)
+	local sec = obj:section()
+	-- printf("profile cfg = %s, sec = %s, parent id %s", profile.cfg, sec, obj:parent() and obj:parent():id() or 0)
+	if profile.cfg == "items\\trade\\trade_generic_mechanic.ltx" and parts_list[sec] and obj:parent() and obj:parent():id() ~= 0 then	
+		local discount = profile.discount
+		local cost_final = discount * parts_list[sec] * 0.75
+		-- printf("Set sale cost of %s to be %s", sec, cost_final)
+		return cost_final
+	else
+		return GetCost(obj, profile)
+	end
+end
+
+function on_game_start()
+    
+    local prices = ini_file("items\\settings\\part_prices.ltx")
+	local part_section = utils_data.collect_section(prices, "wpo_part_prices")
+	local n = prices:line_count("wpo_part_prices") or 0
+
+	for i=0, n-1 do
+		local result, sec, value = prices:r_line("wpo_part_prices" , i , "", "")
+		parts_list[sec] = value
+	end
+end

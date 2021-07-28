@@ -5,6 +5,7 @@ local min_con_obj = 0.001
 local spare_parts = utils_data.collect_section(ini_parts,"weapons_spare_parts")
 local parts_info = {}
 has_parts = arti_jamming.has_parts
+is_part = arti_jamming.is_part
 print_dbg = arti_jamming.print_dbg
 math_floor = math.floor
 
@@ -97,6 +98,56 @@ function item_parts.evaluate_parts(obj)
             EvaluateParts(obj)
 		end
     end
+end
+
+local temp_con = {}
+
+-- Prevent weapons with damaged/deformed parts from selling by temp setting condition to 0.
+local function on_trade_opened()
+	local function check_parts(temp, wpn)
+		-- print_dbg("Evaluating item %s", wpn:id())
+		if has_parts(wpn) then
+			local parts = item_parts.get_parts_con(wpn, nil, true)
+			for k,v in pairs(parts) do
+				local minpart = arti_jamming_mcm.get_config("minpart") or 51
+				if is_part(k) and v <= minpart then
+					print_dbg("Weapon %s (%s) has low quality part. Blacklisting for sale.", wpn:section(), wpn:id())
+					temp_con[wpn:id()] = wpn:condition()
+					wpn:set_condition(0)
+					break
+				end
+			end
+		end
+	end
+	db.actor:iterate_inventory(check_parts,nil)
+	
+	local wpn1 = db.actor:item_in_slot(1)
+	if wpn1 and (not temp_con[wpn1:id()]) then
+		check_parts(nil, wpn1)
+	end
+	
+	local wpn2 = db.actor:item_in_slot(2)
+	if wpn2 and (not temp_con[wpn2:id()]) then
+		check_parts(nil, wpn2)
+	end
+	
+	local wpn3 = db.actor:item_in_slot(3)
+	if wpn3 and (not temp_con[wpn3:id()]) then
+		check_parts(nil, wpn3)
+	end
+end
+
+local function on_trade_closed()
+	for k,v in pairs(temp_con) do
+		local obj = level.object_by_id(k)
+		if obj then
+			local p = obj:parent()
+			if (p and p:id() == AC_ID) then
+				alife_process_item(obj:section(),k, {cond = v})
+			end
+		end
+	end
+	temp_con = empty_table(temp_con)
 end
 
 -- gotta do this whole ass thing to monkey patch 1 line
@@ -266,4 +317,10 @@ function on_game_start()
 		parts_info[sec].price = tonumber(value)
 		-- parts_info[sec].weight = tonumber(value1)
 	end
+end
+
+function on_game_start()
+	
+	RegisterScriptCallback("ActorMenu_on_trade_started",on_trade_opened)
+	RegisterScriptCallback("ActorMenu_on_trade_closed",on_trade_closed)
 end

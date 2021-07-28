@@ -1,5 +1,5 @@
 function is_mag_loaded(wpn)
-    if not supports_mags then return false end
+    if not supports_mags(wpn) then return false end
     if wuut_mags then
         return wuut_mags.MagazineInWeaponIsValid(wpn)
     elseif magazines then
@@ -8,7 +8,7 @@ function is_mag_loaded(wpn)
 end
 
 function eject_mag(wpn)
-    if not supports_mags then return false end
+    if not supports_mags(wpn) then return false end
     if wuut_mags and supports_mags(wpn) then
         return wuut_mags.weapon_eject_mag_functor(wpn)
     elseif magazines then
