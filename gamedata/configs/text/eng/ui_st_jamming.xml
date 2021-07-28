@@ -90,6 +90,12 @@
 	<string id="ui_mcm_wpo_superjam_desc">
 		<text>Enables (or disables) those pesky super-jams. Super-jams are jams that require removing the loaded ammunition to clear properly.</text>
 	</string>
+	<string id="ui_mcm_wpo_threshold">
+		<text>Part damage condition threshold</text>
+	</string>
+	<string id="ui_mcm_wpo_threshold_desc">
+		<text>Weapon condition under which usage has a chance to damage parts. The lower, the less overall parts will be damaged.</text>
+	</string>
 	<string id="ui_mcm_wpo_cleancoef">
 		<text>Technician weapon cleaning multiplier</text>
 	</string>
@@ -110,12 +116,6 @@
 	</string>
 	<string id="ui_mcm_wpo_repairmin">
 		<text>Technician part repair condition minimum</text>
-	</string>
-	<string id="ui_mcm_wpo_repairmin_desc">
-		<text>Above this part threshold, you pay the cheaper cleaning price when repairing part at a mechanic. Below this threshold, you pay the higher replacement cost.</text>
-	</string>
-	<string id="ui_mcm_wpo_repairmin_desc">
-		<text>Condition at which parts repaired are eligible for a lower price (cleaning). If a part is below this you will pay the replacement fee.</text>
 	</string>
 	<string id="ui_mcm_wpo_title">
 		<text>Weapon Parts Overhaul</text>
@@ -157,13 +157,6 @@
 		<text>Check to double your weapon degradation. For those who feel like their guns stay clean too easily.</text>
 	</string>
 	
-	
-	<string id="st_arti_jamming_ask">
-		<text>I am having some issues with my weapon. It keeps jamming. Can you help me?</text>
-	</string>
-	<string id="st_arti_jamming_explain">
-		<text>There are a lot of reasons why your weapon can be malfunctioning. Even though you've kept it clean. </text>
-	</string>
 	<string id="st_field_strip">
 		<text>field strip</text>
 	</string>

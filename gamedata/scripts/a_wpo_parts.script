@@ -6,7 +6,7 @@ function utils_item.get_item_cost(obj, profile)
 	-- printf("profile cfg = %s, sec = %s, parent id %s", profile.cfg, sec, obj:parent() and obj:parent():id() or 0)
 	if profile.cfg == "items\\trade\\trade_generic_mechanic.ltx" and parts_list[sec] and obj:parent() and obj:parent():id() ~= 0 then	
 		local discount = profile.discount
-		local cost_final = discount * parts_list[sec] * 0.75
+		local cost_final = discount * parts_list[sec]
 		-- printf("Set sale cost of %s to be %s", sec, cost_final)
 		return cost_final
 	else
