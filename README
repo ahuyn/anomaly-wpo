@@ -25,9 +25,7 @@ Parts overhaul:
 
 Technician changes (PLEASE READ):
 - Technicians will NOT restore parts condition. They will only restore base gun condition (they are only cleaning the weapon)
-- Technicians will repair parts. There are two levels to this:
-1. Part is above a certain condition. This simulates part is simply dirty or scratched - they will clean it for a low price.
-2. Part is below that condition. This simulates part is FUBAR - they will replace it instead. This is very costly.
+- Technicians have random parts in stock. The amount increases with toolkits turned in.
 
 Field stripping (NEW):
 - Weapons with parts can be field stripped.

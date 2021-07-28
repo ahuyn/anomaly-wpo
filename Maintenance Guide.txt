@@ -7,7 +7,7 @@ What WPO does:
 
 - New gun disassembly mechanism:
 
-	- You can now remove gun's parts without "disassembling" (and thus destroying) it. Holt Alt and right click on the gun > Field Strip it. Only the guns barrel cannot be removed that way.
+	- You can now remove gun's parts without "disassembling" (and thus destroying) it. Hold Alt and right click on the gun > Field Strip it. Only the guns barrel cannot be removed that way.
 	- Gun's barrel can be obtained by disassembling a gun the classic way (drag and drop Multitool on the gun holding Alt key).
 
 - New gun parts replacement and repair system:
@@ -15,9 +15,8 @@ What WPO does:
 	- You can now replace gun parts by drag and dropping parts on a gun. 
 	- Gun barrels need to be replaced the classic way at the vice using the appropriate tool.
 	- Using the vice and the appropriate weapon repair toolkit doesn't consume toolkit uses.
-	- Gun parts can only be repaired from 65% onward using the appriorate part repair tool (Multitool, Ramrod, etc).
+	- Gun parts can only be repaired from 65% onward using the appropriate part repair tool (Multitool, Ramrod, etc).
 	- Appropriate gun repair toolkits can be used on a gun to clean it as well as increasing the lowest condition part to 100% automatically. Right click on the Repair Tool > Use. Select the desired gun.
-	- It is recommended to activate the "full part condition" option in Difficulty Setting in the game options after a save is loaded.
 
 - New gun maintenance system:
 
