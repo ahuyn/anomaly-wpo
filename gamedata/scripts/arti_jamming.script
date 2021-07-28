@@ -21,10 +21,10 @@ local cgd = {}
 local DAMAGE_THRESHOLD = 86
 -- condition under which parts cannot be field replaced
 local REPLACE_THRESHOLD = 0.2
--- formula for jam: JAM_COEF * (JAM_FACTOR ^ 2 - SEVERITY), where SEVERITY = math_floor(part_condition/25)
+-- formula for jam: JAM_COEF * (JAM_FACTOR ^ 2 - SEVERITY), where SEVERITY = math_floor(part_condition/20)
 -- for these default values we get: 6% chance to jam from 50-74%, 18% chance to jam from 25-49, 54% from 0-24
-local TRIGGER_JAM = {2, 5}
-local PARTS_JAM = {3, 5}
+local TRIGGER_JAM = {2, 3}
+local PARTS_JAM = {3, 3}
 local SALE_PART_MIN = 51
 
 get_config = arti_jamming_mcm.get_config
@@ -93,11 +93,6 @@ function has_parts(wpn)
 	end
 end
 
-function section_has_parts(sec)
-	local parts = ini_parts:r_string_ex("con_parts_list", sec)
-	return parts ~= nil
-end
-
 function missing_parts(wpn)
 	if wpn:id() == cgd.id then
 		if cgd.barrel_con == -1 then return true end
@@ -122,13 +117,13 @@ end
 
 function persist_current_weapon()
 	if cgd.id and cgd.has_parts then
-
 		local saved_parts = se_load_var(cgd.id, nil, "parts")
 		for k,v in pairs(cgd.parts) do
 			saved_parts[k] = v
 		end
 		saved_parts[cgd.barrel_name] = cgd.barrel_con
 		item_parts.set_parts_con(cgd.id, saved_parts)
+		print_dbg("Persisted parts for weapon %s", cgd.id)
 	end
 end
 
@@ -157,7 +152,6 @@ local function actor_on_update()
 	if gun and gun:id() ~= cgd.id then
 		if not has_parts(gun) then
 			empty_table(cgd.parts)
-			-- empty_table(cgd.part_names)
 			empty_table(cgd)
 			cgd.id = gun:id()
 			cgd.has_parts = false
@@ -168,7 +162,6 @@ local function actor_on_update()
 			print_dbg("Current gun changed to %s (%s)", cgd.id, gun:section())
 			cgd.current_gun_shot_dec = gun:section() and ini_sys:r_string_ex(gun:section(),"condition_shot_dec")  or 0.0005
 			cgd.parts = {}
-			-- cgd.part_names = {}
 			local saved_parts = item_parts.get_parts_con(gun, nil, true)
 			for k, v in pairs(saved_parts) do
 				print_dbg("Part: %s, condition of part: %s", k, v)
@@ -178,9 +171,7 @@ local function actor_on_update()
 				if is_barrel(k) then
 					cgd.barrel_con = v
 					cgd.barrel_name = k
-					-- cgd.part_names[#cgd.part_names] = k
 				elseif is_part(k) then
-					-- cgd.part_names[#cgd.part_names] = k
 					cgd.parts[k] = v
 				end
 			end
@@ -195,8 +186,8 @@ local function calculate_jam(wpn, old_ammo)
 	local count = 0
 	local mechanism_cond = 0
 	for k, v in pairs(cgd.parts) do -- skip barrel
-		local severity = math_floor(v / 25)
-		if (severity < 3) then
+		local severity = math_floor(v / 20)
+		if (severity < 4) then
 			mechanism_cond = mechanism_cond + (PARTS_JAM[1] * math.pow(PARTS_JAM[2], 2 - severity))
 		end
 		print_dbg("Part: [%s], cond: [%s], severity: [%s], sum jam chance: [%s]", k,v, severity, mechanism_cond) 
@@ -211,7 +202,7 @@ local function calculate_jam(wpn, old_ammo)
 	end
 	print_dbg("Jam chance is "..jam_chance)
 
-	if (math_random(100) < jam_chance) then
+	if (math_random(100) <= jam_chance) then
 		local str = game.translate_string("ui_st_jam")
 		local verbosity = 1
 		if wpn:get_ammo_in_magazine() > 0 and get_config("superjam") and (math_random(100) < jam_chance/2) then
@@ -245,13 +236,15 @@ end
 
 -- Calculate chance to damage based on weapon condition
 local function calculate_damage(wpn, old_ammo)
-	local cond = wpn and wpn:condition() or 1
+	local cond = wpn and math_floor(wpn:condition()*100) or 100
 	local damaged = false
 	local roll = math_random(1000)
 	local damage_chance = old_ammo and 6 or 2
-	if (math_floor(cond*100) < DAMAGE_THRESHOLD) then
-		-- 200 x (85 - condition) * per shot decrease, should result in pretty small chances
-		damage_chance = (170 - 200*cond) * cgd.current_gun_shot_dec * 1000
+	local threshold = get_config("threshold") or 85
+	if (cond < threshold) then
+		-- 200 x (threshold - condition) * per shot decrease, should result in pretty small chances
+		damage_chance = 200 * (threshold - cond) * cgd.current_gun_shot_dec * 1000
+		-- damage_chance = (170 - 200*cond) * cgd.current_gun_shot_dec * 1000
 		-- add flat 2% chance of damage w. old ammo
 		if old_ammo then damage_chance = damage_chance + 20 end
 		print_dbg("Damage chance: %s. Condition: %s", damage_chance, cond)
@@ -290,9 +283,9 @@ local function actor_on_weapon_before_fire(flags)
 		local str = ""
 		-- apply misfire
 		local trigger_con = cgd.parts[cgd.trigger_name]
-		if trigger_con < 75 then
-			local severity = math_floor(trigger_con/25)
-			local misfire_chance = math_floor(TRIGGER_JAM[1] * math.pow(TRIGGER_JAM[2], 2 - severity) * get_config("jamchance")) or 0
+		local severity = math_floor(trigger_con/20)
+		if severity < 4 then
+			local misfire_chance = math_floor(TRIGGER_JAM[1] * math.pow(TRIGGER_JAM[2], 3 - severity) * get_config("jamchance")) or 0
 			print_dbg("misfire chance: "..misfire_chance)
 			if (math_random(100) < misfire_chance) then
 				str = game.translate_string("ui_st_misfire")
