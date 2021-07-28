@@ -61,14 +61,12 @@ end
 function start_jammin(chance)
 	if not jammin:playing() and math.random(100) <= chance then
 		jammin.volume = 1
-		print_dbg("let's start jammin")
 		jammin:play(db.actor, 0, sound_object.s2d)
 	end
 end
 
 function stop_jammin()
 	if jammin:playing() then
-		print_dbg("no more jammin")
 		jammin:stop()
 	end
 end
