@@ -167,5 +167,12 @@
 		<text>This weapon is missing parts.</text>
 	</string>
 
+	
+	<string id="st_partskit">
+		<text>Part repair kit</text>
+	</string>
+	<string id="st_partskit_descr">
+		<text>Highly advanced toolset including micro-files, cold weld metal epoxy, electrolysis bath setup, and tons of lubricants, petrol distillates and other solvents. The tools here can restore a Lada engine into a Ferrari, to say nothing of what it can do to machine components. Only the most destroyed pieces of scrap metal won't be able to be restored by this kit. However, this kit is extremely hard to put together and is thus sold in very small quantities by Zone technicians.\n\n</text>
+	</string>
 
 </string_table>
