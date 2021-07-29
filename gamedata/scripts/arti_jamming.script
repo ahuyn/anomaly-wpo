@@ -249,7 +249,7 @@ local function calculate_damage(wpn, old_ammo)
 	if (cond < threshold) then
 		-- 200 x (threshold - condition) * per shot decrease, should result in pretty small chances
 		damage_chance = (threshold - cond) * cgd.current_gun_shot_dec * 2000
-		if cgd.fullAuto then damage_chance = damage_chance / 2 end
+		-- if cgd.fullAuto then damage_chance = damage_chance / 2 end
 		-- damage_chance = (170 - 200*cond) * cgd.current_gun_shot_dec * 1000
 		-- add flat 2% chance of damage w. old ammo
 		if old_ammo then damage_chance = damage_chance + 20 end
