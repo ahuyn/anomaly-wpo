@@ -162,7 +162,7 @@ local function actor_on_update()
 			cgd.has_parts = true
 			print_dbg("Current gun changed to %s (%s)", cgd.id, gun:section())
 			cgd.current_gun_shot_dec = gun:section() and ini_sys:r_string_ex(gun:section(),"condition_shot_dec")  or 0.0005
-			local fire_modes = SYS_GetParam(0, gun:section(), "fire_modes")
+			local fire_modes = SYS_GetParam(0, gun:section(), "fire_modes") or "1"
 			local fire_table = invert_table(str_explode(fire_modes, ","))
 			cgd.fullAuto = fire_table[-1] and true or false
 			cgd.parts = {}
