@@ -31,6 +31,9 @@ function add_parts(npc)
 				table[part] = 1
 			end
 		end
+		if supply_level > 1 then
+			table["partskit_tool"] = 1
+		end
 		-- add the parts
 		trader_autoinject.spawn_items(npc, table, true)
 	end

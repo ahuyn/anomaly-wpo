@@ -71,9 +71,10 @@ Barrels below 75% condition will lose damage up to 50% less damage at 0% conditi
 Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
 
 Changelog
+1.7.2
+- The parts kit has returned.
 1.7.1
 - Fixed the damage chance being disproportionately high
-- Added uncontrollable full auto as a failure mode for full-auto triggers
 1.7
 - No more parts repair at mechanics! That annoying cleaning/replacement system is gone!
 - Now mechanics stock a random selection of parts - at a markup. Giving them more toolkits increases the amount of parts they stock.
