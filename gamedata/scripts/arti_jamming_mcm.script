@@ -6,6 +6,7 @@ local defaults = {
     ["verbosity"] = 1,
     ["jamchance"] = 1,
     ["superjam"] = true,
+    ["threshold"] = 85,
     ["cleancoef"] = 0.4,
     ["minpart"] = 51,
     ["newdrops"] = false,
