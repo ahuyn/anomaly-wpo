@@ -302,6 +302,7 @@ function item_parts.disassembly_weapon(obj, obj_d)
 	CreateTimeEvent(0,"delay_disassembly" .. id, delay, timer_disassembly_weapon, npc:id(), result_details, result_conditions, name)
 end
 
+
 function on_game_start()
 	
 	disassembly_chance  = ini_parts:r_float_ex("settings","disassembly_chance") or 40
