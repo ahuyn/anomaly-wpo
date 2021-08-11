@@ -30,7 +30,7 @@ function repair_weapon_toolkit(weapon, toolkit_section)
 	end
 end
 -- what is good part, what is not
-local good_breakpoint = 65
+local good_breakpoint = 60
 function weapon_eval_parts(wpn)
     local sec = ini_sys:r_string_ex(wpn:section(),"parent_section") or wpn:section()
     local parts = ini_parts:r_string_ex("con_parts_list", sec)
@@ -302,6 +302,82 @@ function item_parts.disassembly_weapon(obj, obj_d)
 	CreateTimeEvent(0,"delay_disassembly" .. id, delay, timer_disassembly_weapon, npc:id(), result_details, result_conditions, name)
 end
 
+quality_map = {
+	[0] = "broken",
+	[1] = "damaged",
+	[2] = "worn",
+	[3] = "dirty",
+}
+
+unique_mapping = {
+	["prt_w_gas_tube_9"] = "extractor",
+	["prt_w_gas_tube_10"] = "extractor",
+	["prt_w_gas_tube_8"] = "ejector",
+	["prt_w_gas_tube_2"] = "pump",
+	["prt_w_bolt_11"] = "hammers",
+	["prt_w_bolt_12"] = "hammers",
+	["prt_w_bolt_carrier_8"] = "chock",
+	["prt_w_bolt_carrier_9"] = "chock",
+}
+
+name_mapping = {
+	"spring",
+	"bolt_carrier",
+	"bolt",
+	"gas_tube",
+	"barrel",
+	"trigger"
+}
+--Patching ui_item.script
+local string_find         = string.find
+local math_ceil           = math.ceil
+local math_floor          = math.floor
+local gc                  = game.translate_string
+local clr_r  = utils_xml.get_color("d_red")
+
+function process_part(name, condition)
+	if condition > 79 then return "" end
+	local severity = condition == -1 and "missing" or math.floor(condition / 20)
+	local part_name = ""
+	if unique_mapping[name] then
+		part_name = unique_mapping[name]
+	else
+		if not string_find(name, "prt_w") then return "" end
+		local i = 1
+		while part_name == "" and i < 7 do
+			print_dbg("it %s, name %s", i, name)
+			if string_find(name, name_mapping[i]) then
+				part_name = name_mapping[i]
+			end
+			i = i + 1
+		end
+	end
+	print_dbg("part %s, category %s, sev %s", name, part_name, severity)
+	return " " .. clr_r .. gc("st_dot") .. " " .. gc("st_damage_"..severity) .. " " .. gc("st_name_"..part_name) .. "\\n"
+end
+
+
+original_build_desc_header = ui_item.build_desc_header
+function ui_item.build_desc_header(obj, sec, str)
+	local _str = ""
+	local _str2 = original_build_desc_header(obj, sec, str)
+	
+
+	if obj and IsWeapon(obj) and not IsAmmo(obj) and arti_jamming.has_parts(obj) then
+		local parts = item_parts.get_parts_con(obj, nil, false)
+		local display_str = ""
+		for k,v in pairs(parts) do
+			display_str = display_str .. process_part(k, v)
+		end
+		if display_str ~= "" then
+			display_str =  " " .. clr_r .. gc("st_name_issues") .. "\\n" .. display_str
+			_str = _str .. display_str
+		end
+	end
+	_str = _str .. _str2
+
+	return _str
+end
 
 function on_game_start()
 	

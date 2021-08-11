@@ -587,6 +587,7 @@ function field_strip(wpn)
 			end
 		end
 		item_parts.set_parts_con(wpn:id(), parts)
+		if jammed_guns[wpn:id()] then jammed_guns[wpn_id()] = nil end
 	else
 		-- complain
 		news_manager.send_tip(db.actor, game.translate_string("st_field_strip_fail"), nil, "swiss_knife", 6000)

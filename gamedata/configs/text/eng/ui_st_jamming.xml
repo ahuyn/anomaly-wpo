@@ -174,5 +174,57 @@
 	<string id="st_partskit_descr">
 		<text>Highly advanced toolset including micro-files, cold weld metal epoxy, electrolysis bath setup, and tons of lubricants, petrol distillates and other solvents. The tools here can restore a Lada engine into a Ferrari, to say nothing of what it can do to machine components. Only the most destroyed pieces of scrap metal won't be able to be restored by this kit. However, this kit is extremely hard to put together and is thus sold in very small quantities by Zone technicians.\n\n</text>
 	</string>
+<!-- Info -->
 
+	<string id="st_damage_missing">
+		<text>missing</text>
+	</string>
+	<string id="st_damage_0">
+		<text>broken</text>
+	</string>
+	<string id="st_damage_1">
+		<text>damaged</text>
+	</string>
+	<string id="st_damage_2">
+		<text>worn</text>
+	</string>
+	<string id="st_damage_3">
+		<text>dirty</text>
+	</string>
+	<string id="st_name_trigger">
+		<text>trigger mechanism</text>
+	</string>
+	<string id="st_name_spring">
+		<text>recoil spring</text>
+	</string>
+	<string id="st_name_barrel">
+		<text>barrel</text>
+	</string>
+	<string id="st_name_bolt_carrier">
+		<text>bolt carrier</text>
+	</string>
+	<string id="st_name_bolt">
+		<text>bolt</text>
+	</string>
+	<string id="st_name_gas_tube">
+		<text>gas system</text>
+	</string>
+	<string id="st_name_extractor">
+		<text>extractor</text>
+	</string>
+	<string id="st_name_ejector">
+		<text>ejector</text>
+	</string>
+	<string id="st_name_pump">
+		<text>pump</text>
+	</string>
+	<string id="st_name_hammers">
+		<text>hammers</text>
+	</string>
+	<string id="st_name_chock">
+		<text>chock</text>
+	</string>
+	<string id="st_name_issues">
+		<text>ISSUES:</text>
+	</string>
 </string_table>
