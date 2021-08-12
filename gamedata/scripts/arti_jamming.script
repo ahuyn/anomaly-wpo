@@ -292,7 +292,7 @@ local function actor_on_weapon_before_fire(flags)
 	-- calculate misfire chance
 		local str = ""
 		-- apply misfire
-		local trigger_con = cgd.parts[cgd.trigger_name]
+		local trigger_con = cgd.parts[cgd.trigger_name] or 99
 		local severity = math_floor(trigger_con/20)
 		if severity < 4 and not guarantee_not_jam then
 			local misfire_chance = math_floor(TRIGGER_JAM[1] * math.pow(TRIGGER_JAM[2], 3 - severity) * get_config("jamchance")) or 0
