@@ -25,6 +25,7 @@ local REPLACE_THRESHOLD = 0.2
 -- for these default values we get: 6% chance to jam from 50-74%, 18% chance to jam from 25-49, 54% from 0-24
 local TRIGGER_JAM = {2, 3}
 local PARTS_JAM = {3, 3}
+local guarantee_not_jam = true
 local SALE_PART_MIN = 51
 
 get_config = arti_jamming_mcm.get_config
@@ -187,6 +188,9 @@ end
 -- individually calculate jam based on weapon parts, and jam the weapon if applicable
 -- Average jam chance based on damage level of each component.
 local function calculate_jam(wpn, old_ammo)
+	if guarantee_not_jam then
+		return
+	end
 	local count = 0
 	local mechanism_cond = 0
 	for k, v in pairs(cgd.parts) do -- skip barrel
@@ -290,7 +294,7 @@ local function actor_on_weapon_before_fire(flags)
 		-- apply misfire
 		local trigger_con = cgd.parts[cgd.trigger_name]
 		local severity = math_floor(trigger_con/20)
-		if severity < 4 then
+		if severity < 4 and not guarantee_not_jam then
 			local misfire_chance = math_floor(TRIGGER_JAM[1] * math.pow(TRIGGER_JAM[2], 3 - severity) * get_config("jamchance")) or 0
 			print_dbg("misfire chance: "..misfire_chance)
 			if (math_random(100) < misfire_chance) then
@@ -355,6 +359,10 @@ local function actor_on_weapon_fired(obj, wpn, ammo_elapsed, grenade_elapsed, am
 		return 
 	end
 
+	if guarantee_not_jam then
+		guarantee_not_jam = false
+	end
+
 	-- calc and apply jam
 	local wpn_obj = utils_item.item_is_fa(wpn) and wpn
 	if wpn_obj then
@@ -405,7 +413,7 @@ function unjam()
 			end
 		else
 			-- fail on superjam
-			if (jammed_guns[weapon:id()] == 3 and weapon:get_ammo_in_magazine() ~= 0) then					
+			if (jammed_guns[weapon:id()] == 3 and weapon:get_ammo_in_magazine() > 1) then					
 				actor_effects.use_weapon(0)
 				str = game.translate_string("ui_st_unjam_fail")
 				actor_effects.use_weapon(1)
@@ -425,16 +433,15 @@ function unjam()
 					end
 					print_dbg("found "..unjam_anims)
 					play_anim(weapon, to_search, unjam_sound)
-					jammed_guns[weapon:id()] = nil	
-					str = game.translate_string("ui_st_unjam")
 				else
 					actor_effects.use_weapon(0)
-					jammed_guns[weapon:id()] = nil
 					--get sound and play
 					local sound = gun_sounds[weapon:section()] and gun_sounds[weapon:section()] or "handgun"
-					str = game.translate_string("ui_st_unjam")
 					CreateTimeEvent("arti_jamming", "unjam"..weapon:id(), 1, timed_unjam, sound)
 				end
+				str = game.translate_string("ui_st_unjam")
+				jammed_guns[weapon:id()] = nil
+				guarantee_not_jam = true
 				stop_jammin()
 			end
 		end
