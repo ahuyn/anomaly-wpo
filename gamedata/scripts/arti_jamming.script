@@ -1,4 +1,5 @@
 local ini_parts   = itms_manager.ini_parts
+gc = game.translate_string
 math_random = math.random
 math_floor = math.floor
 local jammin = sound_object("jammin")
@@ -212,13 +213,13 @@ local function calculate_jam(wpn, old_ammo)
 	print_dbg("Jam chance is "..jam_chance)
 
 	if (math_random(100) <= jam_chance) then
-		local str = game.translate_string("ui_st_jam")
+		local str = gc("ui_st_jam")
 		local verbosity = 1
 		if wpn:get_ammo_in_magazine() > 0 and get_config("superjam") and (math_random(100) < jam_chance/2) then
 			jammed_guns[wpn:id()] = 3
 			print_dbg("Severe jam")
 			if get_config("verbosity") > 1 then
-				str = game.translate_string("ui_st_superjam")
+				str = gc("ui_st_superjam")
 			end
 		else
 			jammed_guns[wpn:id()] = 2
@@ -238,7 +239,7 @@ local function damage_part(wpn)
 
 	print_dbg("%s damaged to %s condition", to_damage, cgd.parts[to_damage])
 	if (get_config("verbosity") > 1) then
-		news_manager.send_tip(db.actor, game.translate_string("ui_st_parts_damage"), nil, "swiss_knife", 6000)
+		news_manager.send_tip(db.actor, gc("ui_st_parts_damage"), nil, "swiss_knife", 6000)
 	end
 	-- play a sound?
 end
@@ -303,14 +304,14 @@ local function actor_on_weapon_before_fire(flags)
 					print_dbg("aaaaaaaaa")
 					level.press_action(bind_to_dik(key_bindings.kWPN_FIRE))
 				else
-					str = game.translate_string("ui_st_misfire")
+					str = gc("ui_st_misfire")
 					jammed_guns[obj_wpn:id()] = 1
 				end
 			end
 		end
 		-- check for malfunction or missing parts
 		if missing_parts(obj_wpn) then
-			str = game.translate_string("ui_st_missing")
+			str = gc("ui_st_missing")
 			flags.ret_value = false
 		elseif jammed_guns[obj_wpn:id()] or missing_parts(obj_wpn) then
 			local sec = obj_wpn:section()
@@ -338,9 +339,9 @@ local function actor_on_weapon_before_fire(flags)
 				tg_snd_empty = tg + delay_snd_empty
 			end
 			if (get_config("verbosity") == 2 and jammed_guns[obj_wpn:id()] == 3) then
-				str = game.translate_string("ui_st_superjam")
+				str = gc("ui_st_superjam")
 			else
-				str = game.translate_string("ui_st_jam")
+				str = gc("ui_st_jam")
 			end
 			-- Don't shoot
 			flags.ret_value = false
@@ -390,63 +391,78 @@ local function actor_on_weapon_fired(obj, wpn, ammo_elapsed, grenade_elapsed, am
 	end
 end
 
+function check_unjam(obj)
+	if jammed_guns[obj:id()] then
+		return gc("st_unjam")
+	end
+end
 
+function unjam_wep(obj)
+	unjam(obj)
+end
 
 -- Unjam works by clearing weapon ID from the jam table, if conditions are met.
-function unjam()
-	local weapon = db.actor:active_item()
+function unjam(wpn)
+	local weapon = wpn or db.actor:active_item()
+	local is_current = wpn ~= nil
 	local str = ""
 	local verbosity = 1
 	if weapon and weapon:id() == cgd.id and cgd.has_parts then
 		if not jammed_guns[weapon:id()] then
-			str = game.translate_string("ui_st_functional")
-			-- bored animation
-			local idle_section = utils_item.addon_attached(weapon ,"gl") and (weapon:weapon_in_grenade_mode() and "anm_bore_g" or "anm_bore_w_gl") or "anm_bore"
-			local hud = ini_sys:r_string_ex(weapon:section(), "hud")
-			print_dbg("searching for "..idle_section.. " for weapon section "..hud)
-	
-			local bored_anim = hud and ini_sys:r_string_ex(hud,idle_section)
-			if bored_anim then
-				print_dbg("found bored anim "..bored_anim)
-				local bored_sound = bored_anim and ini_sys:r_string_ex(weapon:section(), "snd_bore") or "$no_sound"
-				play_anim(weapon, idle_section, bored_sound)
+			str = gc("ui_st_functional")
+			if is_current then
+				-- bored animation
+				local idle_section = utils_item.addon_attached(weapon ,"gl") and (weapon:weapon_in_grenade_mode() and "anm_bore_g" or "anm_bore_w_gl") or "anm_bore"
+				local hud = ini_sys:r_string_ex(weapon:section(), "hud")
+				print_dbg("searching for "..idle_section.. " for weapon section "..hud)
+		
+				local bored_anim = hud and ini_sys:r_string_ex(hud,idle_section)
+				if bored_anim then
+					print_dbg("found bored anim "..bored_anim)
+					local bored_sound = bored_anim and ini_sys:r_string_ex(weapon:section(), "snd_bore") or "$no_sound"
+					play_anim(weapon, idle_section, bored_sound)
+				end
 			end
 		else
 			-- fail on superjam
-			if (jammed_guns[weapon:id()] == 3 and weapon:get_ammo_in_magazine() > 1) then					
-				actor_effects.use_weapon(0)
-				str = game.translate_string("ui_st_unjam_fail")
-				actor_effects.use_weapon(1)
-				jam_swearing()		
-				start_jammin(50)
-			else
-				-- blindside compat, check for unjaminations and cache anim name and sound
-				local to_search = utils_item.addon_attached(weapon ,"gl") and "anm_reload_misfire_w_gl" or "anm_reload_misfire"
-				local hud = ini_sys:r_string_ex(weapon:section(), "hud")
-				print_dbg("searching for "..to_search.. " for weapon section "..hud)
-				local unjam_anims = hud and ini_sys:r_string_ex(hud,to_search)
-				if unjam_anims ~= nil then
-					local unjam_sound = ini_sys:r_string_ex(weapon:section(), "snd_reload_misfire")
-					if not unjam_sound then
-						-- try to get from reload				
-						unjam_sound = ini_sys:r_string_ex(weapon:section(), "snd_reload_1")
-					end
-					print_dbg("found "..unjam_anims)
-					play_anim(weapon, to_search, unjam_sound)
-				else
+			if (jammed_guns[weapon:id()] == 3 and weapon:get_ammo_in_magazine() > 1) then	
+				str = gc("ui_st_unjam_fail")
+				if is_current then				
 					actor_effects.use_weapon(0)
-					--get sound and play
-					local sound = gun_sounds[weapon:section()] and gun_sounds[weapon:section()] or "handgun"
-					CreateTimeEvent("arti_jamming", "unjam"..weapon:id(), 1, timed_unjam, sound)
+					actor_effects.use_weapon(1)
+					jam_swearing()
+					start_jammin(50)
 				end
-				str = game.translate_string("ui_st_unjam")
+			else
 				jammed_guns[weapon:id()] = nil
 				guarantee_not_jam = true
 				stop_jammin()
+				str = gc("ui_st_unjam")
+				if is_current then
+					-- blindside compat, check for unjaminations and cache anim name and sound
+					local to_search = utils_item.addon_attached(weapon ,"gl") and "anm_reload_misfire_w_gl" or "anm_reload_misfire"
+					local hud = ini_sys:r_string_ex(weapon:section(), "hud")
+					print_dbg("searching for "..to_search.. " for weapon section "..hud)
+					local unjam_anims = hud and ini_sys:r_string_ex(hud,to_search)
+					if unjam_anims ~= nil then
+						local unjam_sound = ini_sys:r_string_ex(weapon:section(), "snd_reload_misfire")
+						if not unjam_sound then
+							-- try to get from reload				
+							unjam_sound = ini_sys:r_string_ex(weapon:section(), "snd_reload_1")
+						end
+						print_dbg("found "..unjam_anims)
+						play_anim(weapon, to_search, unjam_sound)
+					else
+						actor_effects.use_weapon(0)
+						--get sound and play
+						local sound = gun_sounds[weapon:section()] and gun_sounds[weapon:section()] or "handgun"
+						CreateTimeEvent("arti_jamming", "unjam"..weapon:id(), 1, timed_unjam, sound)
+					end
+				end
 			end
 		end
 	else
-		str = game.translate_string("ui_st_nothing")
+		str = gc("ui_st_nothing")
 	end
 	send_msg(str, verbosity)
 end
@@ -468,7 +484,7 @@ local function on_item_drag_dropped(obj_1, obj_2, slot_from, slot_to)
 		if parts and parts[part] then
 			try_replace_part(obj_2, parts, obj_1, item_parts.get_suitable_dtool(obj_2))
 		else
-			news_manager.send_tip(db.actor, game.translate_string("st_news_parts_incompatible"), nil, "swiss_knife", 6000)
+			news_manager.send_tip(db.actor, gc("st_news_parts_incompatible"), nil, "swiss_knife", 6000)
 		end
 	end
 end
@@ -486,7 +502,7 @@ local function on_key_press(key)
 end
 
 function actor_on_weapon_jammed(wpn)
-	send_msg(game.translate_string("ui_st_oldjam"), 0)
+	send_msg(gc("ui_st_oldjam"), 0)
 	jam_swearing()
 end
 -- SECTION damage reduction -- 
@@ -523,9 +539,9 @@ function try_replace_part(wpn, table, part, using_tool)
 	local sec = part:section()
 	local con = part:condition()
 	if is_barrel(sec) then
-		news_manager.send_tip(db.actor, game.translate_string("st_news_parts_barrel"), nil, "swiss_knife", 6000)
+		news_manager.send_tip(db.actor, gc("st_news_parts_barrel"), nil, "swiss_knife", 6000)
 	elseif (wpn:condition() < REPLACE_THRESHOLD) then
-		news_manager.send_tip(db.actor, game.translate_string("st_news_parts_rusty"), nil, "swiss_knife", 6000)
+		news_manager.send_tip(db.actor, gc("st_news_parts_rusty"), nil, "swiss_knife", 6000)
 	else
 		print_dbg("Replacing %s", part:section())
 		local tmp = table[part:section()]
@@ -552,13 +568,13 @@ function try_replace_part(wpn, table, part, using_tool)
 			wpn:force_unload_magazine(true)
 		end
 
-		news_manager.send_tip(db.actor, game.translate_string("st_news_parts_success"), nil, "swiss_knife", 6000)
+		news_manager.send_tip(db.actor, gc("st_news_parts_success"), nil, "swiss_knife", 6000)
 	end
 end
 
 function menu_field_strip(wpn)
 	if has_parts(wpn) then
-		return game.translate_string("st_field_strip")
+		return gc("st_field_strip")
 	end
 end
 
@@ -597,7 +613,7 @@ function field_strip(wpn)
 		if jammed_guns[wpn:id()] then jammed_guns[wpn_id()] = nil end
 	else
 		-- complain
-		news_manager.send_tip(db.actor, game.translate_string("st_field_strip_fail"), nil, "swiss_knife", 6000)
+		news_manager.send_tip(db.actor, gc("st_field_strip_fail"), nil, "swiss_knife", 6000)
 	end
 end
 

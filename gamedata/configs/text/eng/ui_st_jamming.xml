@@ -36,6 +36,9 @@
 		<text>Part does not need to be replaced.</text>
 	</string>
 	
+	<string id="st_unjam">
+		<text>unjam</text>
+	</string>
 	<!-- Messages -->
 	<string id="st_news_parts_success">
 		<text>Successfully replaced part.</text>
