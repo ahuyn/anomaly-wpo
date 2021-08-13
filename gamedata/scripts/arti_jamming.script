@@ -426,6 +426,7 @@ function unjam(wpn)
 	local verbosity = 1
 	if weapon and ((is_current and cgd.has_parts) or has_parts(weapon)) then
 		if not jammed_guns[id] then
+			local str = gc("ui_st_functional")
 			if is_current then
 				-- bored animation
 				local idle_section = utils_item.addon_attached(weapon ,"gl") and (weapon:weapon_in_grenade_mode() and "anm_bore_g" or "anm_bore_w_gl") or "anm_bore"
@@ -438,12 +439,14 @@ function unjam(wpn)
 					local bored_sound = bored_anim and ini_sys:r_string_ex(sec, "snd_bore") or "$no_sound"
 					play_anim(weapon, idle_section, bored_sound)
 				end
-				CreateTimeEvent("arti_jamming", "nojam"..id, 0.5, timed_unjam, nil, nil, gc("ui_st_functional"), verbosity)
+				CreateTimeEvent("arti_jamming", "nojam"..id, 0.5, timed_unjam, 0, "", str, verbosity)
+			else
+				send_msg(str, verbosity)
 			end
 		else
 			local inventory = GetActorMenu()
 			-- fail on superjam
-			if (jammed_guns[weapon:id()] == 3 and weapon:get_ammo_in_magazine() > 1) then	
+			if (jammed_guns[id] == 3 and weapon:get_ammo_in_magazine() > 1) then	
 				jam_swearing()
 				send_msg(gc("ui_st_unjam_fail"))
 				if is_current then				
@@ -455,7 +458,8 @@ function unjam(wpn)
 				end
 			else
 				stop_jammin()
-				str = gc("ui_st_unjam")
+				local str = gc("ui_st_unjam")
+				local sound = gun_sounds[sec] and gun_sounds[sec] or "handgun"
 				if is_current then
 					-- blindside compat, check for unjaminations and cache anim name and sound
 					local to_search = utils_item.addon_attached(weapon ,"gl") and "anm_reload_misfire_w_gl" or "anm_reload_misfire"
@@ -472,10 +476,10 @@ function unjam(wpn)
 					else
 						actor_effects.use_weapon(0)
 						--get sound and play
-						local sound = gun_sounds[sec] and gun_sounds[sec] or "handgun"
 						CreateTimeEvent("arti_jamming", "unjam"..id, 0.5, timed_unjam, id, sound, str, verbosity)
 					end
 				else
+					CreateTimeEvent("arti_jamming", "unjam"..id, 0.1, timed_unjam, id, sound, str, verbosity)
 					inventory:Close()
 				end
 			end
@@ -486,13 +490,13 @@ function unjam(wpn)
 end
 
 function timed_unjam(id, sound, message, verbosity)
-	if sound then
+	if sound and sound ~= "" then
 		utils_obj.play_sound(sound.."_unjam")
 	end
 	if message then
 		send_msg(message, verbosity)
 	end
-	if id then
+	if id and id ~= 0 then
 		jammed_guns[id] = nil
 		actor_effects.use_weapon(1)
 		guarantee_not_jam = true
