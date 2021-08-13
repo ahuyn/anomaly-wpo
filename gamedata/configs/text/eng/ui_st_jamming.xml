@@ -117,8 +117,8 @@
 	<string id="ui_mcm_wpo_minpart_desc">
 		<text>Minimum condition for ALL parts for a weapon to be eligible for sale. If a weapon has ANY part below this condition, it will be blacklisted from sale. Set to 0 to disable.</text>
 	</string>
-	<string id="ui_mcm_wpo_repairmin">
-		<text>Technician part repair condition minimum</text>
+	<string id="ui_mcm_wpo_fun">
+		<text>Do you like fun?</text>
 	</string>
 	<string id="ui_mcm_wpo_title">
 		<text>Weapon Parts Overhaul</text>
@@ -137,6 +137,15 @@
 	</string>
 	<string id="ui_mcm_lst_verbosity_full">
 		<text>Full</text>
+	</string>
+	<string id="ui_mcm_lst_no">
+		<text>No</text>
+	</string>
+	<string id="ui_mcm_lst_yes">
+		<text>Yes</text>
+	</string>
+	<string id="ui_mcm_lst_ofc">
+		<text>Of course!</text>
 	</string>
 	<string id="ui_mcm_wpo_debug">
 		<text>Debug logging</text>
@@ -179,6 +188,9 @@
 	</string>
 <!-- Info -->
 
+	<string id="st_dot">
+		<text>•</text>
+	</string>
 	<string id="st_damage_missing">
 		<text>missing</text>
 	</string>

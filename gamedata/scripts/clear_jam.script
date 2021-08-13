@@ -1,13 +1,23 @@
--- default way of going aboot it is alt+reload
-function on_key_release(key)
-	
+-- default way of going aboot it is alt+use
+
+local last_click = nil
+
+local function on_key_press(key)
 	local bind = dik_to_bind(key)
-	if bind == key_bindings.kUSE and arti_jamming.d_flag then
-		arti_jamming.unjam()
-    end
+	local tg = time_global()
+	if bind == key_bindings.kUSE then
+		if not last_click then last_click = tg
+		else
+			if tg < last_click + 400 then 
+				arti_jamming.unjam()
+			end
+			last_click = nil
+		end
+	end
 end
 
 
+
 function on_game_start()
-    RegisterScriptCallback("on_key_release",on_key_release)
+    RegisterScriptCallback("on_key_press",on_key_press)
 end

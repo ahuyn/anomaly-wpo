@@ -71,6 +71,8 @@ Barrels below 75% condition will lose damage up to 50% less damage at 0% conditi
 Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
 
 Changelog
+1.7.4
+- Cleanups for unjam logic. Improved feedback on weapon jam. Added option to unjam from inventory. Changed default unjam to double-tap use. Added fun slider.
 1.7.3
 - Field stripping a weapon unjams it. Lowered good parts threshold by 5%. Added Dead Air styled readouts on part condition.
 1.7.2

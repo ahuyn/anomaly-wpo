@@ -11,7 +11,8 @@ local defaults = {
     ["newdrops"] = false,
     ["newdropschance"] = 50,
     ["degradation"] = 1.4,
-    ["debug"] = true
+    ["debug"] = true,
+    ["fun"] = 1
 }
 
 function get_config(key)
@@ -33,6 +34,7 @@ function on_mcm_load()
             {id = "minpart", type = "track", val = 2, min=0,max=99,step=1, def = 51},
             {id = "degradation", type = "check", val = 1, def = true},
             {id = "debug", type = "check", val = 1, def=false},
+            {id = "fun", type = "list",  content={ {0,"no"} , {1,"yes"}, {2,"ofc"}}, def=1},
         }
     }
     return op

@@ -28,6 +28,8 @@ local TRIGGER_JAM = {2, 3}
 local PARTS_JAM = {3, 3}
 local guarantee_not_jam = true
 local SALE_PART_MIN = 51
+-- use to block inputs while animations play
+local block_repeat = false
 
 get_config = arti_jamming_mcm.get_config
 
@@ -61,6 +63,9 @@ function jam_swearing()
 end
 
 function start_jammin(chance)
+	local fun_level = get_config("fun")
+	if fun_level == 0 then return end
+	if fun_level == 2 then chance = chance * 2 end
 	if not jammin:playing() and math.random(100) <= chance then
 		jammin.volume = 1
 		jammin:play(db.actor, 0, sound_object.s2d)
@@ -111,10 +116,19 @@ function missing_parts(wpn)
 end
 
 function play_anim(weapon, anim, sound)
-	weapon:play_hud_motion(anim, true, 0, 1, 0)
-	if sound then
-		utils_obj.play_sound(sound)
+	if not block_repeat then
+		weapon:play_hud_motion(anim, true, 0, 1, 0)
+		if sound then
+			utils_obj.play_sound(sound)
+		end
+		block_repeat = true
+		CreateTimeEvent("unblock", "unblock_anims", 1, unblock)
 	end
+end
+
+function unblock()
+	block_repeat = false
+	return true
 end
 
 function persist_current_weapon()
@@ -404,72 +418,85 @@ end
 -- Unjam works by clearing weapon ID from the jam table, if conditions are met.
 function unjam(wpn)
 	local weapon = wpn or db.actor:active_item()
-	local is_current = wpn ~= nil
-	local str = ""
+	local id = weapon:id()
+	local active_id = db.actor:active_item() and db.actor:active_item():id() or 0 
+	local sec = weapon:section()
+	local is_current = id == active_id
+	print_dbg("unjam current? %s", is_current)
 	local verbosity = 1
-	if weapon and weapon:id() == cgd.id and cgd.has_parts then
-		if not jammed_guns[weapon:id()] then
-			str = gc("ui_st_functional")
+	if weapon and ((is_current and cgd.has_parts) or has_parts(weapon)) then
+		if not jammed_guns[id] then
 			if is_current then
 				-- bored animation
 				local idle_section = utils_item.addon_attached(weapon ,"gl") and (weapon:weapon_in_grenade_mode() and "anm_bore_g" or "anm_bore_w_gl") or "anm_bore"
-				local hud = ini_sys:r_string_ex(weapon:section(), "hud")
+				local hud = ini_sys:r_string_ex(sec, "hud")
 				print_dbg("searching for "..idle_section.. " for weapon section "..hud)
 		
 				local bored_anim = hud and ini_sys:r_string_ex(hud,idle_section)
 				if bored_anim then
 					print_dbg("found bored anim "..bored_anim)
-					local bored_sound = bored_anim and ini_sys:r_string_ex(weapon:section(), "snd_bore") or "$no_sound"
+					local bored_sound = bored_anim and ini_sys:r_string_ex(sec, "snd_bore") or "$no_sound"
 					play_anim(weapon, idle_section, bored_sound)
 				end
+				CreateTimeEvent("arti_jamming", "nojam"..id, 0.5, timed_unjam, nil, nil, gc("ui_st_functional"), verbosity)
 			end
 		else
+			local inventory = GetActorMenu()
 			-- fail on superjam
 			if (jammed_guns[weapon:id()] == 3 and weapon:get_ammo_in_magazine() > 1) then	
-				str = gc("ui_st_unjam_fail")
+				jam_swearing()
+				send_msg(gc("ui_st_unjam_fail"))
 				if is_current then				
 					actor_effects.use_weapon(0)
 					actor_effects.use_weapon(1)
-					jam_swearing()
 					start_jammin(50)
+				else
+					inventory:Close()
 				end
 			else
-				jammed_guns[weapon:id()] = nil
-				guarantee_not_jam = true
 				stop_jammin()
 				str = gc("ui_st_unjam")
 				if is_current then
 					-- blindside compat, check for unjaminations and cache anim name and sound
 					local to_search = utils_item.addon_attached(weapon ,"gl") and "anm_reload_misfire_w_gl" or "anm_reload_misfire"
-					local hud = ini_sys:r_string_ex(weapon:section(), "hud")
+					local hud = ini_sys:r_string_ex(sec, "hud")
 					print_dbg("searching for "..to_search.. " for weapon section "..hud)
 					local unjam_anims = hud and ini_sys:r_string_ex(hud,to_search)
 					if unjam_anims ~= nil then
-						local unjam_sound = ini_sys:r_string_ex(weapon:section(), "snd_reload_misfire")
-						if not unjam_sound then
-							-- try to get from reload				
-							unjam_sound = ini_sys:r_string_ex(weapon:section(), "snd_reload_1")
-						end
+						jammed_guns[id] = nil
+						guarantee_not_jam = true
+						local unjam_sound = ini_sys:r_string_ex(sec, "snd_reload_misfire") or ini_sys:r_string_ex(sec, "snd_reload_1") or "$no_sound"
 						print_dbg("found "..unjam_anims)
 						play_anim(weapon, to_search, unjam_sound)
+						send_msg(str, verbosity)
 					else
 						actor_effects.use_weapon(0)
 						--get sound and play
-						local sound = gun_sounds[weapon:section()] and gun_sounds[weapon:section()] or "handgun"
-						CreateTimeEvent("arti_jamming", "unjam"..weapon:id(), 1, timed_unjam, sound)
+						local sound = gun_sounds[sec] and gun_sounds[sec] or "handgun"
+						CreateTimeEvent("arti_jamming", "unjam"..id, 0.5, timed_unjam, id, sound, str, verbosity)
 					end
+				else
+					inventory:Close()
 				end
 			end
 		end
 	else
-		str = gc("ui_st_nothing")
+		send_msg(gc("ui_st_nothing"), verbosity)
 	end
-	send_msg(str, verbosity)
 end
 
-function timed_unjam(sound)
-	utils_obj.play_sound(sound.."_unjam")
-	actor_effects.use_weapon(1)
+function timed_unjam(id, sound, message, verbosity)
+	if sound then
+		utils_obj.play_sound(sound.."_unjam")
+	end
+	if message then
+		send_msg(message, verbosity)
+	end
+	if id then
+		jammed_guns[id] = nil
+		actor_effects.use_weapon(1)
+		guarantee_not_jam = true
+	end
 	return true
 end
 
@@ -537,30 +564,30 @@ end
 function try_replace_part(wpn, table, part, using_tool)
 	local id = part:id()
 	local sec = part:section()
-	local con = part:condition()
+	local pcon = part:condition()
+	local wcon = wpn:condition()
 	if is_barrel(sec) then
 		news_manager.send_tip(db.actor, gc("st_news_parts_barrel"), nil, "swiss_knife", 6000)
 	elseif (wpn:condition() < REPLACE_THRESHOLD) then
 		news_manager.send_tip(db.actor, gc("st_news_parts_rusty"), nil, "swiss_knife", 6000)
 	else
-		print_dbg("Replacing %s", part:section())
-		local tmp = table[part:section()]
-		table[sec] = math_floor(con * 100)
+		print_dbg("Replacing %s", sec)
+		local tmp = table[sec]
+		table[sec] = math_floor(pcon * 100)
 		if tmp == -1 then
 			-- part missing, do not swap conditions
-			alife_release_id(part:id())
+			alife_release_id(id)
 		else
 			part:set_condition(tmp/100)
 		 end
 		item_parts.set_parts_con(wpn:id(), table)
 		if (wpn:id() == cgd.id) then
-			cgd.parts[part:section()] = table[part:section()]
+			cgd.parts[sec] = table[sec]
 		end
 		-- lose a little condition when replacing parts
-		local wpn_cond = math_floor(wpn:condition() * 100)
-		if wpn:condition() > 0.6 then
+		if wcon > 0.6 then
 			local range = using_tool and 3 or 13
-			wpn:set_condition(wpn:condition() - (math_random(3, 3 + range)/100)) 
+			wpn:set_condition(wcon - (math_random(3, 3 + range)/100)) 
 		end
 		if mag_support.using_mags() and mag_support.is_mag_loaded(wpn) then 
 			mag_support.eject_mag(wpn)
@@ -584,9 +611,9 @@ function field_strip(wpn)
 		actor_menu.set_item_news("success", "detail", "st_awr_ctrl")
 		return
 	end
-	
+	local id = wpn:id()
 	if wpn and has_parts(wpn) then
-		local is_current = wpn:id() == cgd.id
+		local is_current = id == cgd.id
 		local parts = item_parts.get_parts_con(wpn, nil, true)
 		for k,v in pairs(parts) do
 			if is_part(k) and v ~= -1 and not is_barrel(k) then
@@ -609,8 +636,8 @@ function field_strip(wpn)
 				wpn:force_unload_magazine(true)
 			end
 		end
-		item_parts.set_parts_con(wpn:id(), parts)
-		if jammed_guns[wpn:id()] then jammed_guns[wpn_id()] = nil end
+		item_parts.set_parts_con(id, parts)
+		if jammed_guns[id] then jammed_guns[id] = nil end
 	else
 		-- complain
 		news_manager.send_tip(db.actor, gc("st_field_strip_fail"), nil, "swiss_knife", 6000)
