@@ -358,7 +358,7 @@ function get_overheat_modifier(weapon, eval)
 	local heat_severity = math.floor(cgd.heat/overheat_base)
 	if heat_severity > 0 then 
 		return eval and overheat_data.damage[heat_severity] or heat_severity
-	else return 1 end 
+	else return eval and 1 or 0 end 
 end
 
 -- return overheat base amount (factor in section and suppressor)
