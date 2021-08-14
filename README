@@ -36,8 +36,15 @@ Field stripping (NEW):
 Weapon damage:
 Weapons under 85% condition can suffer internal parts damage with use, rolling per shot to damage one part. The worse condition the weapon, the greater the chance. Reliability upgrades affect the chance of internal damage, so more reliable weapons will damage their parts less than more finicky weapons (AKs will damage their parts far less than SVDs). Keep your weapons as clean as possible. Amount of damage applied is controlled in arti_jamming.script.
 
+Overheating:
+Weapons can overheat from sustained fire. This is most apparent if you try to replicate a GunBusters video in STALKER. The hotter a weapon is, the more condition damage it will take and the faster the barrel will wear out. Be sure to shoot in short controlled bursts!
+Suppressors vastly increase the rate at which the weapon overheats.
+Inspecting your weapon will give you an idea of how hot it is (press unjam).
+
 Jamming and weapons failure:
-A dedicated, bindable unjam/clear weapon button is available and needed to take advantage of the new mechanics. Use this button.
+Double tap your use key to unjam by default.
+Use the 'unjam keybind' optional addon to add a keybind to unjam.
+You can also unjam weapons from inventory.
 There are three additional types of weapon failure:
 1. Misfires. Misfires are a failure of the trigger components and prevent a shot from being fired.
 2. Type 1 malfunctions, analogous to failure to eject. The shot is fired but mechanical failure prevents the next shot from loading and/or firing.
@@ -71,6 +78,8 @@ Barrels below 75% condition will lose damage up to 50% less damage at 0% conditi
 Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
 
 Changelog
+1.8
+- Introduced overheating. Removed additional weapon degradation.
 1.7.4
 - Cleanups for unjam logic. Improved feedback on weapon jam. Added option to unjam from inventory. Changed default unjam to double-tap use. Added fun slider.
 1.7.3

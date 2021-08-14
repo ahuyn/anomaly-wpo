@@ -35,6 +35,15 @@
 	<string id="st_news_parts_alreadygood">
 		<text>Part does not need to be replaced.</text>
 	</string>
+	<string id="ui_st_heat1">
+		<text>, but warm.</text>
+	</string>
+	<string id="ui_st_heat2">
+		<text>, but hot!</text>
+	</string>
+	<string id="ui_st_heat3">
+		<text>, but very hot!</text>
+	</string>
 	
 	<string id="st_unjam">
 		<text>unjam</text>
@@ -163,10 +172,10 @@
 		<text>Chance for good parts with alternate part rolls</text>
 	</string>
 	<string id="ui_mcm_wpo_degradation">
-		<text>Doubled weapon degradation </text>
+		<text>Degradation in rain </text>
 	</string>
 	<string id="ui_mcm_wpo_degradation_desc">
-		<text>Check to double your weapon degradation. For those who feel like their guns stay clean too easily.</text>
+		<text>Rate at which your weapon degrades faster in rainy weather.</text>
 	</string>
 	
 	<string id="st_field_strip">
