@@ -14,7 +14,9 @@ function add_parts(npc)
 		-- purge any existing parts
 		function itr(temp, item)
 			if string.find(item:section(), "prt_w") then
-				alife_release_id(item:id())
+				local se_itm = alife_object(item:id())
+				if not se_item then return end
+				alife_release(se_itm)
 			end
 		end
 		npc:iterate_inventory(itr)
