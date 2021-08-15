@@ -454,7 +454,7 @@ local function actor_on_weapon_fired(obj, wpn, ammo_elapsed, grenade_elapsed, am
 	if (obj:id() ~= AC_ID) then
 		return
 	end
-	if wpn:id() ~= cgd.id or not cgd.has_parts or wpn:get_ammo_in_magazine() == 0 or missing_parts(wpn) or weapon:weapon_in_grenade_mode() then
+	if wpn:id() ~= cgd.id or not cgd.has_parts or wpn:get_ammo_in_magazine() == 0 or missing_parts(wpn) or wpn:weapon_in_grenade_mode() then
 		return 
 	end
 
