@@ -15,7 +15,7 @@ function repair_weapon_toolkit(weapon, toolkit_section)
 		-- find the lowest condition part, and restore it to 100
 		local lowest = nil
 		for k,v in pairs(parts) do
-			if not lowest or parts[k] < parts[lowest] then
+			if arti_jamming.is_part(k) and (not lowest or v < parts[lowest]) then
 				lowest = k
 			end
 		end

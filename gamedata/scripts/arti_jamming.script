@@ -503,6 +503,7 @@ end
 -- Unjam works by clearing weapon ID from the jam table, if conditions are met.
 function unjam(wpn)
 	local weapon = wpn or db.actor:active_item()
+	if not weapon then return end
 	local id = weapon:id()
 	local active_id = db.actor:active_item() and db.actor:active_item():id() or 0 
 	local sec = weapon:section()
