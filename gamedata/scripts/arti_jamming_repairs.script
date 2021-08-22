@@ -345,7 +345,7 @@ function process_part(name, condition)
 		if not string_find(name, "prt_w") then return "" end
 		local i = 1
 		while part_name == "" and i < 7 do
-			print_dbg("it %s, name %s", i, name)
+			-- print_dbg("it %s, name %s", i, name)
 			if string_find(name, name_mapping[i]) then
 				part_name = name_mapping[i]
 			end

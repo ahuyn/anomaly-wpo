@@ -24,9 +24,9 @@ local DAMAGE_THRESHOLD = 86
 -- condition under which parts cannot be field replaced
 local REPLACE_THRESHOLD = 0.2
 -- formula for jam: JAM_COEF * (JAM_FACTOR ^ 2 - SEVERITY), where SEVERITY = math_floor(part_condition/20)
--- for these default values we get: 6% chance to jam from 50-74%, 18% chance to jam from 25-49, 54% from 0-24
-local TRIGGER_JAM = {2, 3}
-local PARTS_JAM = {3, 3}
+-- 0, 2, 6, 18, 54
+-- 0, 1, 3, 9, 27
+local BASE_JAM = {1, 3}
 local guarantee_not_jam = true
 local SALE_PART_MIN = 51
 -- use to block inputs while animations play
@@ -217,20 +217,21 @@ local function calculate_jam(wpn, old_ammo)
 	for k, v in pairs(cgd.parts) do -- skip barrel
 		local severity = math_floor(v / 20)
 		if (severity < 4) then
-			mechanism_cond = mechanism_cond + (PARTS_JAM[1] * math.pow(PARTS_JAM[2], 2 - severity))
+			mechanism_cond = mechanism_cond + (BASE_JAM[1] * math.pow(BASE_JAM[2], 3 - severity))
 		end
-		print_dbg("Part: [%s], cond: [%s], severity: [%s], sum jam chance: [%s]", k,v, severity, mechanism_cond) 
+		-- print_dbg("Part: [%s], cond: [%s], severity: [%s], sum jam chance: [%s]", k,v, severity, mechanism_cond) 
 		count = count + 1
 	end
 
 	-- jam chance. if we roll this twice, upgraded to severe jam
 	local jam_chance = math_floor((mechanism_cond * get_config("jamchance"))/count) or 0
 	if cgd.fullAuto then jam_chance = jam_chance / 2 end
+	jam_chance = jam_chance * get_overheat_modifier(wpn)
 	if (old_ammo) then
 		-- bad ammo adds a flat 2% chance to jam
 		jam_chance = jam_chance + 2
 	end
-	print_dbg("Jam chance is "..jam_chance)
+	print_dbg("Final jam chance is %s",jam_chance)
 
 	if (math_random(100) <= jam_chance) then
 		local str = gc("ui_st_jam")
@@ -394,7 +395,7 @@ local function actor_on_weapon_before_fire(flags)
 		local trigger_con = cgd.parts[cgd.trigger_name] or 99
 		local severity = math_floor(trigger_con/20)
 		if severity < 4 and not guarantee_not_jam then
-			local misfire_chance = math_floor(TRIGGER_JAM[1] * math.pow(TRIGGER_JAM[2], 3 - severity) * get_config("jamchance")) or 0
+			local misfire_chance = math_floor(BASE_JAM[1] * math.pow(BASE_JAM[2], 3 - severity) * get_config("jamchance")) or 0
 			print_dbg("misfire chance: "..misfire_chance)
 			if (math_random(100) < misfire_chance) then
 				-- fullauto fail later
