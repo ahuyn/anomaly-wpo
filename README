@@ -9,19 +9,20 @@ This is the meaty stuff. For an easier start guide, consult Maintenance Guide.
 
 Condition overhaul:
 - Weapon parts are no longer tied to condition. Weapon jamming from low condition will still happen, and additionally different types of jams from poor-condition parts will occur.
+- Overall weapon condition is now interpreted as 'cleanliness' of the weapon - the degree of dirtiness and fouling that has built up.
+- Weapons degrade faster in rain (configurable via MCM).
+- Keeping weapons in good condition is easier in general. Cleaning tools are much more effective and last longer.
 - Mechanic repair is cheaper - you're only cleaning the weapon (Configurable with MCM).
-- Keeping weapons in good condition is easier in general. Cleaning tools are much more effective and last longer, but they are more expensive.
 - Weapons drop at higher condition from stalkers. This does not mean they are more usable.
 
 Parts overhaul:
 - Weapon parts are now a separate subsystem to manage.
 - Weapon parts are MUCH easier to replace. Parts replacement requires only clicking and dragging parts onto guns. Barrels cannot be replaced in the field.
-- Field replacement of parts will degrade gun condition. This is reduced if you have a Leatherman.
+- Field replacement of parts will reduce weapon condition. This is reduced if you have a Leatherman. The logic here is new parts need to be relubricated.
 - Replacing weapon parts will not affect the condition of the weapon.
 - Replacing parts with a toolkit at a workbench does not consume charges. Installing upgrades still does.
-- Parts are harder to repair. Parts can only be restored from 65% condition. Beyond that you need to replace them at mechanics (for a price, which is configurable with MCM)
-- Using a repair kit on a weapon will replace the most damaged part with a brand new one.
-- (OPTIONAL FEATURE) Doubled ammo wear on gun, to better simulate accumulation of dirt and residues. Also buffs slugs and darts.
+- Parts are harder to repair. Parts can only be restored from 60% condition with ordinary tools. Otherwise you can purchase a new and expensive toolkit from technicians.
+- Using a weapon repair kit on a weapon will replace the most damaged part with a brand new one.
 
 Technician changes (PLEASE READ):
 - Technicians will NOT restore parts condition. They will only restore base gun condition (they are only cleaning the weapon)
@@ -37,11 +38,13 @@ Weapon damage:
 Weapons under 85% condition can suffer internal parts damage with use, rolling per shot to damage one part. The worse condition the weapon, the greater the chance. Reliability upgrades affect the chance of internal damage, so more reliable weapons will damage their parts less than more finicky weapons (AKs will damage their parts far less than SVDs). Keep your weapons as clean as possible. Amount of damage applied is controlled in arti_jamming.script.
 
 Overheating:
-Weapons can overheat from sustained fire. This is most apparent if you try to replicate a GunBusters video in STALKER. The hotter a weapon is, the more condition damage it will take and the faster the barrel will wear out. Be sure to shoot in short controlled bursts!
+Weapons can overheat from sustained fire. This is most apparent if you try to replicate a GunBusters video in STALKER. 
+The hotter a weapon is, the more condition damage it will take, the faster the barrel will wear out, and the higher the jam chance will be. Be sure to shoot in short controlled bursts!
 Suppressors vastly increase the rate at which the weapon overheats.
 Inspecting your weapon will give you an idea of how hot it is (press unjam).
 
 Jamming and weapons failure:
+The old style of jamming from condition is still around and until I figure out how to override it through script, I instead inform the user to not confuse them.
 Double tap your use key to unjam by default.
 Use the 'unjam keybind' optional addon to add a keybind to unjam.
 You can also unjam weapons from inventory.
@@ -50,7 +53,6 @@ There are three additional types of weapon failure:
 2. Type 1 malfunctions, analogous to failure to eject. The shot is fired but mechanical failure prevents the next shot from loading and/or firing.
 3. Type 2 malfunctions, analogous to double-feed. Similar to type 1, but requires unloading the magazine to properly clear the malfunction. Can disable completely with MCM.
 The jam chance can be adjusted through MCM.
-The old style of jamming from condition is still around and until I figure out how to override it through script, I instead inform the user to not confuse them.
 In addition, barrel damage will reduce gun damage if the barrel condition is below 75%, up to a 50% reduction at 0% condition barrel.
 
 Only weapons with parts will suffer these failures. Gauss Rifle, Armsel Protecta, and P90 lack parts so they do not suffer parts-related failures.
@@ -60,24 +62,14 @@ Quick guide to addressing jams:
 2. Press the unjam button.
 3. If your weapon is severely jammed, unload your weapon from the inventory. Press the unjam button.
 
-Calculation of jamming (formula subject to tweaking):
-Averages condition of non-trigger and non-barrel parts based on the following:
-0-24% = 75% jam chance
-25-49% = 15% jam chance
-50-74% = 3% jam chance
-75-99% = 0% jam chance
-Misfires roll independently of jam chance for trigger with chances:
-0-24% = 25% jam chance
-25-49% = 5% jam chance
-50-74% = 1% jam chance
-75-99% = 0% jam chance
-
 Barrel quality affects damage dealt, because modifying dispersion dynamically is not possible.
 Barrels below 75% condition will lose damage up to 50% less damage at 0% condition.
 
 Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
 
 Changelog
+1.8.1
+- Reduced base jam chance, now scaling with heat.
 1.8
 - Introduced overheating. Removed additional weapon degradation.
 1.7.4

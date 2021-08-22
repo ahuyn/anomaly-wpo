@@ -1,4 +1,4 @@
--- default way of going aboot it is use+use
+-- Your unjam is double-tap use.
 
 local last_click = nil
 

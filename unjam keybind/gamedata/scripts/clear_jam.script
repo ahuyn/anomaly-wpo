@@ -1,4 +1,4 @@
--- alternate way is dedicated keybind
+-- Your unjam is a dedicated keybind.
 function on_key_release(key)
 	
 	local bind = dik_to_bind(key)
