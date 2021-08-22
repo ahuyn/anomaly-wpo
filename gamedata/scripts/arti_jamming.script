@@ -26,7 +26,8 @@ local REPLACE_THRESHOLD = 0.2
 -- formula for jam: JAM_COEF * (JAM_FACTOR ^ 2 - SEVERITY), where SEVERITY = math_floor(part_condition/20)
 -- 0, 2, 6, 18, 54
 -- 0, 1, 3, 9, 27
-local BASE_JAM = {1, 3}
+local TRIGGER_JAM = {1, 3}
+local PARTS_JAM = {2, 3}
 local guarantee_not_jam = true
 local SALE_PART_MIN = 51
 -- use to block inputs while animations play
@@ -217,7 +218,7 @@ local function calculate_jam(wpn, old_ammo)
 	for k, v in pairs(cgd.parts) do -- skip barrel
 		local severity = math_floor(v / 20)
 		if (severity < 4) then
-			mechanism_cond = mechanism_cond + (BASE_JAM[1] * math.pow(BASE_JAM[2], 3 - severity))
+			mechanism_cond = mechanism_cond + (PARTS_JAM[1] * math.pow(PARTS_JAM[2], 3 - severity))
 		end
 		-- print_dbg("Part: [%s], cond: [%s], severity: [%s], sum jam chance: [%s]", k,v, severity, mechanism_cond) 
 		count = count + 1
@@ -395,7 +396,7 @@ local function actor_on_weapon_before_fire(flags)
 		local trigger_con = cgd.parts[cgd.trigger_name] or 99
 		local severity = math_floor(trigger_con/20)
 		if severity < 4 and not guarantee_not_jam then
-			local misfire_chance = math_floor(BASE_JAM[1] * math.pow(BASE_JAM[2], 3 - severity) * get_config("jamchance")) or 0
+			local misfire_chance = math_floor(TRIGGER_JAM[1] * math.pow(TRIGGER_JAM[2], 3 - severity) * get_config("jamchance")) or 0
 			print_dbg("misfire chance: "..misfire_chance)
 			if (math_random(100) < misfire_chance) then
 				-- fullauto fail later
