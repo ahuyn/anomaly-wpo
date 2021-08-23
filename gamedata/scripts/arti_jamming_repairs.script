@@ -91,7 +91,7 @@ function item_parts.evaluate_parts(obj)
 
 		-- premature terminate if data exists for weapons
 		if data and IsWeapon(obj) and not is_empty(parts)  then return
-        elseif has_parts(obj) and arti_jamming_mcm.get_config("newdrops") then
+        elseif arti_jamming.has_parts(obj) and arti_jamming_mcm.get_config("newdrops") then
 			print_dbg("Alternate evaluation.")
             weapon_eval_parts(obj)
         else
