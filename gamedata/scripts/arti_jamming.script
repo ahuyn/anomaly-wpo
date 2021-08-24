@@ -692,7 +692,7 @@ function try_replace_part(wpn, table, part, using_tool)
 			wpn:force_unload_magazine(true)
 		end
 
-		news_manager.send_tip(db.actor, gc("st_news_parts_success"), nil, "swiss_knife", 6000)
+		news_manager.send_tip(db.actor, gc("st_news_parts_success") .. " " .. ui_item.get_sec_name(sec), nil, "swiss_knife", 6000)
 	end
 end
 
@@ -712,6 +712,8 @@ function field_strip(wpn)
 	if wpn and has_parts(wpn) then
 		local is_current = id == cgd.id
 		local parts = item_parts.get_parts_con(wpn, nil, true)
+		local str_msg = gc("st_news_fieldstrip")
+		local parts_removed = false
 		for k,v in pairs(parts) do
 			if is_part(k) and v ~= -1 and not is_barrel(k) then
 				print_dbg("Removing part %s with condition %s", k, v)
@@ -725,8 +727,11 @@ function field_strip(wpn)
 				data.condition = v/100
 				utils_stpk.set_item_data(data,part_to_spawn)
 				alife():register(part_to_spawn)	
-			end
 
+				str_msg = str_msg .. "\\n -".. ui_item.get_sec_name(k)
+				parts_removed = true
+			end
+			-- eject mag if applicable
 			if mag_support.using_mags() and mag_support.is_mag_loaded(wpn) then 
 				mag_support.eject_mag(wpn)
 			else
@@ -735,6 +740,11 @@ function field_strip(wpn)
 		end
 		item_parts.set_parts_con(id, parts)
 		if jammed_guns[id] then jammed_guns[id] = nil end
+		reset_cgd()
+		-- send msg
+		if parts_removed then
+			news_manager.send_tip(db.actor, str_msg, nil, "swiss_knife", 6000)
+		end
 	else
 		-- complain
 		news_manager.send_tip(db.actor, gc("st_field_strip_fail"), nil, "swiss_knife", 6000)

@@ -50,7 +50,7 @@
 	</string>
 	<!-- Messages -->
 	<string id="st_news_parts_success">
-		<text>Successfully replaced part.</text>
+		<text>Successfully replaced part %s.</text>
 	</string>
 	<string id="st_news_parts_fail">
 		<text>%c[d_red]Weapon already has higher condition part.</text>
@@ -66,6 +66,12 @@
 	</string>
 	<string id="st_news_dis_items">
 		<text>%c[d_red]A proper disassembling tool is required.</text>
+	</string>
+	<string id="st_news_fieldstrip">
+		<text>Removed parts:</text>
+	</string>
+	<string id="st_news_cleaned">
+		<text>Cleaned up parts:</text>
 	</string>
 
 	<!-- MCM -->

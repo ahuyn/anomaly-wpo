@@ -4,28 +4,58 @@ local max_con_obj = 0.999
 local min_con_obj = 0.001
 local spare_parts = utils_data.collect_section(ini_parts,"weapons_spare_parts")
 local parts_info = {}
+gc = game.translate_string
 has_parts = arti_jamming.has_parts
 is_part = arti_jamming.is_part
 print_dbg = arti_jamming.print_dbg
+get_config = arti_jamming_mcm.get_config
 math_floor = math.floor
+current_id = arti_jamming.current_id
+reset_cgd = arti_jamming.reset_cgd
 
+-- also clean parts
 function repair_weapon_toolkit(weapon, toolkit_section)
-	if string.find(toolkit_section, "toolkit_") and has_parts(weapon) then
-		local parts = item_parts.get_parts_con(weapon, nil, true)
-		-- find the lowest condition part, and restore it to 100
-		local lowest = nil
-		for k,v in pairs(parts) do
-			if arti_jamming.is_part(k) and (not lowest or v < parts[lowest]) then
-				lowest = k
+	if  has_parts(weapon) then
+		if string.find(toolkit_section, "toolkit_") then
+			local parts = item_parts.get_parts_con(weapon, nil, true)
+			-- find the lowest condition part, and restore it to 100
+			local lowest = nil
+			for k,v in pairs(parts) do
+				if is_part(k) and (not lowest or v < parts[lowest]) then
+					lowest = k
+				end
 			end
-		end
-		if lowest then 
-			print_dbg("Replacing part %s in weapon %s", lowest, weapon:section())
-			parts[lowest] = 99
-			if weapon:id() == arti_jamming.current_id() then
-				arti_jamming.reset_cgd()
+			if lowest then 
+				print_dbg("Replacing part %s in weapon %s", lowest, weapon:section())
+				parts[lowest] = 99
+				item_parts.set_parts_con(weapon:id(), parts)
+				if weapon:id() == current_id() then
+					reset_cgd()
+				end
+				news_manager.send_tip(db.actor, gc("st_news_parts_success") .. " " .. ui_item.get_sec_name(lowest), nil, "swiss_knife", 6000)
+			end
+		elseif string.find(toolkit_section, "cleaning_kit_") then
+			local parts = item_parts.get_parts_con(weapon, nil, true)
+			local cond_remaining = 40
+			local str = gc("st_news_cleaned")
+			local parts_cleaned = false
+			for k,v in pairs(parts) do
+				if is_part(k) and v > 59 and v < 98 and cond_remaining > 0 then
+					local to_restore = 99 - v
+					if to_restore > cond_remaining then to_restore = cond_remaining end
+					parts[k] = v + to_restore
+					cond_remaining = cond_remaining - to_restore
+					str = str .. "\\n - ".. ui_item.get_sec_name(k)
+					parts_cleaned = true
+				end
 			end
 			item_parts.set_parts_con(weapon:id(), parts)
+			if weapon:id() == current_id() then
+				reset_cgd()
+			end
+			if parts_cleaned then
+				news_manager.send_tip(db.actor,str, nil, "swiss_knife", 6000)
+			end
 		end
 	end
 end
@@ -35,7 +65,7 @@ function weapon_eval_parts(wpn)
     local sec = ini_sys:r_string_ex(wpn:section(),"parent_section") or wpn:section()
     local parts = ini_parts:r_string_ex("con_parts_list", sec)
 	parts = str_explode(parts,",")
-	local base_chance = tonumber(arti_jamming_mcm.get_config("newdropschance")) or 50
+	local base_chance = tonumber(get_config("newdropschance")) or 50
 	local adjusted = base_chance * wpn:condition()
 	local parts_data = {}
 	parts_data[sec] = math.ceil(wpn:condition() * 100)
@@ -91,7 +121,7 @@ function item_parts.evaluate_parts(obj)
 
 		-- premature terminate if data exists for weapons
 		if data and IsWeapon(obj) and not is_empty(parts)  then return
-        elseif has_parts(obj) and arti_jamming_mcm.get_config("newdrops") then
+        elseif has_parts(obj) and get_config("newdrops") then
 			print_dbg("Alternate evaluation.")
             weapon_eval_parts(obj)
         else
@@ -109,7 +139,7 @@ local function on_trade_opened()
 		if has_parts(wpn) then
 			local parts = item_parts.get_parts_con(wpn, nil, true)
 			for k,v in pairs(parts) do
-				local minpart = arti_jamming_mcm.get_config("minpart") or 51
+				local minpart = get_config("minpart") or 51
 				if is_part(k) and v <= minpart then
 					print_dbg("Weapon %s (%s) has low quality part. Blacklisting for sale.", wpn:section(), wpn:id())
 					temp_con[wpn:id()] = wpn:condition()
