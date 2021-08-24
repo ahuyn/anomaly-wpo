@@ -50,6 +50,7 @@ function print_dbg(txt, ...)
 end
 
 function send_msg(msg, verbosity)
+	verbosity = verbosity or 1
 	local v = get_config("verbosity") or 1
 	if (v >= verbosity) then
 		actor_menu.set_msg(1, msg,3)
@@ -540,7 +541,7 @@ function unjam(wpn)
 			-- fail on superjam
 			if (jammed_guns[id] == 3 and weapon:get_ammo_in_magazine() > 1) then	
 				jam_swearing()
-				send_msg(gc("ui_st_unjam_fail"))
+				send_msg(gc("ui_st_unjam_fail"), 2)
 				if is_current then				
 					actor_effects.use_weapon(0)
 					actor_effects.use_weapon(1)
