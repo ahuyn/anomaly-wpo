@@ -751,6 +751,31 @@ function field_strip(wpn)
 	end
 end
 
+NameCustom = ui_inventory.UIInventory.Name_Custom
+-- because at this point, why not
+function ui_inventory.UIInventory:Name_Custom(obj, bag, temp, i)
+	obj = self:CheckItem(obj,"Name_Custom " .. i)
+	if i == 3 and has_parts(obj) then -- menu field strip
+		return menu_field_strip(obj)
+	elseif i == 4 and has_parts(obj) then -- check unjam
+		return check_unjam(obj)
+	else
+		return NameCustom(self, obj, bag, temp, i)
+	end
+end
+
+ActionCustom = ui_inventory.UIInventory.Action_Custom
+function ui_inventory.UIInventory:Action_Custom(obj, bag, temp, i)
+	obj = self:CheckItem(obj,"Action_Custom " .. i)
+	if i == 3 and has_parts(obj) then -- menu field strip
+		field_strip(obj)
+	elseif i == 4 and has_parts(obj) then -- check unjam
+		unjam_wep(obj)
+	else
+		ActionCustom(self, obj, bag, temp, i)
+	end
+end
+
 function on_game_start()
 	local sounds = {"ak", "ar", "handgun", "shotgun", "bolt"}
 	local ini_sounds = ini_file("items\\settings\\arti_unjam_sounds.ltx")

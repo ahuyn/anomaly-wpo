@@ -7,11 +7,6 @@ local function on_key_press(key)
 	local tg = time_global()
 	if bind == key_bindings.kUSE then
 
-		-- if arti_jamming_mcm.get_config("debug") then
-		-- 	local heat = arti_jamming.get_heat() or n/a
-		-- 	actor_menu.set_msg(1, "Heat level is "..heat,3)
-		-- end
-
 		if not last_click then last_click = tg
 		else
 			if tg < last_click + 400 then 
