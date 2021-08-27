@@ -68,6 +68,8 @@ Barrels below 75% condition will lose damage up to 50% less damage at 0% conditi
 Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
 
 Changelog
+1.8.3
+- Fixed bug with field stripped guns being able to shoot. Removed defines.ltx dependency - no more patch needed for mags!
 1.8.2
 - More verbose feedback for field stripping and parts replacement. 
 1.8.1
