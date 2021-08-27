@@ -50,7 +50,7 @@
 	</string>
 	<!-- Messages -->
 	<string id="st_news_parts_success">
-		<text>Successfully replaced part %s.</text>
+		<text>Successfully replaced part</text>
 	</string>
 	<string id="st_news_parts_fail">
 		<text>%c[d_red]Weapon already has higher condition part.</text>
