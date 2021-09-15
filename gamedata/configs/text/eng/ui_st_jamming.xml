@@ -133,7 +133,7 @@
 		<text>Minimum condition for ALL parts for a weapon to be eligible for sale. If a weapon has ANY part below this condition, it will be blacklisted from sale. Set to 0 to disable.</text>
 	</string>
 	<string id="ui_mcm_wpo_fun">
-		<text>Do you like fun?</text>
+		<text>Fun level</text>
 	</string>
 	<string id="ui_mcm_wpo_title">
 		<text>Weapon Parts Overhaul</text>
@@ -154,13 +154,13 @@
 		<text>Full</text>
 	</string>
 	<string id="ui_mcm_lst_no">
-		<text>No</text>
+		<text>Duty</text>
 	</string>
 	<string id="ui_mcm_lst_yes">
-		<text>Yes</text>
+		<text>Loner</text>
 	</string>
 	<string id="ui_mcm_lst_ofc">
-		<text>Of course!</text>
+		<text>Freedom</text>
 	</string>
 	<string id="ui_mcm_wpo_debug">
 		<text>Debug logging</text>

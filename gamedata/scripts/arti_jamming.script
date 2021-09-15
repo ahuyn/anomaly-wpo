@@ -67,8 +67,16 @@ end
 
 function start_jammin(chance)
 	local fun_level = get_config("fun")
-	if fun_level == 0 then return end
-	if fun_level == 2 then chance = chance * 2 end
+	fun_level = tonumber(fun_level)
+	print_dbg("fun level: %s", fun_level)
+	if fun_level == 0 then 
+		print_dbg("no fun allowed")
+		return 
+	end
+	if fun_level == 2 then 
+		print_dbg("more fun allowed")
+		chance = chance * 2 
+	end
 	if not jammin:playing() and math.random(100) <= chance then
 		jammin.volume = 1
 		jammin:play(db.actor, 0, sound_object.s2d)
