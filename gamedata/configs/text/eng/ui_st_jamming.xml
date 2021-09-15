@@ -168,6 +168,12 @@
 	<string id="ui_mcm_wpo_debug_desc">
 		<text>Debug logging, enables a whole bunch of additional information in console log.</text>
 	</string>
+	<string id="ui_mcm_wpo_babymode">
+		<text>Bitch mode</text>
+	</string>
+	<string id="ui_mcm_wpo_babymode_desc">
+		<text>Disables part based jams entirely. If you need to tick this, why even have this mod installed at all?</text>
+	</string>
 	<string id="ui_mcm_wpo_newdrops">
 		<text>Enable alternate part rolls</text>
 	</string>
