@@ -8,10 +8,13 @@ gc = game.translate_string
 has_parts = arti_jamming.has_parts
 is_part = arti_jamming.is_part
 print_dbg = arti_jamming.print_dbg
+print_ws = ui_workshop.print_ws
 get_config = arti_jamming_mcm.get_config
 math_floor = math.floor
 current_id = arti_jamming.current_id
 reset_cgd = arti_jamming.reset_cgd
+has_parts = arti_jamming.has_parts
+SetTip = ui_workshop.SetTip
 
 -- also clean parts
 function repair_weapon_toolkit(weapon, toolkit_section)
@@ -182,6 +185,7 @@ end
 
 -- gotta do this whole ass thing to monkey patch 1 line
 
+-- original functions are local reeeee
 local function disassembly_weapon_spare_parts(sec, condition)
 	local single_handed = ini_sys:r_float_ex(sec,"single_handed") or 1
 	local weight = ini_sys:r_float_ex(sec,"inv_weight") or 2
@@ -198,7 +202,6 @@ local function disassembly_weapon_spare_parts(sec, condition)
 	
 	return finale
 end
-
 
 local function timer_disassembly_weapon(npc_id, result_details, result_conditions, name)
 
@@ -233,7 +236,17 @@ local function timer_disassembly_weapon(npc_id, result_details, result_condition
 	return true
 end
 
+DisassemblyWeapon = item_parts.disassembly_weapon
+
 function item_parts.disassembly_weapon(obj, obj_d)
+	if has_parts(obj) then
+		custom_disassembly_weapon(obj, obj_d)
+	else
+		DisassemblyWeapon(obj, obj_d)
+	end
+end
+
+function custom_disassembly_weapon(obj, obj_d)
 
 	-- Defines
 	local id = obj:id()
@@ -330,6 +343,165 @@ function item_parts.disassembly_weapon(obj, obj_d)
 	
 	-- Process
 	CreateTimeEvent(0,"delay_disassembly" .. id, delay, timer_disassembly_weapon, npc:id(), result_details, result_conditions, name)
+end
+
+-- here we go again
+WorkshopReplacePart = ui_workshop.UIWorkshopRepair.ReplacePart
+
+function ui_workshop.UIWorkshopRepair:ReplacePart()
+	local obj = self.CC["inventory"]:GetCell_Selected(true)
+	if (not obj) then
+		return
+	end
+
+	if not has_parts(obj) then
+		print_dbg("ReplacePart: Not weapon, going through original route")
+		WorkshopReplacePart(self)
+		return
+	end
+	local obj_part = self.CC["parts"]:GetCell_Selected(true)
+	if not (obj_part and self.selected_btn) then
+		return
+	end
+	
+	self.itm_selected[self.selected_btn]:InitTexture("ui_button_inv_t")
+		
+	print_ws("- UIWorkshopRepair:ReplacePart() | picked replacement part (%s) [%s] - condition: %s", obj_part:id(), obj_part:section(), obj_part:condition())
+	
+	-- Save the condition of selected part
+	local new_part_con = math.ceil(obj_part:condition()*100)
+	
+	self.new_con[self.selected_btn] = {}
+	self.new_con[self.selected_btn].id = obj_part:id()
+	self.new_con[self.selected_btn].con = new_part_con
+	
+	-- Calculate individual condition and update text
+	self.btn_repair:Enable(true)
+	local tot_con = 0
+	local cnt = 0
+	local active = 0
+	for i=1,6 do
+		if self.parts[i] and self.parts[i].sec and (self.parts[i].sec ~= "na") then
+			local t = self.parts[i].con
+			if self.new_con[i] then
+				t = self.new_con[i].con
+				active = active + 1
+			end
+			local clr = utils_xml.get_color_con(t)
+			self.itm_con[i]:SetText(clr .. t .. "%")
+			tot_con = tot_con + t --AdjustCon(self.parts[i].sec, t, #self.parts, IsOutfit(self.object))
+			cnt = cnt + 1
+		end
+	end
+	
+	-- Calculate total condition and update text
+	tot_con = clamp(math.ceil(obj:condition() * 100),0,100)
+	self.itm_con_r:SetText(tot_con .. "%")
+	
+	-- Update remaining toolkit count
+	-- weapon_parts_overhaul do not consume toolkit charges for swapping parts
+	--self:UpdateToolkits(active)
+	
+	-- Hide part inventory
+	self.CC["parts"]:Reset()
+	
+	utils_obj.play_sound("interface\\items\\inv_items_cloth_" .. tostring(math.random(2,3)))
+	
+	SetTip("repair_tip_4", nil, nil, nil, true, self.info_text)
+	
+	-- Reset
+	self.selected_btn = nil
+	self.highlight_btn = nil
+end
+
+WorkshopRepair = ui_workshop.UIWorkshopRepair.Repair
+function ui_workshop.UIWorkshopRepair:Repair()
+	local obj = self.CC["inventory"]:GetCell_Selected(true)
+	if (not obj) then
+		return
+	end
+
+	if not has_parts(obj) then
+		print_dbg("Repair: Not weapon, going through original route")
+		WorkshopRepair(self)
+		return
+	end
+	
+	local sim = alife()
+	local tot_con = 0
+	local cnt = 0
+	if is_not_empty(self.new_con) then
+		for i=1,6 do
+			if self.parts[i] and self.parts[i].sec and (self.parts[i].sec ~= "na") then
+				if self.new_con[i] and self.new_con[i].id then
+					-- weapon_parts_overhaul refund parts
+					local temp = self.parts[i].con
+					self.parts[i].con = self.new_con[i].con
+					print_ws("- UIWorkshopRepair:Repair() | replaced part spotted | part: %s - condition: %s - order: %s - id: %s", self.parts[i].sec, self.new_con[i].con, i, self.new_con[i].id)
+					
+					-- Release replacement parts
+					if temp < 0 then
+						alife_release_id(self.new_con[i].id)
+					else
+						local part = get_object_by_id(self.new_con[i].id)
+						part:set_condition(temp/100)
+					end
+					-- weapon_parts_overhaul end
+				end
+				
+				tot_con = tot_con + self.parts[i].con --AdjustCon(self.parts[i].sec, self.parts[i].con, #self.parts, IsOutfit(self.object))
+				cnt = cnt + 1
+				print_ws("/ UIWorkshopRepair:Repair() | total condition calculation | part: %s - condition: %s - order: %s - total sum: %s", self.parts[i].sec, self.parts[i].con, i, tot_con)
+			end
+		end
+	else
+		print_ws("! UIWorkshopRepair:Repair() | no new parts have been replaced")
+		return
+	end
+	
+	-- Discharge tools
+	for i=1,#self.toolkit_pick do
+		local obj_tool = level.object_by_id(self.toolkit_pick[i])
+		if obj_tool then
+			utils_item.discharge(obj_tool)
+			print_ws("/ UIWorkshopRepair:Repair() | discharged toolkit (%s)", self.toolkit_pick[i])
+		else
+			printe("!ERROR UIWorkshopRepair:Repair() | can't discharge toolkit with id (%s). Object not found!", self.toolkit_pick[i])
+		end
+	end
+	
+	-- Apply condition changes
+	local id = obj:id()
+	local sec = obj:section()
+	sec = ini_sys:r_string_ex(sec,"parent_section") or sec -- for weapons with scopes
+	
+	local final_con = (cnt > 0) and (clamp(math.ceil(tot_con/cnt),1,100)/100)
+	local weapon = level.object_by_id(id)
+	if weapon and final_con and (final_con >= 0) and (final_con <= 1) then
+		-- weapon_parts_overhaul do not update condition
+		if not IsWeapon(weapon) then
+			weapon:set_condition(final_con)
+			print_ws("- UIWorkshopRepair:Repair() | object with id (%s) is set to a new condition: %s", id, final_con)
+		end
+	else
+		printe("! UIWorkshopRepair:Repair() | object with id (%s) is either not found. Or didn't register new condition (%s)!", id, final_con)
+	end
+	
+	local result_part_tbl = {}
+	result_part_tbl[sec] = math.ceil(tot_con/cnt)
+	for i=1,#self.parts do
+		result_part_tbl[self.parts[i].sec] = self.parts[i].con
+	end
+	item_parts.set_parts_con(id, result_part_tbl)
+	
+	for k,v in pairs(result_part_tbl) do
+		print_ws("~ UIWorkshopRepair:Repair() | item's new part table [%s] = %s",k,v)
+	end
+	
+	-- Effect
+	actor_effects.play_item_fx("craft_dummy")
+
+	self:Close()
 end
 
 quality_map = {
