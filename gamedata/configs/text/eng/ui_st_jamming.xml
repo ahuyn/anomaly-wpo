@@ -24,7 +24,7 @@
 		<text>Weapon functional</text>
 	</string>
 	<string id="ui_st_oldjam">
-		<text>Weapon jammed from condition. Reload weapon.</text>
+		<text>You are using Anomaly Magazines. Do not unjam your weapon. Reload your weapon.</text>
 	</string>
 	<string id="ui_st_unjam_fail">
 		<text>Weapon severely jammed - unload your magazine before unjamming.</text>

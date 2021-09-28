@@ -77,9 +77,9 @@ function weapon_eval_parts(wpn)
 		local final_chance = math.ceil(adjusted)-- * parts_info[part].weight)
 		print_dbg("Part %s has a %s chance to be good.", part, final_chance)
 		
-		if wpn:condition() > 0.98 then
+		if wpn:condition() > 0.9 then
 			print_dbg("Short circuiting")
-			parts_data[part] = 99
+			parts_data[part] = math.randopm(90, 99)
 		elseif math.random(100) < final_chance then
 			parts_data[part] = math.random(good_breakpoint, 99)
 		else
