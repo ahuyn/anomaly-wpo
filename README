@@ -68,6 +68,8 @@ Barrels below 75% condition will lose damage up to 50% less damage at 0% conditi
 Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
 
 Changelog
+1.9.1
+- Circumvented old jams (as a fourth type of jam). Prevented reload on jam. RUS translation from Aonestr.
 1.9
 - In-game PDA guide to WPO.
 1.8.3
