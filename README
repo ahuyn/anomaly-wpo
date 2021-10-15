@@ -5,7 +5,7 @@ Weapons dropping at 7% makes no sense. Added an extra couple of layers to weapon
 
 MAJOR FEATURES:
 
-This is the meaty stuff. For an easier start guide, consult Maintenance Guide.
+This is the meaty stuff. For an easier start guide, consult Maintenance Guide. You can also read the in-game PDA guide.
 
 Condition overhaul:
 - Weapon parts are no longer tied to condition. Weapon jamming from low condition will still happen, and additionally different types of jams from poor-condition parts will occur.
@@ -44,7 +44,7 @@ Suppressors vastly increase the rate at which the weapon overheats.
 Inspecting your weapon will give you an idea of how hot it is (press unjam).
 
 Jamming and weapons failure:
-The old style of jamming from condition is still around and until I figure out how to override it through script, I instead inform the user to not confuse them.
+To not confuse the player, jammed weapons cannot be reloaded.
 Double tap your use key to unjam by default.
 Use the 'unjam keybind' optional addon to add a keybind to unjam.
 You can also unjam weapons from inventory.

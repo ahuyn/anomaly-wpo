@@ -76,7 +76,7 @@
 
 	<!-- MCM -->
 	<string id="ui_mcm_menu_wpo">
-		<text>Weapon Parts Overhaul</text>
+		<text>WPO</text>
 	</string>
 	<string id="ui_mcm_wpo_title">
 		<text>Weapon Parts Overhaul Config</text>
