@@ -24,10 +24,10 @@ local DAMAGE_THRESHOLD = 86
 -- condition under which parts cannot be field replaced
 local REPLACE_THRESHOLD = 0.2
 -- formula for jam: JAM_COEF * (JAM_FACTOR ^ 2 - SEVERITY), where SEVERITY = math_floor(part_condition/20)
--- 0, 2, 6, 18, 54
--- 0, 1, 3, 9, 27
-local TRIGGER_JAM = {1, 3}
-local PARTS_JAM = {2, 3}
+-- 0.4, 3, 6, 12, 24
+-- 0.1, 1, 2, 4, 8
+local TRIGGER_JAM = {10, 2}
+local PARTS_JAM = {30, 2}
 local guarantee_not_jam = true
 local SALE_PART_MIN = 51
 -- use to block inputs while animations play
@@ -110,6 +110,7 @@ function has_parts(wpn)
 		return false
 	end
 end
+
 
 function missing_parts(wpn)
 	if wpn:id() == cgd.id then
@@ -235,16 +236,24 @@ local function calculate_jam(wpn, old_ammo)
 	end
 
 	-- jam chance. if we roll this twice, upgraded to severe jam
-	local jam_chance = math_floor((mechanism_cond * get_config("jamchance"))/count) or 0
+	local jam_chance = math_floor(mechanism_cond/count) or 0
+	if jam_chance == 0 then jam_chance = 4 end
 	if cgd.fullAuto then jam_chance = jam_chance / 2 end
+	jam_chance = jam_chance * get_config("jamchance")
 	jam_chance = jam_chance * get_overheat_modifier(wpn)
+	-- also apply condition
+	local cond = wpn:condition()
+	if cond < 0.9 then
+		local ratio = (0.9-cond)/0.9
+		jam_chance = jam_chance * (1 + 2*ratio)
+	end
 	if (old_ammo) then
 		-- bad ammo adds a flat 2% chance to jam
-		jam_chance = jam_chance + 2
+		jam_chance = jam_chance + 20
 	end
 	print_dbg("Final jam chance is %s",jam_chance)
 
-	if (math_random(100) <= jam_chance) then
+	if (math_random(1000) <= jam_chance) then
 		local str = gc("ui_st_jam")
 		local verbosity = 1
 		if wpn:get_ammo_in_magazine() > 0 and get_config("superjam") and (math_random(100) < jam_chance/2) then
@@ -287,7 +296,7 @@ local function calculate_damage(wpn, old_ammo, heat)
 	print_dbg("weapon %s, heat is %s. heat modifier is  %s", wpn:section(), cgd.heat, overheat_modifier)
 	if (cond < threshold) then
 		-- 200 x (threshold - condition) * per shot decrease, should result in pretty small chances
-		damage_chance = (threshold - cond) * cgd.current_gun_shot_dec * 2000
+		damage_chance = (threshold - cond) * cgd.current_gun_shot_dec * 2000 * overheat_modifier
 		-- if cgd.fullAuto then damage_chance = damage_chance / 2 end
 		-- damage_chance = (170 - 200*cond) * cgd.current_gun_shot_dec * 1000
 		-- add flat 2% chance of damage w. old ammo
@@ -398,33 +407,47 @@ local function actor_on_weapon_before_fire(flags)
 	local id = obj_wpn and obj_wpn:id() or 0
 
 	if obj_wpn and id == cgd.id then
-		if obj_wpn:get_ammo_in_magazine() == 0 or not cgd.has_parts or obj_wpn:weapon_in_grenade_mode() then
+		if obj_wpn:get_ammo_in_magazine() == 0 or not cgd.has_parts or obj_wpn:weapon_in_grenade_mode() or guarantee_not_jam then
 			return 
 		end
-	-- calculate misfire chance
+
+		-- if missing parts do not roll for misfire
+		if missing_parts(obj_wpn) then
+			send_msg(gc("ui_st_missing"), 1)
+			flags.ret_value = false
+			return
+		end
+
+	-- roll misfire chance
 		local str = ""
 		-- apply misfire
 		local trigger_con = cgd.parts[cgd.trigger_name] or 99
 		local severity = math_floor(trigger_con/20)
-		if severity < 4 and not guarantee_not_jam then
-			local misfire_chance = math_floor(TRIGGER_JAM[1] * math.pow(TRIGGER_JAM[2], 3 - severity) * get_config("jamchance")) or 0
-			print_dbg("misfire chance: "..misfire_chance)
-			if (math_random(100) < misfire_chance) then
-				-- fullauto fail later
-				if false then--math.random(100) < misfire_chance / 3 then
-					print_dbg("aaaaaaaaa")
-					level.press_action(bind_to_dik(key_bindings.kWPN_FIRE))
-				else
-					str = gc("ui_st_misfire")
-					jammed_guns[id] = 1
-				end
+		local misfire_chance = 1
+		
+		if severity < 4 then 
+			misfire_chance = math_floor(TRIGGER_JAM[1] * math.pow(TRIGGER_JAM[2], 3 - severity))
+		end
+		misfire_chance = misfire_chance * get_config("jamchance")
+		local cond = obj_wpn:condition()
+		if cond < 0.9 then
+			local ratio = (0.9-cond)/0.9
+			misfire_chance = misfire_chance * (1 + 2*ratio)
+		end			
+		print_dbg("misfire chance: "..misfire_chance)
+		if (math_random(1000) < misfire_chance) then
+			-- fullauto fail later
+			if false then--math.random(100) < misfire_chance / 3 then
+				print_dbg("aaaaaaaaa")
+				level.press_action(bind_to_dik(key_bindings.kWPN_FIRE))
+			else
+				str = gc("ui_st_misfire")
+				jammed_guns[id] = 1
 			end
 		end
-		-- check for malfunction or missing parts
-		if missing_parts(obj_wpn) then
-			str = gc("ui_st_missing")
-			flags.ret_value = false
-		elseif jammed_guns[id] or missing_parts(obj_wpn) then
+		
+		-- check for malfunction
+		if jammed_guns[id] then
 			local sec = obj_wpn:section()
 			-- Cache
 			if (sec ~= last_wpn_snd_empty[1]) then
@@ -590,6 +613,7 @@ function unjam(wpn)
 					CreateTimeEvent("arti_jamming", "unjam"..id, 0.5, timed_unjam, id, sound, str, verbosity)
 				end
 			else
+				-- unjam from inventory
 				CreateTimeEvent("arti_jamming", "unjam"..id, 0.1, timed_unjam, id, sound, str, verbosity)
 				inventory:Close()
 			end
@@ -702,6 +726,7 @@ end
 
 function actor_on_weapon_reload(wpn)
 	if jammed_guns[wpn:id()] then
+		if magazines and magazines.do_interrupt_reload then magazines.do_interrupt_reload() end
 		CreateTimeEvent("arti_jamming", "cancel_reload", 0.1, cancel_reload, wpn)
 	end
 end
@@ -837,9 +862,9 @@ NameCustom = ui_inventory.UIInventory.Name_Custom
 -- because at this point, why not
 function ui_inventory.UIInventory:Name_Custom(obj, bag, temp, i)
 	obj = self:CheckItem(obj,"Name_Custom " .. i)
-	if i == 3 and has_parts(obj) then -- menu field strip
+	if i == 2 and has_parts(obj) then -- menu field strip
 		return menu_field_strip(obj)
-	elseif i == 4 and has_parts(obj) then -- check unjam
+	elseif i == 3 and has_parts(obj) then -- check unjam
 		return check_unjam(obj)
 	else
 		return NameCustom(self, obj, bag, temp, i)
@@ -849,9 +874,9 @@ end
 ActionCustom = ui_inventory.UIInventory.Action_Custom
 function ui_inventory.UIInventory:Action_Custom(obj, bag, temp, i)
 	obj = self:CheckItem(obj,"Action_Custom " .. i)
-	if i == 3 and has_parts(obj) then -- menu field strip
+	if i == 2 and has_parts(obj) then -- menu field strip
 		field_strip(obj)
-	elseif i == 4 and has_parts(obj) then -- check unjam
+	elseif i == 3 and has_parts(obj) then -- check unjam
 		unjam_wep(obj)
 	else
 		ActionCustom(self, obj, bag, temp, i)

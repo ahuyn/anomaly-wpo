@@ -50,7 +50,7 @@
 	</string>
 	<!-- Messages -->
 	<string id="st_news_parts_success">
-		<text>Successfully replaced part</text>
+		<text>Successfully replaced part: </text>
 	</string>
 	<string id="st_news_parts_fail">
 		<text>%c[d_red]Weapon already has higher condition part.</text>
@@ -71,7 +71,7 @@
 		<text>Removed parts:</text>
 	</string>
 	<string id="st_news_cleaned">
-		<text>Cleaned up parts:</text>
+		<text>Cleaned part:</text>
 	</string>
 
 	<!-- MCM -->
@@ -236,8 +236,8 @@
 			\n• Firing a weapon in heavy rain will degrade the weapon faster.
 			\n• Firing a weapon for too long causes overheating, leading to more jams and faster degradation.
 			%c[pda_green]III. Economy changes%c[ui_gray_1]\n
-			\n• Using a cleaning kit will clean "dirty" weapon parts (above 60% condition)
-			\n• Using a repair kit will replace the lowest condition part.%c[pda_yellow]This is the other way to replace barrels.%c[ui_gray_1]
+			\n• Having a cleaning kit will allow you to clean "dirty" weapon parts (above 60% condition). This also restores 10% condition.
+			\n• Having a repair kit will allow you to replace parts through a right-click menu. This uses a charge and restores 10% condition.%c[pda_yellow]This is the other way to replace barrels.%c[ui_gray_1]
 			\n• Technicians will randomly sell weapon parts at a serious markup. 
 			\n• Weapon parts above 60% can be repaired with files, ramrods or multitools.
 			\n• Weapon parts above 10% can be repaired with a very expensive toolkit available at traders.
@@ -271,6 +271,19 @@
 	<string id="st_damage_3">
 		<text>dirty</text>
 	</string>
+
+	<string id="st_wpo_replace_parts">
+		<text>maintain parts</text>
+	</string>
+	
+	<string id="st_wpo_replace">
+		<text>replace</text>
+	</string>
+	
+	<string id="st_wpo_clean">
+		<text>clean</text>
+	</string>
+
 	<string id="st_name_trigger">
 		<text>trigger mechanism</text>
 	</string>
