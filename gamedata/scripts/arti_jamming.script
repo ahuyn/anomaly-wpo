@@ -256,7 +256,7 @@ local function calculate_jam(wpn, old_ammo)
 	if (math_random(1000) <= jam_chance) then
 		local str = gc("ui_st_jam")
 		local verbosity = 1
-		if wpn:get_ammo_in_magazine() > 0 and get_config("superjam") and (math_random(100) < jam_chance/2) then
+		if wpn:get_ammo_in_magazine() > 0 and get_config("superjam") and (math_random(1000) < jam_chance/2) then
 			jammed_guns[wpn:id()] = 3
 			print_dbg("Severe jam")
 			if get_config("verbosity") > 1 then
@@ -501,10 +501,23 @@ local function actor_on_weapon_fired(obj, wpn, ammo_elapsed, grenade_elapsed, am
 	-- calc and apply jam
 	local wpn_obj = utils_item.item_is_fa(wpn) and wpn
 	if wpn_obj then
+		-- calc and apply extra degradation in rain
+		local degradation_factor = 1
+		if level.rain_factor() > 0.3 and not GetEvent("current_safe_cover") then
+			degradation_factor = degradation_factor * (get_config("degradation") or 1.5)
+		end
+		degradation_factor = degradation_factor * get_overheat_modifier(wpn_obj)
+		if degradation_factor > 1 then
+			degradation_factor = degradation_factor - 1
+			local degradation = degradation_factor * cgd.current_gun_shot_dec
+			print_dbg("Degrading by additional %s", degradation)
+			wpn_obj:set_condition(clamp(wpn_obj:condition() - degradation, 0, 0.999))
+		end
+
 		if jammed_guns[wpn_obj:id()] then
 			level.release_action(bind_to_dik(key_bindings.kWPN_FIRE))
 		end
-		if (not cgd.parts) then return 
+		if (not cgd.parts or is_empty(cgd.parts)) then return 
 		elseif (not jammed_guns[wpn_obj:id()]) then
 			local old_ammo = wpn:get_ammo_type() % 3 ~= 0
 			calculate_jam(wpn_obj, old_ammo)
@@ -512,18 +525,6 @@ local function actor_on_weapon_fired(obj, wpn, ammo_elapsed, grenade_elapsed, am
 		end
 	end
 
-	-- calc and apply extra degradation in rain
-	local degradation_factor = 1
-	if level.rain_factor() > 0.3 and not GetEvent("current_safe_cover") then
-		degradation_factor = degradation_factor * (get_config("degradation") or 1.5)
-	end
-	degradation_factor = degradation_factor * get_overheat_modifier(wpn_obj)
-	if degradation_factor > 1 then
-		degradation_factor = degradation_factor - 1
-		local degradation = degradation_factor * cgd.current_gun_shot_dec
-		print_dbg("Degrading by additional %s", degradation)
-		wpn_obj:set_condition(clamp(wpn_obj:condition() - degradation, 0, 0.999))
-	end
 end
 
 function check_unjam(obj)
