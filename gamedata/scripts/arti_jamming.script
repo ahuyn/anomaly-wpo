@@ -407,7 +407,7 @@ local function actor_on_weapon_before_fire(flags)
 	local id = obj_wpn and obj_wpn:id() or 0
 
 	if obj_wpn and id == cgd.id then
-		if obj_wpn:get_ammo_in_magazine() == 0 or not cgd.has_parts or obj_wpn:weapon_in_grenade_mode() or guarantee_not_jam then
+		if obj_wpn:get_ammo_in_magazine() == 0 or not cgd.has_parts or obj_wpn:weapon_in_grenade_mode() then
 			return 
 		end
 
@@ -435,7 +435,7 @@ local function actor_on_weapon_before_fire(flags)
 			misfire_chance = misfire_chance * (1 + 2*ratio)
 		end			
 		print_dbg("misfire chance: "..misfire_chance)
-		if (math_random(1000) < misfire_chance) then
+		if (math_random(1000) < misfire_chance and not guarantee_not_jam) then
 			-- fullauto fail later
 			if false then--math.random(100) < misfire_chance / 3 then
 				print_dbg("aaaaaaaaa")
