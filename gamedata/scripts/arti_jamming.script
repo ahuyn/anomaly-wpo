@@ -225,7 +225,7 @@ local function calculate_jam(wpn, old_ammo)
 		return
 	end
 	local count = 0
-	local mechanism_cond = 0
+	local mechanism_cond = #cgd.parts
 	for k, v in pairs(cgd.parts) do -- skip barrel
 		local severity = math_floor(v / 20)
 		if (severity < 4) then
@@ -237,21 +237,21 @@ local function calculate_jam(wpn, old_ammo)
 
 	-- jam chance. if we roll this twice, upgraded to severe jam
 	local jam_chance = math_floor(mechanism_cond/count) or 0
-	if jam_chance == 0 then jam_chance = 4 end
 	if cgd.fullAuto then jam_chance = jam_chance / 2 end
 	jam_chance = jam_chance * get_config("jamchance")
 	jam_chance = jam_chance * get_overheat_modifier(wpn)
 	-- also apply condition
 	local cond = wpn:condition()
 	if cond < 0.9 then
-		local ratio = (0.9-cond)/0.9
-		jam_chance = jam_chance * (1 + 2*ratio)
+		local ratio = (0.9-cond)/0.45
+		jam_chance = jam_chance * (1 + ratio)
+		print_dbg("Increasing jam ratio by %s", ratio)
 	end
 	if (old_ammo) then
 		-- bad ammo adds a flat 2% chance to jam
 		jam_chance = jam_chance + 20
 	end
-	print_dbg("Final jam chance is %s",jam_chance)
+	print_dbg("Final jam chance is %s", jam_chance)
 
 	if (math_random(1000) <= jam_chance) then
 		local str = gc("ui_st_jam")
@@ -423,7 +423,7 @@ local function actor_on_weapon_before_fire(flags)
 		-- apply misfire
 		local trigger_con = cgd.parts[cgd.trigger_name] or 99
 		local severity = math_floor(trigger_con/20)
-		local misfire_chance = 1
+		local misfire_chance = 0
 		
 		if severity < 4 then 
 			misfire_chance = math_floor(TRIGGER_JAM[1] * math.pow(TRIGGER_JAM[2], 3 - severity))
