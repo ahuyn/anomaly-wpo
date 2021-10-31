@@ -15,6 +15,22 @@ function utils_item.get_item_cost(obj, profile)
 	end
 end
 
+GetStatus = utils_item.get_item_trade_status
+function utils_item.get_item_trade_status(obj, profile)
+	if not utils_item.item_is_fa(obj) or obj:parent():id() ~= 0 then return GetStatus(obj, profile) end
+	local parts = se_load_var(obj:id(), obj:name(), "parts")
+	printf("Checking parts for %s", obj:section())
+	if not parts then return GetStatus(obj, profile) end
+	local threshold = a_arti_jamming_mcm.get_config("minpart")
+	for k,v in pairs(parts) do
+		if string.find(k, "prt_w_") and v < threshold then
+			printf("weapon %s has busted part %s", obj:section(), k)
+			return 2
+		end
+	end
+	return GetStatus(obj, profile)
+end
+
 function on_game_start()
     
     local prices = ini_file("items\\settings\\part_prices.ltx")

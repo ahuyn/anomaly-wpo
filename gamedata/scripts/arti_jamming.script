@@ -33,7 +33,7 @@ local SALE_PART_MIN = 51
 -- use to block inputs while animations play
 local block_repeat = false
 
-get_config = arti_jamming_mcm.get_config
+get_config = a_arti_jamming_mcm.get_config
 
 d_flag      		= false
 local d_key       	= "DIK_LMENU" -- Saftey key hold (Left Alt)
