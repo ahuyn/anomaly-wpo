@@ -57,6 +57,11 @@ function send_msg(msg, verbosity)
 	end
 end
 
+-- export function
+function get_jammed(id)
+	return jammed_guns[id]
+end
+
 --gun jam play swearing sound
 function jam_swearing()
 	if get_config("profanity") and math_random(1,100) > 50 then
@@ -714,12 +719,11 @@ end
 
 function actor_on_weapon_jammed(actor)
 	-- send_msg(gc("ui_st_oldjam"), 0)
-	-- if using magazines, don't even log these kinds of jams. let mags handle it
 	local wpn = db.actor:active_item()
-	if magazines and magazine_binder.is_supported_weapon(wpn) then 
-		send_msg(gc("ui_st_oldjam"), 0)
-		return 
-	end
+	-- if magazines and magazine_binder.is_supported_weapon(wpn) then 
+	-- 	send_msg(gc("ui_st_oldjam"), 0)
+	-- 	return 
+	-- end
 	jammed_guns[wpn:id()] = 4
 	print_dbg("Logged id %s, sec %s", wpn:id(), wpn:section())
 	jam_swearing()

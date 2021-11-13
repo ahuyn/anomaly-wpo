@@ -68,6 +68,8 @@ Barrels below 75% condition will lose damage up to 50% less damage at 0% conditi
 Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
 
 Changelog
+1.10.1
+- Support for magazines and unjams.
 1.10
 - Revised how parts cleaning/replacement with repair items works. Now you can target parts replacement or cleaning from a new context menu. Revised jam chance formula a bit to also factor in weapon condition. Added very slim chance for weapon failure at a high level.
 1.9.1
