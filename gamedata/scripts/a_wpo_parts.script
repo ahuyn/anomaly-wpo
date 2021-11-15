@@ -22,7 +22,7 @@ function utils_item.get_item_trade_status(obj, profile)
 		return
 	end
 	
-	if not (IsWeapon(obj) and (not IsItem("fake_ammo_wpn",obj:section()))) or obj:parent():id() ~= 0 then return GetStatus(obj, profile) end
+	if not (IsWeapon(obj) and (not IsItem("fake_ammo_wpn",obj:section()))) or (obj:parent() and obj:parent():id() ~= 0) then return GetStatus(obj, profile) end
 	
 	local parts = se_load_var(obj:id(), obj:name(), "parts")
 	printf("Checking parts for %s", obj:section())

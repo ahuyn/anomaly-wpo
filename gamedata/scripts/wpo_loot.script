@@ -51,7 +51,7 @@ function on_game_start()
 
 	for i=0, n-1 do
 		local result, sec, value = prices:r_line("wpo_part_prices" , i , "", "")
-        print_dbg("parts_list[%s] = %s", i + 1, sec)    
+        -- print_dbg("parts_list[%s] = %s", i + 1, sec)    
 		parts_list[i + 1] = sec
 	end
 end
