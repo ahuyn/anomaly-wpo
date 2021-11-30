@@ -27,7 +27,7 @@
 		<text>You are using Anomaly Magazines. Do not unjam your weapon. Reload your weapon.</text>
 	</string>
 	<string id="ui_st_unjam_fail">
-		<text>Weapon severely jammed - unload your magazine before unjamming.</text>
+		<text>That didn't seem to work - it must be really jammed in there...</text>
 	</string>
 	<string id="ui_st_parts_damage">
 		<text>Weapon has suffered internal component damage.</text>

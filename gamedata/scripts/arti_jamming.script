@@ -586,7 +586,7 @@ function unjam(wpn)
 		-- fail on superjam
 		if (jammed_guns[id] == 3 and weapon:get_ammo_in_magazine() > 1) then	
 			jam_swearing()
-			send_msg(gc("ui_st_unjam_fail"), 2)
+			send_msg(gc("ui_st_unjam_fail"), 0)
 			if is_current then				
 				actor_effects.use_weapon(0)
 				actor_effects.use_weapon(1)
@@ -616,7 +616,7 @@ function unjam(wpn)
 				else
 					actor_effects.use_weapon(0)
 					--get sound and play
-					CreateTimeEvent("arti_jamming", "unjam"..id, 0.5, timed_unjam, id, sound, str, verbosity)
+					CreateTimeEvent("arti_jamming", "unjamn"..id, 0.2, timed_unjam, id, sound, str, verbosity)
 				end
 			else
 				-- unjam from inventory
