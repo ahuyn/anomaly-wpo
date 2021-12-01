@@ -577,19 +577,17 @@ function unjam(wpn)
 				local bored_sound = bored_anim and ini_sys:r_string_ex(sec, "snd_bore") or "$no_sound"
 				play_anim(weapon, idle_section, bored_sound)
 			end
-			CreateTimeEvent("arti_jamming", "nojam"..id, 0.5, timed_unjam, 0, "", str, verbosity)
-		else
-			send_msg(str, verbosity)
 		end
+			send_msg(str, verbosity)
 	else
 		local inventory = GetActorMenu()
 		-- fail on superjam
-		if (jammed_guns[id] == 3 and weapon:get_ammo_in_magazine() > 1) then	
+		if (jammed_guns[id] == 3 and weapon:get_ammo_in_magazine() > 1) then
 			jam_swearing()
 			send_msg(gc("ui_st_unjam_fail"), 0)
 			if is_current then				
-				actor_effects.use_weapon(0)
-				actor_effects.use_weapon(1)
+				db.actor:hide_weapon()
+				CreateTimeEvent("arti_jamming", "show_weapon", 0, timed_restore)
 				start_jammin(50)
 			else
 				inventory:Close()
@@ -614,20 +612,34 @@ function unjam(wpn)
 					jammed_guns[id] = nil
 					guarantee_not_jam = true
 				else
-					actor_effects.use_weapon(0)
+					db.actor:hide_weapon()
 					--get sound and play
-					CreateTimeEvent("arti_jamming", "unjamn"..id, 0.2, timed_unjam, id, sound, str, verbosity)
+					CreateTimeEvent("arti_jamming", "unjam"..id, 0, timed_unjam, id, sound, str, verbosity)
 				end
 			else
 				-- unjam from inventory
-				CreateTimeEvent("arti_jamming", "unjam"..id, 0.1, timed_unjam, id, sound, str, verbosity)
+				-- CreateTimeEvent("arti_jamming", "unjam"..id, 0, timed_unjam, id, sound, str, verbosity)		
+				send_msg(message, verbosity)		
+				utils_obj.play_sound(sound.."_unjam")
+				jammed_guns[id] = nil
 				inventory:Close()
 			end
 		end
 	end
 end
 
+function timed_restore()
+	local current_weapon = db.actor:active_item()
+	if current_weapon then return false end
+	db.actor:restore_weapon()
+	return true
+end
+
 function timed_unjam(id, sound, message, verbosity)
+	
+	local current_weapon = db.actor:active_item()
+	if current_weapon then return false end
+
 	if sound and sound ~= "" then
 		utils_obj.play_sound(sound.."_unjam")
 	end
@@ -636,7 +648,7 @@ function timed_unjam(id, sound, message, verbosity)
 	end
 	if id and id ~= 0 then
 		jammed_guns[id] = nil
-		actor_effects.use_weapon(1)
+		db.actor:restore_weapon()
 		guarantee_not_jam = true
 	end
 	return true
@@ -670,12 +682,16 @@ function unjam_replace(weapon, slot, sound)
 		weapon:switch_state(7)
 		return true
 	end
-	actor_effects.use_weapon(0)
-	CreateTimeEvent("arti_jamming", "move"..weapon:id(), 0.5, move_to_slot, weapon, slot, sound)
+	db.actor:hide_weapon()
+	CreateTimeEvent("arti_jamming", "move"..weapon:id(), 0, move_to_slot, weapon, slot, sound)
 	return true
 end
 
 function move_to_slot(weapon, slot, sound)
+
+	local current_weapon = db.actor:active_item()
+	if current_weapon then return false end
+
 	local old_weapon = alife_object(weapon:id())
 	local new_weapon = alife_clone_weapon(old_weapon)
 	if slot then
@@ -684,7 +700,7 @@ function move_to_slot(weapon, slot, sound)
 	if sound and sound ~= "" then
 		utils_obj.play_sound(sound.."_unjam")
 	end
-	actor_effects.use_weapon(1)
+	db.actor:restore_weapon()
 	return true
 end
 
@@ -732,6 +748,15 @@ end
 function actor_on_weapon_reload(wpn)
 	if jammed_guns[wpn:id()] then
 		if magazines and magazines.do_interrupt_reload then magazines.do_interrupt_reload() end
+		-- drop mag if simplejam enabled and superjammed
+		if get_config("simplejam") and jammed_guns[wpn:id()] == 2 then
+			-- on simplejam, unload the magazine
+			if mag_support.using_mags() and mag_support.is_mag_loaded(wpn) then
+				mag_support.eject_mag(wpn)
+			else
+				wpn:force_unload_magazine(true)
+			end
+		end
 		CreateTimeEvent("arti_jamming", "cancel_reload", 0.1, cancel_reload, wpn)
 	end
 end
@@ -808,8 +833,18 @@ function try_replace_part(wpn, table, part, using_tool)
 	end
 end
 
+function has_parts_fieldstrip(wpn)
+	if not has_parts(wpn) then return false end
+	local parts = item_parts.get_parts_con(wpn, nil, true)
+	local has_parts = false
+	for k,v in pairs(parts) do
+		if v > 0 and is_part(k) and not is_barrel(k) then has_parts = true end
+	end
+	return has_parts
+end
+
 function menu_field_strip(wpn)
-	if has_parts(wpn) then
+	if has_parts_fieldstrip(wpn) then
 		return gc("st_field_strip")
 	end
 end
@@ -821,7 +856,7 @@ function field_strip(wpn)
 		return
 	end
 	local id = wpn:id()
-	if wpn and has_parts(wpn) then
+	if wpn and has_parts_fieldstrip(wpn) then
 		local is_current = id == cgd.id
 		local parts = item_parts.get_parts_con(wpn, nil, true)
 		local str_msg = gc("st_news_fieldstrip")
@@ -867,7 +902,7 @@ NameCustom = ui_inventory.UIInventory.Name_Custom
 -- because at this point, why not
 function ui_inventory.UIInventory:Name_Custom(obj, bag, temp, i)
 	obj = self:CheckItem(obj,"Name_Custom " .. i)
-	if i == 2 and has_parts(obj) then -- menu field strip
+	if i == 2 and has_parts_fieldstrip(obj) then -- menu field strip
 		return menu_field_strip(obj)
 	elseif i == 3 and has_parts(obj) then -- check unjam
 		return check_unjam(obj)
@@ -879,7 +914,7 @@ end
 ActionCustom = ui_inventory.UIInventory.Action_Custom
 function ui_inventory.UIInventory:Action_Custom(obj, bag, temp, i)
 	obj = self:CheckItem(obj,"Action_Custom " .. i)
-	if i == 2 and has_parts(obj) then -- menu field strip
+	if i == 2 and has_parts_fieldstrip(obj) then -- menu field strip
 		field_strip(obj)
 	elseif i == 3 and has_parts(obj) then -- check unjam
 		unjam_wep(obj)

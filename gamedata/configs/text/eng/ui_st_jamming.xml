@@ -108,6 +108,12 @@
 	<string id="ui_mcm_wpo_superjam_desc">
 		<text>Enables (or disables) those pesky super-jams. Super-jams are jams that require removing the loaded ammunition to clear properly.</text>
 	</string>
+	<string id="ui_mcm_wpo_simplejam">
+		<text>Drop mag if superjammed</text>
+	</string>
+	<string id="ui_mcm_wpo_simplejam_desc">
+		<text>If enabled, on pressing reload with a superjammed weapon, the magazine will be ejected for you. No more inventory fumbling!</text>
+	</string>
 	<string id="ui_mcm_wpo_threshold">
 		<text>Part damage condition threshold</text>
 	</string>
