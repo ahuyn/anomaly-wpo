@@ -553,7 +553,7 @@ function process_part(name, condition)
 		end
 	end
 	print_dbg("part %s, category %s, sev %s", name, part_name, severity)
-	return " " .. clr_r .. gc("st_dot") .. " " .. gc("st_damage_"..severity) .. " " .. gc("st_name_"..part_name) .. "\\n"
+	return " " .. utils_xml.get_color_con(condition) .. gc("st_dot") .. " " .. gc("st_damage_"..severity) .. " " .. gc("st_name_"..part_name) .. "\\n"
 end
 
 original_build_desc_header = ui_item.build_desc_header

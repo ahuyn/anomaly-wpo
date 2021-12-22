@@ -559,6 +559,11 @@ function unjam(wpn)
 		return
 	end
 
+	if missing_parts(weapon) then
+		send_msg(gc("ui_st_missing"), 0)
+		return
+	end
+
 	if not jammed_guns[id] then
 		local str = gc("ui_st_functional")
 		local heat_lvl = get_overheat_modifier(weapon, false)

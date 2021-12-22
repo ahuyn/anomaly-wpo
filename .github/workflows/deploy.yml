@@ -29,6 +29,14 @@ jobs:
         id: date
         run: echo "::set-output name=today::$(date +'%Y.%m.%d')"
 
+      - name: Install trader dependencies
+        id: ta_dep
+        run: cp -r anomaly-dependencies/trader_autoinject/gamedata gamedata
+
+      - name: Install tutorial dependencies
+        id: ta_dep
+        run: cp -r anomaly-dependencies/encyclopedia/gamedata gamedata
+
       - name: Zip folder
         run: zip -r $RELEASE_NAME.zip gamedata README *.txt "mags patch" "unjam keybind"
         env: 
