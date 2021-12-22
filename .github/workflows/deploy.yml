@@ -37,11 +37,11 @@ jobs:
 
       - name: Install trader dependencies
         id: ta_dep
-        run: cp -r anomaly-dependencies/trader_autoinject/gamedata gamedata
+        run: cp -r anomaly-dependencies/trader_autoinject/gamedata .
 
       - name: Install tutorial dependencies
         id: tut_dep
-        run: cp -r anomaly-dependencies/encyclopedia/gamedata gamedata
+        run: cp -r anomaly-dependencies/encyclopedia/gamedata .
 
       - name: Zip folder
         run: zip -r $RELEASE_NAME.zip gamedata README *.txt "mags patch" "unjam keybind"
