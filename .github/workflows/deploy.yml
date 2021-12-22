@@ -34,7 +34,7 @@ jobs:
         run: cp -r anomaly-dependencies/trader_autoinject/gamedata gamedata
 
       - name: Install tutorial dependencies
-        id: ta_dep
+        id: tut_dep
         run: cp -r anomaly-dependencies/encyclopedia/gamedata gamedata
 
       - name: Zip folder
