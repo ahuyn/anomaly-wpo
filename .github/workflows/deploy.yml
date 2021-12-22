@@ -29,6 +29,10 @@ jobs:
         id: date
         run: echo "::set-output name=today::$(date +'%Y.%m.%d')"
 
+      - name: Check submodules
+        id: check
+        run: ls anomaly-dependencies
+
       - name: Install trader dependencies
         id: ta_dep
         run: cp -r anomaly-dependencies/trader_autoinject/gamedata gamedata
