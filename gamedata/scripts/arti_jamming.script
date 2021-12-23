@@ -139,14 +139,7 @@ function play_anim(weapon, anim, sound)
 		if sound then
 			utils_obj.play_sound(sound)
 		end
-		block_repeat = true
-		CreateTimeEvent("unblock", "unblock_anims", 1, unblock)
 	end
-end
-
-function unblock()
-	block_repeat = false
-	return true
 end
 
 function persist_current_weapon()
@@ -545,6 +538,7 @@ end
 -- Unjam works by clearing weapon ID from the jam table, if conditions are met.
 function unjam(wpn)
 	if block_repeat then return end
+	block_repeat = true
 	local weapon = wpn or db.actor:active_item()
 	if not weapon then return end
 	local id = weapon:id()
@@ -556,11 +550,13 @@ function unjam(wpn)
 
 	if not weapon or not has_parts(weapon) then
 		send_msg(gc("ui_st_nothing"), verbosity)
+		block_repeat = false
 		return
 	end
 
 	if missing_parts(weapon) then
 		send_msg(gc("ui_st_missing"), 0)
+		block_repeat = false
 		return
 	end
 
@@ -583,7 +579,8 @@ function unjam(wpn)
 				play_anim(weapon, idle_section, bored_sound)
 			end
 		end
-			send_msg(str, verbosity)
+		send_msg(str, verbosity)
+		block_repeat = false
 	else
 		local inventory = GetActorMenu()
 		-- fail on superjam
@@ -596,6 +593,7 @@ function unjam(wpn)
 				start_jammin(50)
 			else
 				inventory:Close()
+				block_repeat = false
 			end
 		else
 			stop_jammin()
@@ -616,6 +614,7 @@ function unjam(wpn)
 					play_anim(weapon, to_search, unjam_sound)
 					jammed_guns[id] = nil
 					guarantee_not_jam = true
+					block_repeat = false
 				else
 					db.actor:hide_weapon()
 					--get sound and play
@@ -635,8 +634,9 @@ end
 
 function timed_restore()
 	local current_weapon = db.actor:active_item()
-	if current_weapon then return false end
+	if current_weapon then block_repeat = false return false end
 	db.actor:restore_weapon()
+	block_repeat = false
 	return true
 end
 
@@ -656,6 +656,7 @@ function timed_unjam(id, sound, message, verbosity)
 		db.actor:restore_weapon()
 		guarantee_not_jam = true
 	end
+	block_repeat = false
 	return true
 end
 
@@ -706,6 +707,7 @@ function move_to_slot(weapon, slot, sound)
 		utils_obj.play_sound(sound.."_unjam")
 	end
 	db.actor:restore_weapon()
+	block_repeat = false
 	return true
 end
 
