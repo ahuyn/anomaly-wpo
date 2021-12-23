@@ -31,19 +31,6 @@ jobs:
         id: date
         run: echo "::set-output name=today::$(date +'%Y.%m.%d')"
 
-      - name: Pull & update submodules recursively
-        run: |
-          git submodule update --init --recursive
-          git submodule update --recursive --remote
-          
-      - name: Commit & push changes
-        run: |
-          git config --global core.longpaths true
-          git config --global user.name ${{ secrets.USER_NAME }}
-          git config --global user.email ${{ secrets.USER_EMAIL }}
-          (git commit -am "Update submodules") || true
-          (git push) || true
-
       - name: Check submodules
         id: check
         run: ls anomaly-dependencies
