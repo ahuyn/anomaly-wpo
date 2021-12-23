@@ -145,7 +145,6 @@ function play_anim(weapon, anim, sound)
 end
 
 function unblock()
-	block_repeat = false
 	return true
 end
 
@@ -545,6 +544,7 @@ end
 -- Unjam works by clearing weapon ID from the jam table, if conditions are met.
 function unjam(wpn)
 	if block_repeat then return end
+	block_repeat = true
 	local weapon = wpn or db.actor:active_item()
 	if not weapon then return end
 	local id = weapon:id()
@@ -556,6 +556,7 @@ function unjam(wpn)
 
 	if not weapon or not has_parts(weapon) then
 		send_msg(gc("ui_st_nothing"), verbosity)
+		block_repeat = false
 		return
 	end
 
@@ -656,6 +657,7 @@ function timed_unjam(id, sound, message, verbosity)
 		db.actor:restore_weapon()
 		guarantee_not_jam = true
 	end
+	block_repeat = false
 	return true
 end
 
@@ -706,6 +708,7 @@ function move_to_slot(weapon, slot, sound)
 		utils_obj.play_sound(sound.."_unjam")
 	end
 	db.actor:restore_weapon()
+	block_repeat = false
 	return true
 end
 
