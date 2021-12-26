@@ -30,7 +30,7 @@ local TRIGGER_JAM = {10, 2}
 local PARTS_JAM = {30, 2}
 local guarantee_not_jam = true
 local SALE_PART_MIN = 51
--- use to block inputs while animations play
+-- use to block inputs while animations / unjam logic fires
 local block_repeat = false
 
 get_config = a_arti_jamming_mcm.get_config
@@ -132,14 +132,24 @@ function missing_parts(wpn)
 	return false
 end
 
+
 function play_anim(weapon, anim, sound)
 	if not block_repeat then
-		print_dbg("playing animation %s", anim)
-		weapon:play_hud_motion(anim, true, 0, 1, 0)
+		block_repeat = true
+		local length = weapon:play_hud_motion(anim, true, 0, 1, 0)
+		print_dbg("playing animation %s for %s time", anim, length)
 		if sound then
 			utils_obj.play_sound(sound)
-		end
+		end				
+		CreateTimeEvent("arti_jamming", "restore", length/1000, unset)
+
 	end
+end
+
+
+function unset()
+	block_repeat = false
+	return true
 end
 
 function persist_current_weapon()
@@ -557,13 +567,14 @@ function unjam(wpn)
 		block_repeat = false
 		return
 	end
-
+	-- if not jammed weapon, perform inspection
 	if not jammed_guns[id] then
 		local str = gc("ui_st_functional")
 		local heat_lvl = get_overheat_modifier(weapon, false)
 		if heat_lvl > 0 then
 			str = str .. gc("ui_st_heat"..heat_lvl)
 		end
+		-- if current weapon and has idle animation, play idle animation
 		if is_current then
 			-- bored animation
 			local idle_section = utils_item.addon_attached(weapon ,"gl") and (weapon:weapon_in_grenade_mode() and "anm_bore_g" or "anm_bore_w_gl") or "anm_bore"
@@ -575,11 +586,14 @@ function unjam(wpn)
 				print_dbg("found bored anim "..bored_anim)
 				local bored_sound = bored_anim and ini_sys:r_string_ex(sec, "snd_bore") or "$no_sound"
 				play_anim(weapon, idle_section, bored_sound)
+			else
+				-- in case of no bored anim, reset immediately
+				block_repeat = false
 			end
 		end
 		send_msg(str, verbosity)
-		block_repeat = false
 	else
+	-- if jammed, unjam
 		local inventory = GetActorMenu()
 		-- fail on superjam
 		if (jammed_guns[id] == 3 and weapon:get_ammo_in_magazine() > 1) then
@@ -594,6 +608,7 @@ function unjam(wpn)
 				block_repeat = false
 			end
 		else
+		-- perform unjam logic
 			stop_jammin()
 			local str = gc("ui_st_unjam")
 			local sound = gun_sounds[sec] and gun_sounds[sec] or "handgun"
@@ -612,10 +627,9 @@ function unjam(wpn)
 					play_anim(weapon, to_search, unjam_sound)
 					jammed_guns[id] = nil
 					guarantee_not_jam = true
-					block_repeat = false
 				else
+					--lower/raise
 					db.actor:hide_weapon()
-					--get sound and play
 					CreateTimeEvent("arti_jamming", "unjam"..id, 0, timed_unjam, id, sound, str, verbosity)
 				end
 			else
@@ -630,9 +644,13 @@ function unjam(wpn)
 	end
 end
 
+
 function timed_restore()
 	local current_weapon = db.actor:active_item()
-	if current_weapon then block_repeat = false return false end
+	if current_weapon then 
+		block_repeat = false 
+		return false 
+	end
 	db.actor:restore_weapon()
 	block_repeat = false
 	return true
@@ -680,6 +698,7 @@ function unjam_replace(weapon, slot, sound)
 	guarantee_not_jam = true
 	if not weapon then return true end
 	print_dbg("slot determined is %s", slot)
+	block_repeat = false
 	-- already reloading, return
 	if get_unjam_animation(weapon) then 	
 		weapon:switch_state(7)
@@ -963,5 +982,6 @@ function on_game_start()
 	RegisterScriptCallback("actor_on_update",actor_on_update)
 	RegisterScriptCallback("npc_on_before_hit",npc_on_before_hit)
 	RegisterScriptCallback("monster_on_before_hit",monster_on_before_hit)
+	
 
 end
