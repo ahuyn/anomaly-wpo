@@ -1,3 +1,4 @@
 [submodule "anomaly-dependencies"]
 	path = anomaly-dependencies
 	url = https://github.com/ahuyn/anomaly-dependencies.git
+	branch = master
