@@ -285,9 +285,11 @@
 	<string id="st_wpo_replace">
 		<text>replace</text>
 	</string>
-	
 	<string id="st_wpo_clean">
 		<text>clean</text>
+	</string>
+	<string id="st_wpo_remove">
+		<text>remove</text>
 	</string>
 
 	<string id="st_name_trigger">
@@ -322,6 +324,9 @@
 	</string>
 	<string id="st_name_chock">
 		<text>chock</text>
+	</string>
+	<string id="st_name_all">
+		<text>all</text>
 	</string>
 	<string id="st_name_issues">
 		<text>ISSUES:</text>

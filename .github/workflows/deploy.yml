@@ -36,6 +36,7 @@ jobs:
         run: |
           cp -r anomaly-dependencies/trader_autoinject/gamedata .
           cp -r anomaly-dependencies/encyclopedia/gamedata .
+          cp -r anomaly-demonized-scripts/custom_functor_autoinject/gamedata .
 
       - name: Zip folder
         run: zip -r $RELEASE_NAME.zip gamedata README *.txt "mags patch" "unjam keybind"
