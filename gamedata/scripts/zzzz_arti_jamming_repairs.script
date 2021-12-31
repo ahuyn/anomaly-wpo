@@ -827,33 +827,9 @@ function remove_part(part_name, part_con)
 	end
 end
 
--- NameCustom = ui_inventory.UIInventory.Name_Custom
--- -- because at this point, why not
--- function ui_inventory.UIInventory:Name_Custom(obj, bag, temp, i)
--- 	obj = self:CheckItem(obj,"Name_Custom " .. i)
--- 	if i == 4 and has_parts(obj) and has_suitable_kit(obj) then -- check replace
--- 		return gc("st_wpo_replace_parts")
--- 	else
--- 		return NameCustom(self, obj, bag, temp, i)
--- 	end
--- end
-
--- ActionCustom = ui_inventory.UIInventory.Action_Custom
--- function ui_inventory.UIInventory:Action_Custom(obj, bag, temp, i)
--- 	obj = self:CheckItem(obj,"Action_Custom " .. i)
--- 	if i == 4 and has_parts(obj) and has_suitable_kit(obj) then
--- 		init_maintenance_menu(obj)
--- 	else
--- 		ActionCustom(self, obj, bag, temp, i)
--- 	end
--- end
-
 function on_game_start()
 	
 	disassembly_chance  = ini_parts:r_float_ex("settings","disassembly_chance") or 40
 	custom_functor_autoinject.add_functor("arti_fieldstrip", has_parts_fieldstrip, name_fieldstrip, nil, init_fieldstrip_menu, false)
 	custom_functor_autoinject.add_functor("arti_maintain", check_maintain, name_maintain, nil, init_maintenance_menu, false)
-
-	-- RegisterScriptCallback("ActorMenu_on_trade_started",on_trade_opened)
-	-- RegisterScriptCallback("ActorMenu_on_trade_closed",on_trade_closed)
 end
