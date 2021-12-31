@@ -864,15 +864,6 @@ function try_replace_part(wpn, table, part, using_tool)
 	end
 end
 
-function has_parts_fieldstrip(wpn)
-	if not has_parts(wpn) then return false end
-	local parts = item_parts.get_parts_con(wpn, nil, true)
-	local has_parts = false
-	for k,v in pairs(parts) do
-		if v > 0 and is_part(k) and not is_barrel(k) then has_parts = true end
-	end
-	return has_parts
-end
 function on_game_start()
 	local sounds = {"ak", "ar", "handgun", "shotgun", "bolt"}
 	local ini_sounds = ini_file("items\\settings\\arti_unjam_sounds.ltx")
