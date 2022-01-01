@@ -534,10 +534,15 @@ local math_ceil           = math.ceil
 local math_floor          = math.floor
 local gc                  = game.translate_string
 local clr_r  = utils_xml.get_color("d_red")
+local clr_o  = utils_xml.get_color("d_orange")
+local clr_y  = utils_xml.get_color("yellow")
 
 function process_part(name, condition)
 	if condition > 79 then return "" end
 	local severity = condition == -1 and "missing" or math.floor(condition / 20)
+	local clr = clr_o
+	if condition > 59 then clr = clr_y 
+	elseif condition == -1 then clr = clr_r end
 	local part_name = ""
 	if unique_mapping[name] then
 		part_name = unique_mapping[name]
@@ -553,7 +558,8 @@ function process_part(name, condition)
 		end
 	end
 	print_dbg("part %s, category %s, sev %s", name, part_name, severity)
-	return " " .. utils_xml.get_color_con(condition) .. gc("st_dot") .. " " .. gc("st_damage_"..severity) .. " " .. gc("st_name_"..part_name) .. "\\n"
+
+	return " " .. clr .. gc("st_dot") .. " " .. gc("st_damage_"..severity) .. " " .. gc("st_name_"..part_name) .. "\\n"
 end
 
 original_build_desc_header = ui_item.build_desc_header
@@ -561,7 +567,6 @@ function ui_item.build_desc_header(obj, sec, str)
 	local _str = ""
 	local _str2 = original_build_desc_header(obj, sec, str)
 	
-
 	if obj and IsWeapon(obj) and not IsAmmo(obj) and arti_jamming.has_parts(obj) then
 		local parts = item_parts.get_parts_con(obj, nil, true)
 		local display_str = ""
@@ -660,38 +665,15 @@ function replace_part(id, part, kit_name, clean)
 
 end
 
-local cell_gui
+local maint_gui
 
--- custom cell props gui
 
-class "UICellPropertiesCustom" (utils_ui.UICellProperties)
-
-function UICellPropertiesCustom:__init() super()
+function check_maintain(obj)
+	return has_parts(obj) and has_suitable_kit(obj)
 end
-
-function UICellPropertiesCustom:OnListItemDbClicked()
-	if self.list_box:GetSize()==0 then return end
-	print_dbg("custom doubleclick")
-	local item = self.list_box:GetSelectedItem()
-	if not (item) then
-		return
-	end
-	
-	if item.func then 
-		if item.params then
-			replace_part(unpack(item.params))
-		else
-			replace_part()
-		end
-		
-		self.action_moment = time_continual()
-	end
-	
-	if (self:IsShown()) then
-		self:OnHide()
-	end
+function name_maintain(obj)
+	return gc("st_wpo_replace_parts")
 end
-
 
 function init_maintenance_menu(obj)
 	
@@ -705,19 +687,24 @@ function init_maintenance_menu(obj)
 	for k,v in pairs(parts) do
 		if is_part(k) then
 			if  v < 60 and repair_kit then
-				print_dbg("allowing replacement for %s", k)
 				table.insert(context_str, replace_name(k, false))
 				table.insert(context_action,  "replace_part")
 				table.insert(context_params, {obj:id(), k, repair_kit:section(), false})
-			elseif v >= 60 and v < 98 and clean_kit then
-				table.insert(context_str, replace_name(k, true))
-				table.insert(context_action,  "clean_part")
-				table.insert(context_params, {obj:id(), k, clean_kit:section(), true})
+			elseif v >= 60 and v < 98 then
+				if clean_kit then
+					table.insert(context_str, replace_name(k, true))
+					table.insert(context_action,  "clean_part")
+					table.insert(context_params, {obj:id(), k, clean_kit:section(), true})
+				else
+					table.insert(context_str, replace_name(k, true))
+					table.insert(context_action,  "replace_part")
+					table.insert(context_params, {obj:id(), k, repair_kit:section(), true})
+				end
 			end
 		end
 	end
-	if not cell_gui then cell_gui = UICellPropertiesCustom() end
-	cell_gui:Reset(GetCursorPosition(), context_action, context_str, context_params)
+	if not maint_gui then maint_gui = utils_ui_custom.UICellPropertiesCustom(replace_part) end
+	maint_gui:Reset(GetCursorPosition(), context_action, context_str, context_params)
 	ui_inventory.GUI:PlaySND(sound_object([[interface\inv_properties_2]]))
 end
 
@@ -725,31 +712,126 @@ end
 
 -- custom parts replacement shit
 
-NameCustom = ui_inventory.UIInventory.Name_Custom
--- because at this point, why not
-function ui_inventory.UIInventory:Name_Custom(obj, bag, temp, i)
-	obj = self:CheckItem(obj,"Name_Custom " .. i)
-	if i == 4 and has_parts(obj) and has_suitable_kit(obj) then -- check replace
-		return gc("st_wpo_replace_parts")
-	else
-		return NameCustom(self, obj, bag, temp, i)
-	end
+function name_fieldstrip(obj)
+	return gc("st_field_strip")
 end
 
-ActionCustom = ui_inventory.UIInventory.Action_Custom
-function ui_inventory.UIInventory:Action_Custom(obj, bag, temp, i)
-	obj = self:CheckItem(obj,"Action_Custom " .. i)
-	if i == 4 and has_parts(obj) and has_suitable_kit(obj) then
-		init_maintenance_menu(obj)
+function has_parts_fieldstrip(wpn)
+	if not has_parts(wpn) then return false end
+	local parts = item_parts.get_parts_con(wpn, nil, true)
+	local has_parts = false
+	for k,v in pairs(parts) do
+		if v > 0 and is_part(k) and not arti_jamming.is_barrel(k) then has_parts = true end
+	end
+	return has_parts
+end
+
+function remove_name(name)	
+	
+	local part_name = ""
+	if not name then
+		part_name = "all"
+	elseif unique_mapping[name] then
+		part_name = unique_mapping[name]
 	else
-		ActionCustom(self, obj, bag, temp, i)
+		if not string_find(name, "prt_w") then return "" end
+		local i = 1
+		while part_name == "" and i < 7 do
+			-- print_dbg("it %s, name %s", i, name)
+			if string_find(name, name_mapping[i]) then
+				part_name = name_mapping[i]
+			end
+			i = i + 1
+		end
+	end
+	return  gc("st_wpo_remove") .. " " .. gc("st_name_"..part_name)
+end
+
+local fs_gui
+function init_fieldstrip_menu(obj)
+	
+
+
+	local context_str = {}
+	local context_action = {}
+	local context_params = {}
+
+	local parts = item_parts.get_parts_con(obj)
+	local num = 0
+	for k,v in pairs(parts) do
+		if is_part(k) and not arti_jamming.is_barrel(k) and v > 0 then
+			table.insert(context_str, remove_name(k))
+			table.insert(context_action,  "remove_part")
+			table.insert(context_params, {obj:id(), k, v})
+			num = num + 1
+		end
+	end
+	-- remove all
+	if num > 1 then
+		table.insert(context_str, remove_name(nil))
+		table.insert(context_action,  "remove_part")
+		table.insert(context_params, {obj:id(), k, v})
+	end
+	if not fs_gui then fs_gui = utils_ui_custom.UICellPropertiesCustom(act_fieldstrip) end
+	fs_gui:Reset(GetCursorPosition(), context_action, context_str, context_params)
+	ui_inventory.GUI:PlaySND(sound_object([[interface\inv_properties_2]]))
+end
+
+-- remove the given part
+-- if no part is specified, remove all
+function act_fieldstrip(id, part_name)
+	local wpn = level.object_by_id(id)
+	local parts = item_parts.get_parts_con(wpn)
+	local parts_removed = false
+	local str_msg = gc("st_news_fieldstrip")
+
+	-- eject mag if applicable
+	if mag_support.using_mags() and mag_support.is_mag_loaded(wpn) then 
+		mag_support.eject_mag(wpn)
+	else
+		wpn:force_unload_magazine(true)
+	end
+
+	if part_name and parts[part_name] then
+		str_msg = str_msg .. "\\n -" .. ui_item.get_sec_name(part_name)
+		remove_part(part_name, parts)
+		parts_removed = true
+	else
+		for k,v in pairs(parts) do
+			if is_part(k) and v ~= -1 and not arti_jamming.is_barrel(k) then
+				str_msg = str_msg .. "\\n -" .. ui_item.get_sec_name(k)
+				remove_part(k, parts)
+				parts_removed = true
+			end
+		end
+	end
+	item_parts.set_parts_con(id, parts)
+	if arti_jamming.get_jammed(id) then
+		set_jam_status(id, nil)
+	end
+	-- send msg
+	if parts_removed then
+		news_manager.send_tip(db.actor, str_msg, nil, "swiss_knife", 6000)
+	end
+	arti_jamming.reset_cgd()
+end
+
+function remove_part(part_name, part_con)
+	if part_con[part_name] and part_con[part_name] ~= -1 then
+
+		local part_to_spawn = alife_create(part_name, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id(), false)
+		local data = utils_stpk.get_item_data(part_to_spawn)
+		data.condition = part_con[part_name]/100
+		utils_stpk.set_item_data(data,part_to_spawn)
+		alife():register(part_to_spawn)	
+
+		part_con[part_name] = -1
 	end
 end
 
 function on_game_start()
 	
 	disassembly_chance  = ini_parts:r_float_ex("settings","disassembly_chance") or 40
-	
-	-- RegisterScriptCallback("ActorMenu_on_trade_started",on_trade_opened)
-	-- RegisterScriptCallback("ActorMenu_on_trade_closed",on_trade_closed)
+	custom_functor_autoinject.add_functor("arti_fieldstrip", has_parts_fieldstrip, name_fieldstrip, nil, init_fieldstrip_menu, false)
+	custom_functor_autoinject.add_functor("arti_maintain", check_maintain, name_maintain, nil, init_maintenance_menu, false)
 end

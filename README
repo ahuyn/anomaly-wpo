@@ -68,6 +68,8 @@ Barrels below 75% condition will lose damage up to 50% less damage at 0% conditi
 Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
 
 Changelog
+1.11
+- Reworked field strip to follow maintenance logic. Parts independently removable now.
 1.10.1
 - Support for magazines and unjams.
 1.10
