@@ -108,11 +108,17 @@
 	<string id="ui_mcm_wpo_superjam_desc">
 		<text>Включает (или отключает) так называемый "супер-клин". При "супер-клине" нужно полностью разрядить оружие.</text>
 	</string>
+	<string id="ui_mcm_wpo_simplejam">
+		<text>Выброс магазина при супер-клине</text>
+	</string>
+	<string id="ui_mcm_wpo_simplejam_desc">
+		<text>Если включено, при нажатии перезарядки (по стандарту R) с сильно заклинившем оружием, магазин будет извлечен. Больше не придется возиться с инвентарем.</text>
+	</string>
 	<string id="ui_mcm_wpo_threshold">
 		<text>Порог состояния повреждения детали</text>
 	</string>
 	<string id="ui_mcm_wpo_threshold_desc">
-		<text>Состояние оружия при котором есть шанс повредить детали. Чем меньше, тем оружие должно быть больше повреждено чтобы детали начали подвреждатся.</text>
+		<text>Состояние оружия при котором есть шанс повредить детали. Чем меньше, тем оружие должно быть больше повреждено чтобы детали начали повреждаться.</text>
 	</string>
 	<string id="ui_mcm_wpo_cleancoef">
 		<text>Множитель очистки оружия техником</text>
@@ -271,6 +277,19 @@
 	<string id="st_damage_3">
 		<text>загрязнен</text>
 	</string>
+	<string id="st_wpo_replace_parts">
+		<text>обслуживание</text>
+	</string>
+	
+	<string id="st_wpo_replace">
+		<text>заменить</text>
+	</string>
+	<string id="st_wpo_clean">
+		<text>очистить</text>
+	</string>
+	<string id="st_wpo_remove">
+		<text>удалить</text>
+	</string>
 	<string id="st_name_trigger">
 		<text>ударно-спусковой механизм</text>
 	</string>
@@ -303,6 +322,9 @@
 	</string>
 	<string id="st_name_chock">
 		<text>подпор</text>
+	</string>
+	<string id="st_name_all">
+		<text>все</text>
 	</string>
 	<string id="st_name_issues">
 		<text>ПРОБЛЕМЫ:</text>
