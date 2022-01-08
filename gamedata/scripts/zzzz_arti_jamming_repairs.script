@@ -607,7 +607,7 @@ function has_suitable_kit(obj)
 			if v < 60 and has_repair then
 				allow = true
 			-- allow for clean
-			elseif (v >= 60 and v < 98) and has_clean then
+			elseif (v >= 60 and v < 98) and (has_clean or has_repair) then
 				allow = true
 			end
 		end
