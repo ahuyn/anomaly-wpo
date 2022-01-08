@@ -1,0 +1,14 @@
+<string_table>
+	<string id="ui_mcm_menu_clear_jam">
+		<text>Бинд для расклина</text>
+	</string>
+	<string id="ui_mcm_clear_jam_keybind">
+		<text>Расклин</text>
+	</string>
+    <string id="ui_mcm_clear_jam_desc">
+		<text>Изменяет клавишу используемую для расклина оружия. Стандартная клавиша - Z. Поведение клавиши можно изменить в соотв. вкладке MCM.</text>
+	</string>
+    <string id="ui_mcm_clear_jam_mcm">
+		<text>Обновите MCM чтобы увидеть эту функцию. Стандартная клавиша - Z.</text>
+	</string>
+</string_table>

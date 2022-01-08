@@ -1,0 +1,65 @@
+local mcm_key = DIK_keys.DIK_Z -- your default key
+local mcm_id = "clear_jam" -- change this
+local key_function = "key_func" -- this too if you renamed the function
+
+function key_func()
+    arti_jamming.unjam()
+end
+
+local mcm_keybinds = ui_mcm and ui_mcm.key_hold
+local modifier = 0
+
+function on_mcm_load()
+    local options = {
+        id = mcm_id, sh = true,
+        gr = {
+            { id = mcm_id     , type = "slide"             , link = "ui_options_slider_player", text = "ui_mcm_menu_" .. mcm_id, size = {512, 50}, spacing = 20},
+			{ id = "keybind"             , type = "key_bind"          , val = 2, def = mcm_key },
+	        { id = "modifier"            , type = ui_mcm.kb_mod_radio , val = 2, def = 0, hint = "mcm_kb_mode" , 
+                content = {
+                    { 0, "mcm_kb_mode_press"},
+                    { 1, "mcm_kb_mode_dtap"},
+                    { 2, "mcm_kb_mode_hold"} 
+                }
+            },
+            { id = "desc_mcm"    	 	        , type = "desc"     , text = "ui_mcm_" .. mcm_id .. "_mcm", clr = {255, 175 ,0 ,0}, precondition = {function() return not mcm_keybinds end} }
+        }
+    }
+    return options
+end
+
+local modes = {
+    [0] = { ["call"] = {"on_key_press", "on_key_hold"}, ["function"] = function(key) ui_mcm.simple_press(mcm_id, key, key_function) end },
+    [1] = { ["call"] = {"on_key_press", "on_key_hold"}, ["function"] = function(key) if ui_mcm.double_tap(mcm_id, key) then key_function() end end },
+    [2] = { ["call"] = {"on_key_hold", "on_key_press"}, ["function"] = function(key) if ui_mcm.key_hold(mcm_id, key) then key_function() end end }
+}
+
+function on_key_press(key)
+	if key ~= mcm_key then return end
+    if not mcm_keybinds then 
+        key_function() 
+        return 
+    end
+    modes[modifier]["function"](key)
+end
+
+function on_key_hold(key)
+    if key ~= mcm_key then return end
+    modes[modifier]["function"](key)
+end
+
+function on_option_change(mcm)
+	if mcm then
+		mcm_key = ui_mcm.get(mcm_id .. "/keybind")
+		modifier = ui_mcm.get(mcm_id .. "/modifier")
+        RegisterScriptCallback(modes[modifier]["call"][1], this[modes[modifier]["call"][1]])
+        UnregisterScriptCallback(modes[modifier]["call"][2], this[modes[modifier]["call"][2]])
+	end
+end
+
+function on_game_start()
+    RegisterScriptCallback("on_option_change", on_option_change)
+    RegisterScriptCallback("on_key_press", on_key_press)
+    key_function = this[key_function]
+    on_option_change(mcm_keybinds)
+end
