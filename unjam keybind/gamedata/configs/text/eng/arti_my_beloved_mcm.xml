@@ -1,0 +1,14 @@
+<string_table>
+	<string id="ui_mcm_menu_clear_jam">
+		<text>Unjam Keybind</text>
+	</string>
+	<string id="ui_mcm_clear_jam_keybind">
+		<text>Unjam Key</text>
+	</string>
+    <string id="ui_mcm_clear_jam_keybind_desc">
+		<text>Changes the key used for Unjam. Default key is Z. Behaviour of the key can be changed in related MCM tab.</text>
+	</string>
+    <string id="ui_mcm_clear_jam_mcm">
+		<text>Update MCM to see this feature. Key defaults to Z</text>
+	</string>
+</string_table>
