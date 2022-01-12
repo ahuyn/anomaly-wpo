@@ -8,6 +8,7 @@ end
 
 local mcm_keybinds = ui_mcm and ui_mcm.key_hold
 local modifier = 0
+local second_key = 0
 
 function on_mcm_load()
     local options = {
@@ -22,6 +23,13 @@ function on_mcm_load()
                     { 2, "mcm_kb_mode_hold"} 
                 }
             },
+            { id = "second_key"                   , type = ui_mcm.kb_mod_radio, val = 2, def = 0, hint = "mcm_kb_modifier" , 
+                content = { 
+                    {0,"mcm_kb_mod_none"} , 
+                    {1,"mcm_kb_mod_shift"} , 
+                    {2,"mcm_kb_mod_ctrl"},
+                    {3,"mcm_kb_mod_alt"}
+                }},
             { id = "desc_mcm"    	 	        , type = "desc"     , text = "ui_mcm_" .. mcm_id .. "_mcm", clr = {255, 175 ,0 ,0}, precondition = {function() return not mcm_keybinds end} }
         }
     }
@@ -40,18 +48,23 @@ function on_key_press(key)
         key_function() 
         return 
     end
-    modes[modifier]["function"](key)
+    if ui_mcm.get_mod_key(second_key) then
+        modes[modifier]["function"](key)
+    end
 end
 
 function on_key_hold(key)
     if key ~= mcm_key then return end
-    modes[modifier]["function"](key)
+    if ui_mcm.get_mod_key(second_key) then
+        modes[modifier]["function"](key)
+    end
 end
 
 function on_option_change(mcm)
 	if mcm then
 		mcm_key = ui_mcm.get(mcm_id .. "/keybind")
 		modifier = ui_mcm.get(mcm_id .. "/modifier")
+        second_key = ui_mcm.get(mcm_id .. "/second_key")
         RegisterScriptCallback(modes[modifier]["call"][1], this[modes[modifier]["call"][1]])
         UnregisterScriptCallback(modes[modifier]["call"][2], this[modes[modifier]["call"][2]])
 	end
