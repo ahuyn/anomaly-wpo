@@ -601,6 +601,7 @@ function unjam(wpn)
 			end
 		end
 		send_msg(str, verbosity)
+		guarantee_not_jam = true
 	else
 	-- if jammed, unjam
 		local inventory = GetActorMenu()
@@ -648,6 +649,7 @@ function unjam(wpn)
 				utils_obj.play_sound(sound.."_unjam")
 				jammed_guns[id] = nil
 				inventory:Close()
+				guarantee_not_jam = true
 			end
 		end
 	end
