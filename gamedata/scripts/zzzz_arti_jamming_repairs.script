@@ -536,12 +536,14 @@ local gc                  = game.translate_string
 local clr_r  = utils_xml.get_color("d_red")
 local clr_o  = utils_xml.get_color("d_orange")
 local clr_y  = utils_xml.get_color("yellow")
+local clr_g  = utils_xml.get_color("d_green")
+local clr_p  = utils_xml.get_color("d_purple")
 
 function process_part(name, condition)
-	if condition > 79 then return "" end
 	local severity = condition == -1 and "missing" or math.floor(condition / 20)
 	local clr = clr_o
-	if condition > 59 then clr = clr_y 
+	if condition > 79 then clr = clr_g
+	elseif condition > 59 then clr = clr_y 
 	elseif condition == -1 then clr = clr_r end
 	local part_name = ""
 	if unique_mapping[name] then
@@ -574,7 +576,7 @@ function ui_item.build_desc_header(obj, sec, str)
 			display_str = display_str .. process_part(k, v)
 		end
 		if display_str ~= "" then
-			display_str =  " " .. clr_r .. gc("st_name_issues") .. "\\n" .. display_str
+			display_str =  " " .. clr_p .. gc("st_name_issues") .. "\\n" .. display_str
 			_str = _str .. display_str
 		end
 	end

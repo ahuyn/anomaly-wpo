@@ -66,12 +66,25 @@ function set_jam_status(id, status)
 	jammed_guns[id] = status
 end
 
+local can_swear = true
+
 --gun jam play swearing sound
 function jam_swearing()
+	local timeout = get_config("profanity_timeout")
+	if timeout and not can_swear then return end
 	if get_config("profanity") and math_random(1,100) > 50 then
 		local lang = get_config("profanity_language") or "rus"
 		utils_obj.play_sound("cutscenes\\"..lang.."\\gun_jam_"..math_random(1,7), 1 )
+		if timeout then
+			can_swear = false
+			CreateTimeEvent("wpo", "reset_swear", 2, reset_swear)
+		end
     end
+end
+
+function reset_swear()
+	can_swear = true
+	return true
 end
 
 function start_jammin(chance)

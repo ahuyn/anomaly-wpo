@@ -280,6 +280,9 @@
 	<string id="st_damage_3">
 		<text>dirty</text>
 	</string>
+	<string id="st_damage_4">
+		<text>functional</text>
+	</string>
 
 	<string id="st_wpo_replace_parts">
 		<text>maintain parts</text>
@@ -332,6 +335,6 @@
 		<text>all</text>
 	</string>
 	<string id="st_name_issues">
-		<text>ISSUES:</text>
+		<text>STATUS:</text>
 	</string>
 </string_table>
