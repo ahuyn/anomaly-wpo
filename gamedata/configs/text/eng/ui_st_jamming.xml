@@ -283,6 +283,9 @@
 	<string id="st_damage_4">
 		<text>functional</text>
 	</string>
+	<string id="st_damage_5">
+		<text>functional</text>
+	</string>
 
 	<string id="st_wpo_replace_parts">
 		<text>maintain parts</text>
