@@ -1,7 +1,7 @@
 -- monkeypatchable inv upgrades to effect repair cost
 
 -- inv upgrades
-
+ini_parts = itms_manager.ini_parts
 
 function section_has_parts(sec)
 	local psec = ini_sys:r_string_ex(sec,"parent_section") or sec
