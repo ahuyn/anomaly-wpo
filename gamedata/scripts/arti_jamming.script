@@ -122,15 +122,20 @@ function is_trigger(part)
 	return is_part(part) and string.find(part, "trigger")
 end
 
--- true if item is a firearm with parts
-function has_parts(wpn)
+function get_parts_list(wpn)
+	
 	if wpn and IsWeapon(wpn) and (not IsMelee(wpn)) then
 		local sec = ini_sys:r_string_ex(wpn:section(),"parent_section") or wpn:section()
 		local parts = ini_parts:r_string_ex("con_parts_list", sec)
-		return parts ~= nil
+		return parts
 	else 
-		return false
+		return nil
 	end
+end
+
+-- true if item is a firearm with parts
+function has_parts(wpn)
+	return get_parts_list(wpn) ~= nil
 end
 
 
@@ -185,35 +190,44 @@ function current_id()
 	return cgd.id
 end
 function reset_cgd()
-	cgd.id = 0
+	clear_cgd()
+	update_current()
 end
 ----------------------------
 -- SECTION main functions --
 ----------------------------
 
--- load condition of new active weapons, only do once when switched to
-local timeout = 1000
-local last_time = nil
 local function actor_on_update()
-
 	-- overheat checks
 	if cgd.heat ~= nil and db.actor:active_item() and cgd.has_parts then
 		manage_overheat(db.actor:active_item())
 	end
-	-- we don't need to check too often. maybe once a second
-	local tg = time_global()
-	if not last_time then last_time = tg end
-	if tg < last_time then return end
-	last_time = tg + 1000
+end
+
+function actor_on_first_update()
+	update_current()
+end
+
+function clear_cgd()
+	empty_table(cgd.parts)
+	empty_table(cgd)
+	cgd.id = nil
+	cgd.has_parts = false
+	cgd.fullAuto = false
+end
+
+
+-- update current gun to be gun in hand
+function update_current()
 	
 	local gun = db.actor:active_item()
+	if not gun then return end
+	if gun:id() == cgd.id then return end
+
 	if gun and gun:id() ~= cgd.id then
 		if not has_parts(gun) then
-			empty_table(cgd.parts)
-			empty_table(cgd)
+			clear_cgd()
 			cgd.id = gun:id()
-			cgd.has_parts = false
-			cgd.fullAuto = false
 			print_dbg("Current gun (no parts) changed to %s (%s)", cgd.id, gun:section())
 		else
 			cgd.id = gun:id()
@@ -241,7 +255,6 @@ local function actor_on_update()
 		end
 	end
 end
-
 
 -- individually calculate jam based on weapon parts, and jam the weapon if applicable
 -- Average jam chance based on damage level of each component.
@@ -426,10 +439,14 @@ local tg_snd_empty = 0
 local delay_snd_empty = 300 -- ms
 -- before fire - misfire, block shot if jammed with same clicky sound for zeroed weapons
 local function actor_on_weapon_before_fire(flags)
-	local tg = time_global()
 	
 	local obj_wpn = db.actor:active_item()
 	local id = obj_wpn and obj_wpn:id() or 0
+
+	if obj_wpn and id ~= cgd.id then
+		-- populate current gun
+		update_current()
+	end
 
 	if obj_wpn and id == cgd.id then
 		if obj_wpn:get_ammo_in_magazine() == 0 or not cgd.has_parts or obj_wpn:weapon_in_grenade_mode() then
@@ -440,6 +457,10 @@ local function actor_on_weapon_before_fire(flags)
 		if missing_parts(obj_wpn) then
 			send_msg(gc("ui_st_missing"), 1)
 			flags.ret_value = false
+			return
+		end
+		-- if guarantee not jam, don't even calculate this
+		if guarantee_not_jam then
 			return
 		end
 
@@ -460,7 +481,7 @@ local function actor_on_weapon_before_fire(flags)
 			misfire_chance = misfire_chance * (1 + 2*ratio)
 		end			
 		print_dbg("misfire chance: "..misfire_chance)
-		if (math_random(1000) < misfire_chance and not guarantee_not_jam) then
+		if (math_random(1000) < misfire_chance) then
 			-- fullauto fail later
 			if false then--math.random(100) < misfire_chance / 3 then
 				print_dbg("aaaaaaaaa")
@@ -700,7 +721,7 @@ function timed_unjam(id, sound, message, verbosity)
 end
 
 function determine_slot(weapon)
-	for i=1,3 do 
+	for i=1,5 do 
 		local item = db.actor:item_in_slot(i)
 		local item_id = item and item:id() or 0
 		if weapon:id() == item_id then return i end
@@ -886,7 +907,6 @@ function on_game_start()
 		local section = utils_data.collect_section(ini_sounds, sounds[i])
 		for k,v in pairs(section) do
 			gun_sounds[v] = sounds[i]
-			-- print_dbg("Set %s to sound %s", v, sounds[i])
 		end
 	end
 	local ini_overheat = ini_file("items\\settings\\overheat.ltx")
@@ -917,6 +937,7 @@ function on_game_start()
 	RegisterScriptCallback("actor_on_weapon_fired",actor_on_weapon_fired)
 	RegisterScriptCallback("actor_on_weapon_reload",actor_on_weapon_reload)
 	RegisterScriptCallback("actor_on_update",actor_on_update)
+	RegisterScriptCallback("actor_on_first_update",actor_on_first_update)
 	RegisterScriptCallback("npc_on_before_hit",npc_on_before_hit)
 	RegisterScriptCallback("monster_on_before_hit",monster_on_before_hit)
 	

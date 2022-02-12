@@ -1,7 +1,12 @@
+ini_drops = ini_file("items\\settings\\wpo_drop_cond.ltx")
+ini_parts   = itms_manager.ini_parts
 -- temp condition for trade
 local parts_list = {}
 print_dbg 			= arti_jamming.print_dbg
 has_parts 			= arti_jamming.has_parts
+get_parts_list 		= arti_jamming.get_parts_list
+get_config 			= a_arti_jamming_mcm.get_config
+math_ceil = math.ceil
 
 TraderAuto = trader_autoinject.update
 function trader_autoinject.update(npc)
@@ -43,6 +48,59 @@ function add_parts(npc)
 	end
 end
 
+DeathWeaponDrop = death_manager.set_weapon_drop_condition
+-- weapon drop patching
+-- read the custom drop configs and apply lagrange formula to decide condition
+function death_manager.set_weapon_drop_condition(npc,itm)
+
+	DeathWeaponDrop(npc, itm)
+
+	local has_part = has_parts(itm)
+	
+	if not has_part then return end
+
+	local rank = npc:character_community() == "zombied" and "novice" or ranks.get_obj_rank_name(npc)
+	local condition = 0
+	local drop_sec = get_config("altroll") and "weapons_larp" or "weapons"
+	local rank_drops = ini_drops:r_string_ex(drop_sec, rank)
+	if get_config("altroll") then
+		print_dbg("Using larp eval")
+		condition = larp.pick(larp.str_to_coords(rank_drops), 10)
+	else
+		conds = larp.str_explode_num(rank_drops, ",")
+		condition = math.random(conds[1], conds[2])
+	end
+	print_dbg("New custom condition for item %s, rank %s is %s", itm:section(), rank, condition)
+	condition = clamp(condition,5,100)
+	condition = condition / 100
+	
+	itm:set_condition(condition)
+	-- custom eval parts
+	if has_part and get_config("altpartroll") then
+		print_dbg("alt eval for weapon")
+		weapon_eval_parts(itm)
+	end
+end
+
+local good_breakpoint = 60
+function weapon_eval_parts(wpn)
+    local parts = get_parts_list(wpn)
+	local con = math_ceil(wpn:condition()*100)
+	local parts_data = {}
+	parts_data[wpn:section()] = con
+	local final_chance = 25 + math_ceil(con/2.5)
+	print_dbg("Chance to beat is %s", final_chance)
+	for i,part in pairs(str_explode(parts, ",")) do
+		drop = math.random(100) < final_chance and "above" or "below"
+		coords = ini_drops:r_string_ex("weapon_parts", drop)
+		parts_data[part] = larp.pick(larp.str_to_coords(coords), 10)
+		
+    end
+
+	se_save_var( wpn:id(), wpn:name(), "parts", parts_data )
+end
+
+
 function on_game_start()
     
     local prices = ini_file("items\\settings\\part_prices.ltx")
@@ -51,7 +109,6 @@ function on_game_start()
 
 	for i=0, n-1 do
 		local result, sec, value = prices:r_line("wpo_part_prices" , i , "", "")
-        -- print_dbg("parts_list[%s] = %s", i + 1, sec)    
 		parts_list[i + 1] = sec
 	end
 end

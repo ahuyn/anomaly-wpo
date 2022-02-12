@@ -1,0 +1,28 @@
+; this effectively replaces weapon drop conditions in death_generic
+; i am taking these from Asshall
+[weapons]
+novice			= 5,	25
+trainee			= 30,	50; 0.40,	0.55
+experienced		= 30,	55; 0.40,	0.60
+professional	= 30,	60; 0.45,	0.60
+veteran			= 30,	60; 0.45,	0.65
+expert			= 30,	65; 0.50,	0.65
+master			= 30,	70; 0.50,	0.70
+legend			= 30,	75; 0.55,	0.70
+
+[weapons_larp]
+novice              = 5,  35, 60         :       5,  85, 99 
+trainee             = 30, 50, 65         :       10, 81, 99 
+experienced         = 30, 50, 65         :       15, 76, 98 
+professional        = 30, 50, 60, 70     :       20, 71, 97, 99
+veteran             = 30, 50, 60, 70     :       20, 68, 96, 99
+expert              = 30, 50, 60, 70     :       20, 64, 95, 97
+master              = 30, 50, 60, 75     :       20, 62, 95, 95
+legend              = 30, 50, 60, 75     :       20, 57, 94, 90
+
+; there are two we wish to use here, 
+[weapon_parts]
+; 0-59 weights
+below               = 1,  20, 40, 59     :        0,  50, 30, 90
+; 60-100 weights
+above               = 60, 80, 100         :       10, 40, 95
