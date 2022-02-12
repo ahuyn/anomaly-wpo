@@ -1,42 +1,77 @@
 -- If you don't use MCM, change your defaults from here.
 local defaults = {
+    ["jamchance"] = 1,
+    ["superjam"] = true,
+    ["simplejam"] = false,
+
+    ["degradation"] = 1.4,
+    ["threshold"] = 85,
+    ["altroll"] = false,
+    ["altpartroll"] = false,
+    ["minpart"] = 60,
+
     ["profanity"] = true,
     ["profanity_timeout"] = true,
     ["profanity_language"] = "rus",
     ["verbosity"] = 1,
-    ["jamchance"] = 1,
-    ["superjam"] = true,
-    ["simplejam"] = false,
-    ["threshold"] = 85,
-    ["minpart"] = 60,
-    ["newdrops"] = false,
-    ["newdropschance"] = 50,
-    ["degradation"] = 1.4,
     ["debug"] = true,
     ["fun"] = 0
 }
 
+local mcm_map = {
+    ["jamchance"] = "wpojam",
+    ["superjam"] = "wpojam",
+    ["simplejam"] = "wpojam",
+
+    ["degradation"] = "wpoecon",
+    ["threshold"] = "wpoecon",
+    ["altroll"] = "wpoecon",
+    ["altpartroll"] = "wpoecon",
+    ["minpart"] = "wpoecon",
+
+    ["profanity"] = "wpomisc",
+    ["profanity_timeout"] = "wpomisc",
+    ["profanity_language"] = "wpomisc",
+    ["verbosity"] = "wpomisc",
+    ["debug"] = "wpomisc",
+    ["fun"] = "wpomisc",
+}
+
 function get_config(key)
-    if ui_mcm then return ui_mcm.get("wpo/"..key) else return defaults[key] end
+    if ui_mcm then return ui_mcm.get("wpo/"..mcm_map[key].."/"..key) else return defaults[key] end
 end
 
 function on_mcm_load()
-    op = { id= "wpo",sh=true ,gr={
-            { id= "title",type= "slide",link= "ui_options_slider_player",text="ui_mcm_wpo_title",size= {512,50},spacing= 20 },
-            {id = "profanity", type = "check", val = 1, def = true},
-            {id = "profanity_timeout", type = "check", val = 1, def = true},
-            {id = "profanity_language", type = "radio_h",  content={ {"eng","eng"} , {"rus","rus"}} ,val = 0, def ="rus"},
-            {id = "verbosity", type = "radio_h", val = 2, content={ {0,"verbosity_none"} , {1,"verbosity_normal"} , {2,"verbosity_full"} }, def = 1 },
-            {id = "jamchance", type = "track", val = 2, min=0.5,max=2,step=0.01, def = 1},
-            {id = "superjam", type = "check", val = 1, def = true},
-            {id = "simplejam", type = "check", val = 1, def = false},
-            {id = "threshold", type = "track", val = 2, min=60,max=99,step=1, def = 85},
-            {id = "newdrops", type = "check", val = 1, def = false},
-            {id = "newdropschance", type = "track", val = 2, min=10,max=120,step=1, def = 50},
-            {id = "minpart", type = "track", val = 2, min=0,max=99,step=1, def = 60},
-            {id = "degradation", type = "track", val = 2, min=1,max=3,step=0.1, def = 1.4},
-            {id = "debug", type = "check", val = 1, def=false},
-            {id = "fun", type = "list", val = 2, content={ {0,"no"} , {1,"yes"}, {2,"ofc"}}, def=0},
+    op = { id= "wpo" ,gr={
+            {
+                id="wpojam",sh=true,gr={
+                    {id= "jamtitle",type= "slide",text="ui_mcm_wpo_wpojam",link= "ui_options_slider_player",size= {512,50},spacing= 20},
+                    {id = "jamchance", type = "track", val = 2, min=0.5,max=2,step=0.01, def = 1},
+                    {id = "superjam", type = "check", val = 1, def = true},
+                    {id = "simplejam", type = "check", val = 1, def = false},
+                }
+            },
+            {
+                id="wpoecon",sh=true,gr={
+                    {id= "econtitle",type= "slide",text="ui_mcm_wpo_wpoecon",link="ui_options_slider_player",size= {512,50},spacing= 20},
+                    {id = "degradation", type = "track", val = 2, min=1,max=3,step=0.1, def = 1.4},
+                    {id = "threshold", type = "track", val = 2, min=60,max=99,step=1, def = 85},
+                    {id = "altroll", type = "check", val = 1, def = false},                    
+                    {id = "altpartroll", type = "check", val = 1, def = false},
+                    {id = "minpart", type = "track", val = 2, min=0,max=99,step=1, def = 60}
+                }
+            },
+            {
+                id="wpomisc",sh=true,gr={
+                    {id= "misctitle",type= "slide",text="ui_mcm_wpo_wpomisc",link= "ui_options_slider_player",size= {512,50},link="",spacing= 20},
+                    {id = "debug", type = "check", val = 1, def=false},
+                    {id = "profanity", type = "check", val = 1, def = true},
+                    {id = "profanity_timeout", type = "check", val = 1, def = true},
+                    {id = "profanity_language", type = "radio_h",  content={ {"eng","eng"} , {"rus","rus"}} ,val = 0, def ="rus"},
+                    {id = "verbosity", type = "radio_h", val = 2, content={ {0,"verbosity_none"} , {1,"verbosity_normal"} , {2,"verbosity_full"} }, def = 1 },
+                    {id = "fun", type = "list", val = 2, content={ {0,"no"} , {1,"yes"}, {2,"ofc"}}, def=0},
+                }
+            }
         }
     }
     return op

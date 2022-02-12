@@ -4,6 +4,8 @@ local max_con_obj = 0.999
 local min_con_obj = 0.001
 local spare_parts = utils_data.collect_section(ini_parts,"weapons_spare_parts")
 local parts_info = {}
+ini_drop = wpo_loot.ini_drops
+
 gc = game.translate_string
 has_parts = arti_jamming.has_parts
 is_part = arti_jamming.is_part
@@ -15,156 +17,7 @@ current_id = arti_jamming.current_id
 reset_cgd = arti_jamming.reset_cgd
 SetTip = ui_workshop.SetTip
 
-
--- local cleaning_table = {
--- 	["gun_oil"] = 10,
--- 	["gun_oil_ru_d"] = 15,
--- 	["gun_oil_ru"] = 6,
--- 	["solvent"] = 20,
--- 	["cleaning_kit_u"] = 60,
--- }
-
--- shotgun style cleaning (disabled for now)
--- function repair_weapon_toolkit(weapon, toolkit_section)
--- 	if  has_parts(weapon) and cleaning_table[toolkit_section] then
--- 		local parts = item_parts.get_parts_con(weapon, nil, true)
--- 		local cond_remaining = cleaning_table[toolkit_section]
--- 		local str = gc("st_news_cleaned")
--- 		local parts_cleaned = false
--- 		for k,v in pairs(parts) do
--- 			if is_part(k) and v > 59 and v < 98 and cond_remaining > 0 then
--- 				local to_restore = 99 - v
--- 				if to_restore > cond_remaining then to_restore = cond_remaining end
--- 				parts[k] = v + to_restore
--- 				cond_remaining = cond_remaining - to_restore
--- 				str = str .. "\\n - ".. ui_item.get_sec_name(k)
--- 				parts_cleaned = true
--- 			end
--- 		end
--- 		item_parts.set_parts_con(weapon:id(), parts)
--- 		if weapon:id() == current_id() then
--- 			reset_cgd()
--- 		end
--- 		if parts_cleaned then
--- 			news_manager.send_tip(db.actor,str, nil, "swiss_knife", 6000)
--- 		end
--- 	end
--- end
--- what is good part, what is not
-local good_breakpoint = 60
-function weapon_eval_parts(wpn)
-    local sec = ini_sys:r_string_ex(wpn:section(),"parent_section") or wpn:section()
-    local parts = ini_parts:r_string_ex("con_parts_list", sec)
-	parts = str_explode(parts,",")
-	local base_chance = tonumber(get_config("newdropschance")) or 50
-	local adjusted = base_chance * wpn:condition()
-	local parts_data = {}
-	parts_data[sec] = math.ceil(wpn:condition() * 100)
-	for i=1,#parts do
-		local part = parts[i]
-		local final_chance = math.ceil(adjusted)-- * parts_info[part].weight)
-		print_dbg("Part %s has a %s chance to be good.", part, final_chance)
-		
-		if wpn:condition() > 0.9 then
-			print_dbg("Short circuiting")
-			parts_data[part] = math.random(90, 99)
-		elseif math.random(100) < final_chance then
-			parts_data[part] = math.random(good_breakpoint, 99)
-		else
-			parts_data[part] = math.random(1, good_breakpoint - 1)
-		end
-    end
-	se_save_var( wpn:id(), wpn:name(), "parts", parts_data )
-end
-
--- monkey patching
-
-EvaluateParts = item_parts.evaluate_parts
-
-function item_parts.evaluate_parts(obj)
-    local sec = obj:section()
-	sec = ini_sys:r_string_ex(sec,"parent_section") or sec -- for weapons with scopes
-	local id = obj:id()
-	local m_con = math.ceil(obj:condition() * 100) -- default condition of the item
-	
-	local parts = ini_parts:r_string_ex("con_parts_list",sec)
-	if parts then
-		parts = str_explode(parts,",")
-		
-		local data = se_load_var(id, obj:name(), "parts")
-
-		-- Savegame compatibility. Recalculate with changed parts
-		if data and data[sec] then
-			for i=1,#parts do
-				if (not data[parts[i]]) then
-					empty_table(data)
-					break
-				end
-			end
-		end
-
-		-- premature terminate if data exists for weapons
-		if data and IsWeapon(obj) and not is_empty(parts)  then return
-        elseif has_parts(obj) and get_config("newdrops") then
-			print_dbg("Alternate evaluation.")
-            weapon_eval_parts(obj)
-        else
-            EvaluateParts(obj)
-		end
-    end
-end
-
-local temp_con = {}
-
--- -- Prevent weapons with damaged/deformed parts from selling by temp setting condition to 0.
--- local function on_trade_opened()
--- 	local function check_parts(temp, wpn)
--- 		-- print_dbg("Evaluating item %s", wpn:id())
--- 		if has_parts(wpn) then
--- 			local parts = item_parts.get_parts_con(wpn, nil, true)
--- 			for k,v in pairs(parts) do
--- 				local minpart = get_config("minpart") or 51
--- 				if is_part(k) and v <= minpart then
--- 					print_dbg("Weapon %s (%s) has low quality part. Blacklisting for sale.", wpn:section(), wpn:id())
--- 					temp_con[wpn:id()] = wpn:condition()
--- 					wpn:set_condition(0)
--- 					break
--- 				end
--- 			end
--- 		end
--- 	end
--- 	db.actor:iterate_inventory(check_parts,nil)
-	
--- 	local wpn1 = db.actor:item_in_slot(1)
--- 	if wpn1 and (not temp_con[wpn1:id()]) then
--- 		check_parts(nil, wpn1)
--- 	end
-	
--- 	local wpn2 = db.actor:item_in_slot(2)
--- 	if wpn2 and (not temp_con[wpn2:id()]) then
--- 		check_parts(nil, wpn2)
--- 	end
-	
--- 	local wpn3 = db.actor:item_in_slot(3)
--- 	if wpn3 and (not temp_con[wpn3:id()]) then
--- 		check_parts(nil, wpn3)
--- 	end
--- end
-
--- local function on_trade_closed()
--- 	for k,v in pairs(temp_con) do
--- 		local obj = level.object_by_id(k)
--- 		if obj then
--- 			local p = obj:parent()
--- 			if (p and p:id() == AC_ID) then
--- 				alife_process_item(obj:section(),k, {cond = v})
--- 			end
--- 		end
--- 	end
--- 	temp_con = empty_table(temp_con)
--- end
-
--- gotta do this whole ass thing to monkey patch 1 line
+-- below here is all mostly copied from item repair and workshop, due to difficulty of patching
 
 -- original functions are local reeeee
 local function disassembly_weapon_spare_parts(sec, condition)
@@ -815,7 +668,7 @@ function act_fieldstrip(id, part_name)
 	if parts_removed then
 		news_manager.send_tip(db.actor, str_msg, nil, "swiss_knife", 6000)
 	end
-	arti_jamming.reset_cgd()
+	reset_cgd()
 end
 
 function remove_part(part_name, part_con)
