@@ -69,7 +69,7 @@ Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_j
 
 Changelog
 1.12
-- Removed death_generic dependency. Alt part evaluation follows smoother curve and options to use Lagrange interpolation based distribution.
+- Removed death_generic dependency. Alt part evaluation follows smoother curve and options to use Lagrange interpolation based distribution. Credits to Asshall for providing script and explanations.
 - Refactored MCM menu to look nice and not be a pile of options
 1.11
 - Reworked field strip to follow maintenance logic. Parts independently removable now.
