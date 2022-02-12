@@ -439,7 +439,8 @@ local tg_snd_empty = 0
 local delay_snd_empty = 300 -- ms
 -- before fire - misfire, block shot if jammed with same clicky sound for zeroed weapons
 local function actor_on_weapon_before_fire(flags)
-	
+	local tg = time_global()
+
 	local obj_wpn = db.actor:active_item()
 	local id = obj_wpn and obj_wpn:id() or 0
 
