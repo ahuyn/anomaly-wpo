@@ -501,11 +501,14 @@ function replace_part(id, part, kit_name, clean)
 	local parts = se_load_var(id, nil, "parts")
 	if parts and parts[part] then
 		if clean then
+			parts[part] = 99
 			news_manager.send_tip(db.actor, gc("st_news_cleaned") .. " " .. ui_item.get_sec_name(part), nil, "swiss_knife", 6000)
 		else
-			news_manager.send_tip(db.actor, gc("st_news_parts_success") .. " " .. ui_item.get_sec_name(part), nil, "swiss_knife", 6000)
+			parts[part] = clamp(part[part] + 25, 1, 99)
+			news_manager.send_tip(db.actor, gc("st_news_parts_repair_success") .. " " .. ui_item.get_sec_name(part).. " to " ..part[part].."%", nil, "swiss_knife", 6000) 
 		end
-		parts[part] = 99
+		-- parts[part] = 99
+		parts[part] = clamp(part[part] + 25, 1, 99)
 		utils_item.discharge(kit)
 		-- restore condition too
 		local wpn = level.object_by_id(id)
