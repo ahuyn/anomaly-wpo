@@ -6,6 +6,7 @@ local defaults = {
 
     ["degradation"] = 1.4,
     ["threshold"] = 85,
+    ["repairkit"] = true,
     ["altroll"] = false,
     ["altpartroll"] = false,
     ["minpart"] = 60,
@@ -25,6 +26,7 @@ local mcm_map = {
 
     ["degradation"] = "wpoecon",
     ["threshold"] = "wpoecon",
+    ["repairkit"] = "wpoecon",
     ["altroll"] = "wpoecon",
     ["altpartroll"] = "wpoecon",
     ["minpart"] = "wpoecon",
@@ -56,6 +58,7 @@ function on_mcm_load()
                     {id= "econtitle",type= "slide",text="ui_mcm_wpo_wpoecon",link="ui_options_slider_player",size= {512,50},spacing= 20},
                     {id = "degradation", type = "track", val = 2, min=1,max=3,step=0.1, def = 1.4},
                     {id = "threshold", type = "track", val = 2, min=60,max=99,step=1, def = 85},
+                    {id = "repairkit", type = "check", val = 1, def = true},                    
                     {id = "altroll", type = "check", val = 1, def = false},                    
                     {id = "altpartroll", type = "check", val = 1, def = false},
                     {id = "minpart", type = "track", val = 2, min=0,max=99,step=1, def = 60}

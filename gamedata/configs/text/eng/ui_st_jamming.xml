@@ -134,6 +134,12 @@
 	<string id="ui_mcm_wpo_wpoecon_threshold_desc">
 		<text>Weapon condition under which usage has a chance to damage parts. The lower, the less overall parts will be damaged.</text>
 	</string>
+	<string id="ui_mcm_wpo_wpoecon_repairkit">
+		<text>Repair kits replace parts</text>
+	</string>
+	<string id="ui_mcm_wpo_wpoecon_repairkit_desc">
+		<text>Has repair kits replace parts (restore to 100). If not enabled, repair kits only add 25%. Stretches out the difficulty if disabled.</text>
+	</string>
 	<string id="ui_mcm_wpo_wpoecon_altroll">
 		<text>Weighted weapon conditions</text>
 	</string>
@@ -323,8 +329,11 @@
 		<text>maintain parts</text>
 	</string>
 	
-	<string id="st_wpo_replace">
+	<string id="st_wpo_repair">
 		<text>repair 25% condition to </text>
+	</string>
+	<string id="st_wpo_replace">
+		<text>replace </text>
 	</string>
 	<string id="st_wpo_clean">
 		<text>clean</text>

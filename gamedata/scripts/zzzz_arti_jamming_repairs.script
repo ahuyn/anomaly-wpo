@@ -271,7 +271,7 @@ function ui_workshop.UIWorkshopRepair:Repair()
 					-- weapon_parts_overhaul refund parts
 					local temp = self.parts[i].con
 					self.parts[i].con = self.new_con[i].con
-					print_ws("- UIWorkshopRepair:Repair() | replaced part spotted | part: %s - condition: %s - order: %s - id: %s", self.parts[i].sec, self.new_con[i].con, i, self.new_con[i].id)
+					print_dbg("- UIWorkshopRepair:Repair() | replaced part spotted | part: %s - condition: %s - order: %s - id: %s", self.parts[i].sec, self.new_con[i].con, i, self.new_con[i].id)
 					
 					-- Release replacement parts
 					if temp < 0 then
@@ -313,7 +313,7 @@ function ui_workshop.UIWorkshopRepair:Repair()
 	local weapon = level.object_by_id(id)
 	if weapon and final_con and (final_con >= 0) and (final_con <= 1) then
 		-- weapon_parts_overhaul do not update condition
-		if not IsWeapon(weapon) then
+		if not has_parts(weapon) then
 			weapon:set_condition(final_con)
 			print_ws("- UIWorkshopRepair:Repair() | object with id (%s) is set to a new condition: %s", id, final_con)
 		end
@@ -322,14 +322,14 @@ function ui_workshop.UIWorkshopRepair:Repair()
 	end
 	
 	local result_part_tbl = {}
-	result_part_tbl[sec] = math.ceil(tot_con/cnt)
+	result_part_tbl[sec] = has_parts(weapon) and math.ceil(weapon:condition() * 100) or math.ceil(tot_con/cnt)
 	for i=1,#self.parts do
 		result_part_tbl[self.parts[i].sec] = self.parts[i].con
 	end
 	item_parts.set_parts_con(id, result_part_tbl)
 	
 	for k,v in pairs(result_part_tbl) do
-		print_ws("~ UIWorkshopRepair:Repair() | item's new part table [%s] = %s",k,v)
+		print_dbg("~ UIWorkshopRepair:Repair() | item's new part table [%s] = %s",k,v)
 	end
 	
 	-- Effect
@@ -492,24 +492,27 @@ function replace_name(name, clean)
 			i = i + 1
 		end
 	end
-	return (clean and gc("st_wpo_clean") or gc("st_wpo_replace")) .. " " .. gc("st_name_"..part_name)
+	local repair_logic = get_config("repairkit") and "st_wpo_replace" or "st_wpo_repair"
+	return (clean and gc("st_wpo_clean") or gc(repair_logic)) .. " " .. gc("st_name_"..part_name)
 end
 
 function replace_part(id, part, kit_name, clean)
 	print_dbg("replacing part %s on item %s", part, id)
 	local kit = db.actor:object(kit_name)
 	local parts = se_load_var(id, nil, "parts")
+	for k,v in pairs(parts) do
+		print_dbg(k..": "..v)
+	end
 	if parts and parts[part] then
 		if clean then
 			parts[part] = 99
 			news_manager.send_tip(db.actor, gc("st_news_cleaned") .. " " .. ui_item.get_sec_name(part), nil, "swiss_knife", 6000)
 		else
-			parts[part] = clamp(part[part] + 25, 1, 99)
-			news_manager.send_tip(db.actor, gc("st_news_parts_repair_success") .. " " .. ui_item.get_sec_name(part).. " to " ..part[part].."%", nil, "swiss_knife", 6000) 
+			parts[part] = get_config("repairkit") and 99 or clamp(parts[part] + 25, 1, 99)
+			news_manager.send_tip(db.actor, gc("st_news_parts_repair_success") .. " " .. ui_item.get_sec_name(part).. " to " ..parts[part].."%", nil, "swiss_knife", 6000) 
 		end
-		-- parts[part] = 99
-		parts[part] = clamp(part[part] + 25, 1, 99)
 		utils_item.discharge(kit)
+		se_save_var(id, nil, "parts", parts)
 		-- restore condition too
 		local wpn = level.object_by_id(id)
 		wpn:set_condition( clamp(wpn:condition() + 0.1, 0, 0.999) )
