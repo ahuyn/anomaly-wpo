@@ -29,13 +29,13 @@ local REPLACE_THRESHOLD = 0.2
 local TRIGGER_JAM = {10, 2}
 local PARTS_JAM = {30, 2}
 local guarantee_not_jam = true
-local SALE_PART_MIN = 51
--- use to block inputs while animations / unjam logic fires
-local block_repeat = false
+local STATE_NEUTRAL = 0
+local STATE_UNJAMMING = 1
+
+local state = STATE_NEUTRAL
 
 get_config = a_arti_jamming_mcm.get_config
 
-d_flag      		= false
 local d_key       	= "DIK_LMENU" -- Saftey key hold (Left Alt)
 
 -------------------
@@ -156,8 +156,8 @@ end
 
 
 function play_anim(weapon, anim, sound)
-	if not block_repeat then
-		block_repeat = true
+	if state == STATE_NEUTRAL then
+		state = STATE_UNJAMMING
 		local length = weapon:play_hud_motion(anim, true, 0, 1, 0)
 		print_dbg("playing animation %s for %s time", anim, length)
 		if sound then
@@ -168,9 +168,21 @@ function play_anim(weapon, anim, sound)
 	end
 end
 
+-- wrappers for hide/restore to manage state
+local weapon_hidden = false
+
+function restore_weapon()
+	db.actor:restore_weapon()
+	weapon_hidden = false
+end
+
+function hide_weapon()
+	db.actor:hide_weapon()
+	weapon_hidden = true
+end
 
 function unset()
-	block_repeat = false
+	state = STATE_NEUTRAL
 	return true
 end
 
@@ -591,7 +603,7 @@ end
 
 -- Unjam works by clearing weapon ID from the jam table, if conditions are met.
 function unjam(wpn)
-	if block_repeat then return end
+	if state ~= STATE_NEUTRAL then return end
 	local weapon = wpn or db.actor:active_item()
 	if not weapon then return end
 	local id = weapon:id()
@@ -608,7 +620,6 @@ function unjam(wpn)
 
 	if missing_parts(weapon) then
 		send_msg(gc("ui_st_missing"), 0)
-		block_repeat = false
 		return
 	end
 	-- if not jammed weapon, perform inspection
@@ -632,7 +643,6 @@ function unjam(wpn)
 				play_anim(weapon, idle_section, bored_sound)
 			else
 				-- in case of no bored anim, reset immediately
-				block_repeat = false
 			end
 		end
 		send_msg(str, verbosity)
@@ -644,13 +654,13 @@ function unjam(wpn)
 		if (jammed_guns[id] == 3 and weapon:get_ammo_in_magazine() > 1) then
 			jam_swearing()
 			send_msg(gc("ui_st_unjam_fail"), 0)
-			if is_current then				
-				db.actor:hide_weapon()
+			if is_current then
+				state = STATE_UNJAMMING		
+				hide_weapon()
 				CreateTimeEvent("arti_jamming", "show_weapon", 0, timed_restore)
 				start_jammin(50)
 			else
 				inventory:Close()
-				block_repeat = false
 			end
 		else
 		-- perform unjam logic
@@ -663,6 +673,7 @@ function unjam(wpn)
 				return
 			end
 			if is_current then
+				state = STATE_UNJAMMING
 				-- blindside compat, check for unjaminations and cache anim name and sound
 				local unjam_anims = get_unjam_animation(weapon)
 				if unjam_anims ~= nil then
@@ -674,7 +685,7 @@ function unjam(wpn)
 					guarantee_not_jam = true
 				else
 					--lower/raise
-					db.actor:hide_weapon()
+					hide_weapon()
 					CreateTimeEvent("arti_jamming", "unjam"..id, 0, timed_unjam, id, sound, str, verbosity)
 				end
 			else
@@ -693,12 +704,16 @@ end
 
 function timed_restore()
 	local current_weapon = db.actor:active_item()
+	if state ~= STATE_UNJAMMING then
+		print_dbg("Restoring prematurely")
+		return true
+	end
+
 	if current_weapon then 
-		block_repeat = false 
 		return false 
 	end
-	db.actor:restore_weapon()
-	block_repeat = false
+	restore_weapon()
+	state = STATE_NEUTRAL
 	return true
 end
 
@@ -706,6 +721,7 @@ function timed_unjam(id, sound, message, verbosity)
 	
 	local current_weapon = db.actor:active_item()
 	if current_weapon then return false end
+
 
 	if sound and sound ~= "" then
 		utils_obj.play_sound(sound.."_unjam")
@@ -715,9 +731,10 @@ function timed_unjam(id, sound, message, verbosity)
 	end
 	if id and id ~= 0 then
 		jammed_guns[id] = nil
-		db.actor:restore_weapon()
+		restore_weapon()
 		guarantee_not_jam = true
 	end
+	state = STATE_NEUTRAL
 	return true
 end
 
@@ -744,13 +761,13 @@ function unjam_replace(weapon, slot, sound)
 	guarantee_not_jam = true
 	if not weapon then return true end
 	print_dbg("slot determined is %s", slot)
-	block_repeat = false
+	state = STATE_UNJAMMING
 	-- already reloading, return
 	if get_unjam_animation(weapon) then 	
 		weapon:switch_state(7)
 		return true
 	end
-	db.actor:hide_weapon()
+	hide_weapon()
 	CreateTimeEvent("arti_jamming", "move"..weapon:id(), 0, move_to_slot, weapon, slot, sound)
 	return true
 end
@@ -768,7 +785,8 @@ function move_to_slot(weapon, slot, sound)
 	if sound and sound ~= "" then
 		utils_obj.play_sound(sound.."_unjam")
 	end
-	db.actor:restore_weapon()
+	state = STATE_NEUTRAL
+	restore_weapon()
 	return true
 end
 
@@ -789,25 +807,38 @@ local function on_item_drag_dropped(obj_1, obj_2, slot_from, slot_to)
 	end
 end
 
-function on_key_release(key)
-	if (key == DIK_keys[d_key]) then
-		d_flag = false
-	end
-end
+-- things that are not allowed:
+-- opening inventory, reloading, nvgs, weapon switch
+local disallowed = {
+	[key_bindings.kINVENTORY] = true,
+	[key_bindings.kWPN_RELOAD] = true,
+	[key_bindings.kNIGHT_VISION] = true,
+	[key_bindings.kWPN_NEXT] = true,
+	[key_bindings.kWPN_1] = true,
+	[key_bindings.kWPN_2] = true,
+	[key_bindings.kWPN_3] = true,
+	[key_bindings.kWPN_4] = true,
+	[key_bindings.kWPN_5] = true,
+	[key_bindings.kWPN_6] = true,
 
+}
 local function on_key_press(key)
-	if (key == DIK_keys[d_key]) then
-		d_flag = true
+	local bind = dik_to_bind(key)
+	if state == STATE_UNJAMMING then
+		if disallowed[bind] then
+			print_dbg("No unjam for you!")
+			cancel_unjam()
+		end
+	end
+	-- soft lock addressing
+	if state == STATE_NEUTRAL and weapon_hidden then
+		print_dbg("unsoftlocking")
+		restore_weapon()
 	end
 end
 
 function actor_on_weapon_jammed(actor)
-	-- send_msg(gc("ui_st_oldjam"), 0)
 	local wpn = db.actor:active_item()
-	-- if magazines and magazine_binder.is_supported_weapon(wpn) then 
-	-- 	send_msg(gc("ui_st_oldjam"), 0)
-	-- 	return 
-	-- end
 	jammed_guns[wpn:id()] = 4
 	print_dbg("Logged id %s, sec %s", wpn:id(), wpn:section())
 	jam_swearing()
@@ -832,6 +863,12 @@ end
 function cancel_reload(weapon)
 	weapon:switch_state(2)
 	return true
+end
+
+function cancel_unjam()
+	if state == STATE_UNJAMMING then
+		state = STATE_NEUTRAL
+	end
 end
 
 -- SECTION damage reduction -- 
@@ -930,7 +967,6 @@ function on_game_start()
 	-- add custom functors
 	custom_functor_autoinject.add_functor("arti_unjam", check_unjam, string_unjam, nil, unjam, false)
 
-    RegisterScriptCallback("on_key_release",on_key_release)
 	RegisterScriptCallback("on_key_press",on_key_press)
     RegisterScriptCallback("ActorMenu_on_item_drag_drop",on_item_drag_dropped)
     RegisterScriptCallback("actor_on_weapon_jammed",actor_on_weapon_jammed)
