@@ -90,13 +90,11 @@ end
 function start_jammin(chance)
 	local fun_level = get_config("fun")
 	fun_level = tonumber(fun_level)
-	print_dbg("fun level: %s", fun_level)
+	-- print_dbg("fun level: %s", fun_level)
 	if fun_level == 0 then 
-		print_dbg("no fun allowed")
 		return 
 	end
 	if fun_level == 2 then 
-		print_dbg("more fun allowed")
 		chance = chance * 2 
 	end
 	if not jammin:playing() and math.random(100) <= chance then
@@ -182,6 +180,7 @@ function hide_weapon()
 end
 
 function unset()
+	print_dbg("Resetting state")
 	state = STATE_NEUTRAL
 	return true
 end
@@ -194,7 +193,7 @@ function persist_current_weapon()
 		end
 		saved_parts[cgd.barrel_name] = cgd.barrel_con
 		item_parts.set_parts_con(cgd.id, saved_parts)
-		print_dbg("Persisted parts for weapon %s", cgd.id)
+		-- print_dbg("Persisted parts for weapon %s", cgd.id)
 	end
 end
 
@@ -295,13 +294,13 @@ local function calculate_jam(wpn, old_ammo)
 	if cond < 0.9 then
 		local ratio = (0.9-cond)/0.45
 		jam_chance = jam_chance * (1 + ratio)
-		print_dbg("Increasing jam ratio by %s", ratio)
+		-- print_dbg("Increasing jam ratio by %s", ratio)
 	end
 	if (old_ammo) then
 		-- bad ammo adds a flat 2% chance to jam
 		jam_chance = jam_chance + 20
 	end
-	print_dbg("Final jam chance is %s", jam_chance)
+	-- print_dbg("Final jam chance is %s", jam_chance)
 
 	if (math_random(1000) <= jam_chance) then
 		local str = gc("ui_st_jam")
@@ -343,7 +342,7 @@ local function calculate_damage(wpn, old_ammo, heat)
 	local damage_chance = old_ammo and 6 or 2
 	local threshold = get_config("threshold") or 85
 	local overheat_modifier = get_overheat_modifier(wpn)
-	print_dbg("weapon %s, heat is %s. heat modifier is  %s", wpn:section(), cgd.heat, overheat_modifier)
+	-- print_dbg("weapon %s, heat is %s. heat modifier is  %s", wpn:section(), cgd.heat, overheat_modifier)
 	if (cond < threshold) then
 		-- 200 x (threshold - condition) * per shot decrease, should result in pretty small chances
 		damage_chance = (threshold - cond) * cgd.current_gun_shot_dec * 2000 * overheat_modifier
@@ -351,7 +350,7 @@ local function calculate_damage(wpn, old_ammo, heat)
 		-- damage_chance = (170 - 200*cond) * cgd.current_gun_shot_dec * 1000
 		-- add flat 2% chance of damage w. old ammo
 		if old_ammo then damage_chance = damage_chance + 20 end
-		print_dbg("Damage chance: %s. Condition: %s", damage_chance, cond)
+		-- print_dbg("Damage chance: %s. Condition: %s", damage_chance, cond)
 	end
 
 	if (roll < damage_chance) then
@@ -603,6 +602,7 @@ end
 
 -- Unjam works by clearing weapon ID from the jam table, if conditions are met.
 function unjam(wpn)
+	print_dbg("State is %s", state)
 	if state ~= STATE_NEUTRAL then return end
 	local weapon = wpn or db.actor:active_item()
 	if not weapon then return end
@@ -673,7 +673,6 @@ function unjam(wpn)
 				return
 			end
 			if is_current then
-				state = STATE_UNJAMMING
 				-- blindside compat, check for unjaminations and cache anim name and sound
 				local unjam_anims = get_unjam_animation(weapon)
 				if unjam_anims ~= nil then
@@ -685,6 +684,7 @@ function unjam(wpn)
 					guarantee_not_jam = true
 				else
 					--lower/raise
+					state = STATE_UNJAMMING
 					hide_weapon()
 					CreateTimeEvent("arti_jamming", "unjam"..id, 0, timed_unjam, id, sound, str, verbosity)
 				end
@@ -706,6 +706,7 @@ function timed_restore()
 	local current_weapon = db.actor:active_item()
 	if state ~= STATE_UNJAMMING then
 		print_dbg("Restoring prematurely")
+		restore_weapon()
 		return true
 	end
 
