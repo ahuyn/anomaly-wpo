@@ -31,7 +31,7 @@ local PARTS_JAM = {30, 2}
 local guarantee_not_jam = true
 local SALE_PART_MIN = 51
 -- use to block inputs while animations / unjam logic fires
-local block_repeat = false
+local unjam_in_progress = false
 
 get_config = a_arti_jamming_mcm.get_config
 
@@ -156,23 +156,15 @@ end
 
 
 function play_anim(weapon, anim, sound)
-	if not block_repeat then
-		block_repeat = true
-		local length = weapon:play_hud_motion(anim, true, 0, 1, 0)
-		print_dbg("playing animation %s for %s time", anim, length)
-		if sound then
-			utils_obj.play_sound(sound)
-		end				
-		CreateTimeEvent("arti_jamming", "restore", length/1000, unset)
-
-	end
+	local length = weapon:play_hud_motion(anim, true, 0, 1, 0)
+	print_dbg("playing animation %s for %s time", anim, length)
+	if sound then
+		utils_obj.play_sound(sound)
+	end				
+	return length
+	-- CreateTimeEvent("arti_jamming", "restore", length/1000, unset)
 end
 
-
-function unset()
-	block_repeat = false
-	return true
-end
 
 function persist_current_weapon()
 	if cgd.id and cgd.has_parts then
@@ -283,13 +275,13 @@ local function calculate_jam(wpn, old_ammo)
 	if cond < 0.9 then
 		local ratio = (0.9-cond)/0.45
 		jam_chance = jam_chance * (1 + ratio)
-		print_dbg("Increasing jam ratio by %s", ratio)
+		-- print_dbg("Increasing jam ratio by %s", ratio)
 	end
 	if (old_ammo) then
 		-- bad ammo adds a flat 2% chance to jam
 		jam_chance = jam_chance + 20
 	end
-	print_dbg("Final jam chance is %s", jam_chance)
+	-- print_dbg("Final jam chance is %s", jam_chance)
 
 	if (math_random(1000) <= jam_chance) then
 		local str = gc("ui_st_jam")
@@ -302,7 +294,7 @@ local function calculate_jam(wpn, old_ammo)
 			end
 		else
 			jammed_guns[wpn:id()] = 2
-			print_dbg("Normal jam")
+			-- print_dbg("Normal jam")
 		end
 		start_jammin(2)
 		send_msg(str, verbosity)
@@ -316,7 +308,7 @@ local function damage_part(wpn)
 	local damage = math_random(5, 12)
 	cgd.parts[to_damage] = part_con > damage and (part_con - damage) or 1
 
-	print_dbg("%s damaged to %s condition", to_damage, cgd.parts[to_damage])
+	-- print_dbg("%s damaged to %s condition", to_damage, cgd.parts[to_damage])
 	if (get_config("verbosity") > 1) then
 		news_manager.send_tip(db.actor, gc("ui_st_parts_damage"), nil, "swiss_knife", 6000)
 	end
@@ -331,7 +323,7 @@ local function calculate_damage(wpn, old_ammo, heat)
 	local damage_chance = old_ammo and 6 or 2
 	local threshold = get_config("threshold") or 85
 	local overheat_modifier = get_overheat_modifier(wpn)
-	print_dbg("weapon %s, heat is %s. heat modifier is  %s", wpn:section(), cgd.heat, overheat_modifier)
+	-- print_dbg("weapon %s, heat is %s. heat modifier is  %s", wpn:section(), cgd.heat, overheat_modifier)
 	if (cond < threshold) then
 		-- 200 x (threshold - condition) * per shot decrease, should result in pretty small chances
 		damage_chance = (threshold - cond) * cgd.current_gun_shot_dec * 2000 * overheat_modifier
@@ -339,7 +331,7 @@ local function calculate_damage(wpn, old_ammo, heat)
 		-- damage_chance = (170 - 200*cond) * cgd.current_gun_shot_dec * 1000
 		-- add flat 2% chance of damage w. old ammo
 		if old_ammo then damage_chance = damage_chance + 20 end
-		print_dbg("Damage chance: %s. Condition: %s", damage_chance, cond)
+		-- print_dbg("Damage chance: %s. Condition: %s", damage_chance, cond)
 	end
 
 	if (roll < damage_chance) then
@@ -350,7 +342,7 @@ local function calculate_damage(wpn, old_ammo, heat)
 	local barrel_wear = old_ammo and 40 or 20
 	barrel_wear = barrel_wear * overheat_modifier
 	if (roll < barrel_wear) then
-		print_dbg("Damaged barrel")
+		-- print_dbg("Damaged barrel")
 		cgd.barrel_con = cgd.barrel_con > 0 and cgd.barrel_con - 1 or 0
 		damaged = true
 	end
@@ -481,7 +473,7 @@ local function actor_on_weapon_before_fire(flags)
 			local ratio = (0.9-cond)/0.9
 			misfire_chance = misfire_chance * (1 + 2*ratio)
 		end			
-		print_dbg("misfire chance: "..misfire_chance)
+		-- print_dbg("misfire chance: "..misfire_chance)
 		if (math_random(1000) < misfire_chance) then
 			-- fullauto fail later
 			if false then--math.random(100) < misfire_chance / 3 then
@@ -585,128 +577,17 @@ function string_unjam()
 	return gc("st_unjam")
 end
 
-function unjam_wep(obj)
-	unjam(obj)
+function get_sound(sec)
+	return gun_sounds[sec] and gun_sounds[sec] or "handgun"
 end
 
--- Unjam works by clearing weapon ID from the jam table, if conditions are met.
-function unjam(wpn)
-	if block_repeat then return end
-	local weapon = wpn or db.actor:active_item()
-	if not weapon then return end
-	local id = weapon:id()
-	local active_id = db.actor:active_item() and db.actor:active_item():id() or 0 
-	local sec = weapon:section()
-	local is_current = id == active_id
-	print_dbg("unjam current? %s", is_current)
-	local verbosity = 1
-
-	if not weapon or not has_parts(weapon) then
-		send_msg(gc("ui_st_nothing"), verbosity)
-		return
+-- do an unjam, optionally playing sounds and such
+function apply_unjam(id, sound, message, verbosity)
+	if not unjam_in_progress then 
+		print_dbg("Unjam interrupted for %s", id)
+		return true
 	end
-
-	if missing_parts(weapon) then
-		send_msg(gc("ui_st_missing"), 0)
-		block_repeat = false
-		return
-	end
-	-- if not jammed weapon, perform inspection
-	if not jammed_guns[id] then
-		local str = gc("ui_st_functional")
-		local heat_lvl = get_overheat_modifier(weapon, false)
-		if heat_lvl > 0 then
-			str = str .. gc("ui_st_heat"..heat_lvl)
-		end
-		-- if current weapon and has idle animation, play idle animation
-		if is_current then
-			-- bored animation
-			local idle_section = utils_item.addon_attached(weapon ,"gl") and (weapon:weapon_in_grenade_mode() and "anm_bore_g" or "anm_bore_w_gl") or "anm_bore"
-			local hud = ini_sys:r_string_ex(sec, "hud")
-			print_dbg("searching for "..idle_section.. " for weapon section "..hud)
-	
-			local bored_anim = hud and ini_sys:r_string_ex(hud,idle_section)
-			if bored_anim then
-				print_dbg("found bored anim "..bored_anim)
-				local bored_sound = bored_anim and ini_sys:r_string_ex(sec, "snd_bore") or "$no_sound"
-				play_anim(weapon, idle_section, bored_sound)
-			else
-				-- in case of no bored anim, reset immediately
-				block_repeat = false
-			end
-		end
-		send_msg(str, verbosity)
-		guarantee_not_jam = true
-	else
-	-- if jammed, unjam
-		local inventory = GetActorMenu()
-		-- fail on superjam
-		if (jammed_guns[id] == 3 and weapon:get_ammo_in_magazine() > 1) then
-			jam_swearing()
-			send_msg(gc("ui_st_unjam_fail"), 0)
-			if is_current then				
-				db.actor:hide_weapon()
-				CreateTimeEvent("arti_jamming", "show_weapon", 0, timed_restore)
-				start_jammin(50)
-			else
-				inventory:Close()
-				block_repeat = false
-			end
-		else
-		-- perform unjam logic
-			stop_jammin()
-			local str = gc("ui_st_unjam")
-			local sound = gun_sounds[sec] and gun_sounds[sec] or "handgun"
-			if jammed_guns[id] == 4 then
-				-- special handling for engine unjam
-				unjam_replace(weapon, determine_slot(weapon), sound)
-				return
-			end
-			if is_current then
-				-- blindside compat, check for unjaminations and cache anim name and sound
-				local unjam_anims = get_unjam_animation(weapon)
-				if unjam_anims ~= nil then
-					local to_search = utils_item.addon_attached(weapon ,"gl") and "anm_reload_misfire_w_gl" or "anm_reload_misfire"
-					local unjam_sound = ini_sys:r_string_ex(sec, "snd_reload_misfire") or ini_sys:r_string_ex(sec, "snd_reload_1") or "$no_sound"
-					print_dbg("found "..unjam_anims)
-					play_anim(weapon, to_search, unjam_sound)
-					jammed_guns[id] = nil
-					guarantee_not_jam = true
-				else
-					--lower/raise
-					db.actor:hide_weapon()
-					CreateTimeEvent("arti_jamming", "unjam"..id, 0, timed_unjam, id, sound, str, verbosity)
-				end
-			else
-				-- unjam from inventory
-				-- CreateTimeEvent("arti_jamming", "unjam"..id, 0, timed_unjam, id, sound, str, verbosity)		
-				send_msg(message, verbosity)		
-				utils_obj.play_sound(sound.."_unjam")
-				jammed_guns[id] = nil
-				inventory:Close()
-				guarantee_not_jam = true
-			end
-		end
-	end
-end
-
-
-function timed_restore()
-	local current_weapon = db.actor:active_item()
-	if current_weapon then 
-		block_repeat = false 
-		return false 
-	end
-	db.actor:restore_weapon()
-	block_repeat = false
-	return true
-end
-
-function timed_unjam(id, sound, message, verbosity)
-	
-	local current_weapon = db.actor:active_item()
-	if current_weapon then return false end
-
+	unjam_in_progress = false
 	if sound and sound ~= "" then
 		utils_obj.play_sound(sound.."_unjam")
 	end
@@ -715,11 +596,108 @@ function timed_unjam(id, sound, message, verbosity)
 	end
 	if id and id ~= 0 then
 		jammed_guns[id] = nil
-		db.actor:restore_weapon()
 		guarantee_not_jam = true
 	end
 	return true
 end
+
+-- provide heat readout
+function check_simple(weapon)
+	print_dbg("Performing heat check")
+	local str = gc("ui_st_functional")
+	local heat_lvl = get_overheat_modifier(weapon, false)
+	if heat_lvl > 0 then
+		str = str .. gc("ui_st_heat"..heat_lvl)
+	end
+	send_msg(str, 0)		
+end
+
+-- provide heat readout + idle anim
+function check_anim(weapon)
+	check_simple(weapon)
+	local sec = weapon:section()
+	local idle_section = utils_item.addon_attached(weapon ,"gl") and (weapon:weapon_in_grenade_mode() and "anm_bore_g" or "anm_bore_w_gl") or "anm_bore"
+	local hud = ini_sys:r_string_ex(sec, "hud")
+	print_dbg("searching for "..idle_section.. " for weapon section "..hud)
+
+	local bored_anim = hud and ini_sys:r_string_ex(hud, idle_section)
+	if bored_anim then
+		print_dbg("found bored anim "..bored_anim)
+		local bored_sound = bored_anim and ini_sys:r_string_ex(sec, "snd_bore") or "$no_sound"
+		play_anim(weapon, idle_section, bored_sound)
+	end		
+end
+
+-- put down and bring back up
+function unjam_simple(weapon)
+	stop_jammin()
+	local str = gc("ui_st_unjam")
+	local id = weapon:id()
+	local sec = ini_sys:r_string_ex(weapon:section(),"parent_section") or weapon:section()
+	local sound = get_sound(sec)
+	db.actor:hide_weapon()
+
+	unjam_in_progress = true
+	CreateTimeEvent("arti_jamming", "unjam"..id, 0.1, 
+	function(id, sound, message, verbosity)
+		if not unjam_in_progress then
+			print_dbg("unjam_replace_simple interrupted")
+			db.actor:restore_weapon()
+			return true
+		end
+		local current_weapon = db.actor:active_item()
+		if current_weapon then return false end
+		
+		db.actor:restore_weapon()
+		-- premature interrupt
+		apply_unjam(id, sound, message, verbosity)
+	
+		return true
+	end,
+	id, sound, str, 1)
+end
+
+-- unjam held weapon with animation
+function unjam_anim(weapon)
+	stop_jammin()
+	local str = gc("ui_st_unjam")
+	local id = weapon:id()
+	local sec = weapon:section()
+	-- blindside compat, check for unjaminations and cache anim name and sound
+	local unjam_anims = get_unjam_animation(weapon)
+	if unjam_anims ~= nil then
+		unjam_in_progress = true
+		local to_search = utils_item.addon_attached(weapon ,"gl") and "anm_reload_misfire_w_gl" or "anm_reload_misfire"
+		local unjam_sound = ini_sys:r_string_ex(sec, "snd_reload_misfire") or ini_sys:r_string_ex(sec, "snd_reload_1") or "$no_sound"
+		print_dbg("found "..unjam_anims)
+		length = play_anim(weapon, to_search, unjam_sound)
+		CreateTimeEvent("arti_jamming", "restore", length/1000, apply_unjam, id)
+	end
+
+end
+
+function unjam_super_simple(weapon)
+	if weapon:get_ammo_in_magazine() > 1 then
+		start_jammin(50)
+		jam_swearing()
+		send_msg(gc("ui_st_unjam_fail"), 0)
+		weapon:switch_state(2)
+	else
+		unjam_simple(weapon)
+	end
+end
+
+function unjam_super_anim(weapon)
+	if weapon:get_ammo_in_magazine() > 1 then
+		start_jammin(50)
+		jam_swearing()
+		send_msg(gc("ui_st_unjam_fail"), 0)
+		weapon:switch_state(2)
+	else
+		unjam_anim(weapon)
+	end
+end
+
 
 function determine_slot(weapon)
 	for i=1,5 do 
@@ -729,6 +707,155 @@ function determine_slot(weapon)
 	end
 end
 
+function unjam_and_clone(weapon, slot, sound)
+	if not unjam_in_progress then
+		print_dbg("unjam_replace_simple interrupted")
+		db.actor:restore_weapon()
+		return true
+	end
+	local current_weapon = db.actor:active_item()
+	if current_weapon then return false end
+
+	apply_unjam(weapon:id(), sound)
+	local old_weapon = alife_object(weapon:id())
+	local new_weapon = alife_clone_weapon(old_weapon)
+	print_dbg("cloned weapon, doing restoration")
+	CreateTimeEvent("arti_jamming", "move_to_slot", 0.1, 
+		function(weapon, slot)
+			print_dbg("unjam_replace_simple - restoring weapon to slot %s", slot)
+			db.actor:restore_weapon()
+			db.actor:move_to_slot(level.object_by_id(weapon), slot)
+			return true
+		end, 
+	new_weapon.id, slot)
+	return true
+end
+
+-- hide, clone, move
+function unjam_replace_simple(weapon)
+	if not weapon then return end
+	local slot = determine_slot(weapon)
+	local sound = get_sound(weapon:section())
+	print_dbg("slot determined is %s", slot)
+	unjam_in_progress = true
+	db.actor:hide_weapon()
+	print_dbg("replacing weapon %s", weapon:id())
+	CreateTimeEvent("arti_jamming", "move "..weapon:id(), 0.1, unjam_and_clone, weapon, slot, sound)
+	print_dbg("unjam replace returning")
+	return true
+end
+
+-- just change the state to reloading and check when reloading is done
+function unjam_replace_anim(weapon)
+	weapon:switch_state(7)
+	unjam_in_progress = true
+	apply_unjam(weapon:id())
+end
+
+-- clear the entry, no qs asked
+function inv_unjam(weapon)
+	if jammed_guns[weapon:id()] == 3 then return end
+	unjam_in_progress = true
+	apply_unjam(weapon:id(), get_sound(weapon:section()))
+end
+
+function inv_unjam_replace(weapon)
+	unjam_in_progress = true
+	apply_unjam(weapon:id(), get_sound(weapon:section()))
+	local slot = determine_slot(weapon)
+	local old_weapon = alife_object(weapon:id())
+	local new_weapon = alife_clone_weapon(old_weapon)
+	if slot then
+		CreateTimeEvent("arti_jamming", "move_to_slot", 0.1, 
+			function(weapon, slot)
+				print_dbg("unjam_replace_simple - restoring weapon to slot %s", slot)
+				db.actor:restore_weapon()
+				db.actor:move_to_slot(level.object_by_id(weapon), slot)
+				return true
+			end, 
+		new_weapon.id, slot)
+	end
+end
+
+
+-- conditions:
+-- unjam type? ok (0), misfire/feed (just 1), doublefeed(3), classic (4)
+-- currently held?
+-- has animation?
+-- these functions will be completely responsible for what happens
+local unjam_router = {
+	-- held or not
+	["held"] = {
+		[0] = {
+			["anim"] = check_anim,
+			["no_anim"] = check_simple
+		},
+		[1] = {
+			["anim"] = unjam_anim,
+			["no_anim"] = unjam_simple
+		},
+		[3] = {
+			["anim"] = unjam_super_anim,
+			["no_anim"] = unjam_super_simple
+		},
+		[4] = {
+			["anim"] = unjam_replace_anim,
+			["no_anim"] = unjam_replace_simple
+		}
+	},
+	["inventory"] = {
+		[1] = {
+			["anim"] = inv_unjam,
+			["no_anim"] = inv_unjam
+		},
+		[3] = {
+			["anim"] = inv_unjam,
+			["no_anim"] = inv_unjam
+		},
+		[4] = {
+			["anim"] = inv_unjam_replace,
+			["no_anim"] = inv_unjam_replace
+		}
+	}
+}
+-- Unjam works by clearing weapon ID from the jam table, if conditions are met.
+function unjam(wpn)
+	local weapon = wpn or db.actor:active_item()
+	if not weapon then return end
+	if unjam_in_progress then
+		print_dbg("weapon already being unjammed")
+		return
+	end
+	local id = weapon:id()
+	local active_id = db.actor:active_item() and db.actor:active_item():id() or 0 
+	local sec = weapon:section()
+
+	if not weapon or not has_parts(weapon) then
+		send_msg(gc("ui_st_nothing"), verbosity)
+		return
+	end
+
+	if missing_parts(weapon) then
+		send_msg(gc("ui_st_missing"), 0)
+		return
+	end
+
+	local is_current = id == active_id and "held" or "inventory"
+
+	local jam_level = jammed_guns[id] or 0
+	if jam_level == 2 then jam_level = 1 end
+
+	local has_anim = get_unjam_animation(weapon) and "anim" or "no_anim"
+
+	print_dbg("unjam current: %s jam level: %s has_anims: %s. has function? %s", is_current, jam_level, has_anim, unjam_router[is_current][jam_level][has_anim] ~= nil)
+
+	if unjam_router[is_current][jam_level][has_anim] then
+		print_dbg("Executing unjam function")
+		unjam_router[is_current][jam_level][has_anim](weapon)
+	end
+end
+
+
 function get_unjam_animation(weapon)					
 	local sec = weapon:section()
 	local to_search = utils_item.addon_attached(weapon ,"gl") and "anm_reload_misfire_w_gl" or "anm_reload_misfire"
@@ -737,41 +864,6 @@ function get_unjam_animation(weapon)
 	local unjam_anims = hud and ini_sys:r_string_ex(hud,to_search)
 	return unjam_anims
 end
-
--- bullshit used to unjam engine-jammed weapons without a special unjam animation
-function unjam_replace(weapon, slot, sound)
-	jammed_guns[weapon:id()] = nil
-	guarantee_not_jam = true
-	if not weapon then return true end
-	print_dbg("slot determined is %s", slot)
-	block_repeat = false
-	-- already reloading, return
-	if get_unjam_animation(weapon) then 	
-		weapon:switch_state(7)
-		return true
-	end
-	db.actor:hide_weapon()
-	CreateTimeEvent("arti_jamming", "move"..weapon:id(), 0, move_to_slot, weapon, slot, sound)
-	return true
-end
-
-function move_to_slot(weapon, slot, sound)
-
-	local current_weapon = db.actor:active_item()
-	if current_weapon then return false end
-
-	local old_weapon = alife_object(weapon:id())
-	local new_weapon = alife_clone_weapon(old_weapon)
-	if slot then
-		db.actor:move_to_slot(weapon, slot)
-	end
-	if sound and sound ~= "" then
-		utils_obj.play_sound(sound.."_unjam")
-	end
-	db.actor:restore_weapon()
-	return true
-end
-
 
 -- SECTION callbacks --
 local function on_item_drag_dropped(obj_1, obj_2, slot_from, slot_to)
@@ -789,15 +881,25 @@ local function on_item_drag_dropped(obj_1, obj_2, slot_from, slot_to)
 	end
 end
 
-function on_key_release(key)
-	if (key == DIK_keys[d_key]) then
-		d_flag = false
-	end
-end
+local disallowed = {
+	[key_bindings.kINVENTORY] = true,
+	[key_bindings.kWPN_RELOAD] = true,
+	[key_bindings.kNIGHT_VISION] = true,
+	[key_bindings.kWPN_NEXT] = true,
+	[key_bindings.kWPN_1] = true,
+	[key_bindings.kWPN_2] = true,
+	[key_bindings.kWPN_3] = true,
+	[key_bindings.kWPN_4] = true,
+	[key_bindings.kWPN_5] = true,
+	[key_bindings.kWPN_6] = true,
 
-local function on_key_press(key)
-	if (key == DIK_keys[d_key]) then
-		d_flag = true
+}
+function on_key_press(key)
+	-- certain actions interrupt any unjams in progress
+	local bind = dik_to_bind(key)
+	if unjam_in_progress and disallowed[bind]then
+		print_dbg("unjam interrupted by action")
+		unjam_in_progress = false
 	end
 end
 
@@ -808,7 +910,9 @@ function actor_on_weapon_jammed(actor)
 	-- 	send_msg(gc("ui_st_oldjam"), 0)
 	-- 	return 
 	-- end
-	jammed_guns[wpn:id()] = 4
+	if not jammed_guns[wpn:id()] then
+		jammed_guns[wpn:id()] = 4
+	end
 	print_dbg("Logged id %s, sec %s", wpn:id(), wpn:section())
 	jam_swearing()
 end
@@ -825,13 +929,13 @@ function actor_on_weapon_reload(wpn)
 				wpn:force_unload_magazine(true)
 			end
 		end
-		CreateTimeEvent("arti_jamming", "cancel_reload", 0.1, cancel_reload, wpn)
+		CreateTimeEvent("arti_jamming", "cancel_reload", 0.1, 
+			function(wpn)		
+				wpn:switch_state(2)
+				return true
+			end
+		, wpn)
 	end
-end
-
-function cancel_reload(weapon)
-	weapon:switch_state(2)
-	return true
 end
 
 -- SECTION damage reduction -- 
@@ -901,6 +1005,37 @@ function try_replace_part(wpn, table, part, using_tool)
 	end
 end
 
+EvaluateParts = item_parts.evaluate_parts
+
+function item_parts.evaluate_parts(obj)
+    local sec = obj:section()
+	sec = ini_sys:r_string_ex(sec,"parent_section") or sec -- for weapons with scopes
+	local id = obj:id()
+	local m_con = math.ceil(obj:condition() * 100) -- default condition of the item
+	
+	local parts = ini_parts:r_string_ex("con_parts_list",sec)
+	if parts then
+		parts = str_explode(parts,",")
+		
+		local data = se_load_var(id, obj:name(), "parts")
+
+		-- Savegame compatibility. Recalculate with changed parts
+		if data and data[sec] then
+			for i=1,#parts do
+				if (not data[parts[i]]) then
+					empty_table(data)
+					break
+				end
+			end
+		end
+		-- premature terminate if data exists for outfits
+		if has_parts(obj) and data then return
+        else
+            EvaluateParts(obj)
+		end
+    end
+end
+
 function on_game_start()
 	local sounds = {"ak", "ar", "handgun", "shotgun", "bolt"}
 	local ini_sounds = ini_file("items\\settings\\arti_unjam_sounds.ltx")
@@ -930,7 +1065,6 @@ function on_game_start()
 	-- add custom functors
 	custom_functor_autoinject.add_functor("arti_unjam", check_unjam, string_unjam, nil, unjam, false)
 
-    RegisterScriptCallback("on_key_release",on_key_release)
 	RegisterScriptCallback("on_key_press",on_key_press)
     RegisterScriptCallback("ActorMenu_on_item_drag_drop",on_item_drag_dropped)
     RegisterScriptCallback("actor_on_weapon_jammed",actor_on_weapon_jammed)
