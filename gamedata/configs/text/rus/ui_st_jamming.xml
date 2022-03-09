@@ -52,14 +52,17 @@
 	<string id="st_news_parts_success">
 		<text>%c[d_green]Деталь успешно заменена.</text>
 	</string>
+	<string id="st_news_parts_repair_success">
+		<text>Успешно отремонтировано: </text>
+	</string>									   
 	<string id="st_news_parts_fail">
-		<text>%c[d_red]На оружии установлена деталь лучшего качества.</text>
+		<text>%c[d_red]На оружии уже установлена деталь лучшего качества.</text>
 	</string>
 	<string id="st_news_parts_incompatible">
-		<text>%c[d_red]Эта деталь не совместима с данным оружием.</text>
+		<text>%c[d_red]Эта деталь несовместима с данным оружием.</text>
 	</string>
 	<string id="st_news_parts_barrel">
-		<text>%c[d_red]Ствол нельзя сменить в полевых условиях.</text>
+		<text>%c[d_red]Ствол нельзя заменить в полевых условиях.</text>
 	</string>
 	<string id="st_news_parts_rusty">
 		<text>%c[d_red]Невозможно разобрать это оружие в полевых условиях, так как оно слишком ржавое.</text>
@@ -76,73 +79,100 @@
 
 	<!-- MCM -->
 	<string id="ui_mcm_menu_wpo">
-		<text>Weapon Parts Overhaul</text>
+		<text>WPO</text>
 	</string>
 	<string id="ui_mcm_wpo_title">
-		<text>Настройка аддона Weapon Parts Overhaul</text>
+		<text>Настройка Weapon Parts Overhaul</text>
 	</string>
-	<string id="ui_mcm_wpo_profanity">
-		<text>Ненормативная лексика при клине</text>
+	<string id="ui_mcm_wpo_wpojam">
+		<text>Настройки клина оружия</text>
 	</string>
-	<string id="ui_mcm_wpo_profanity_desc">
-		<text>Включает ругательства главного героя при заклинивании оружия.</text>
+	<string id="ui_mcm_wpo_wpoecon">
+		<text>Настройки экономики</text>
 	</string>
-	<string id="ui_mcm_wpo_profanity_timeout">
-		<text>Выключает кулдаун на ненормативную лексику</text>
+	<string id="ui_mcm_wpo_wpomisc">
+		<text>Прочие настройки</text>
 	</string>
-	<string id="ui_mcm_wpo_profanity_timeout_desc">
-		<text>Добавляет небольшой кулдаун на ругательства если включено. Используйте если не любите веселье.</text>
+	<string id="ui_mcm_menu_wpojam">
+		<text>WPO клин</text>
 	</string>
-	<string id="ui_mcm_wpo_profanity_language">
-		<text>"Мат" выбор языка</text>
+	<string id="ui_mcm_menu_wpoecon">
+		<text>WPO экономика</text>
 	</string>
-	<string id="ui_mcm_wpo_jamchance">
-		<text>Коэффициент шанса клина</text>
+	<string id="ui_mcm_menu_wpomisc">
+		<text>WPO прочее</text>
 	</string>
-	<string id="ui_mcm_wpo_jamchance_desc">
-		<text>Коэффициент шанса клина</text>
+	
+	<string id="ui_mcm_wpo_wpojam_jamchance">
+		<text>Множитель шанса клина</text>
 	</string>
-	<string id="ui_mcm_wpo_superjam">
-		<text>Включить "супер-клин"</text>
+	<string id="ui_mcm_wpo_wpojam_jamchance_desc">
+		<text>Множитель шанса новой механики клина оружия.</text>
 	</string>
-	<string id="ui_mcm_wpo_superjam_desc">
+	<string id="ui_mcm_wpo_wpojam_superjam">
+		<text>Супер-клин</text>
+	</string>
+	<string id="ui_mcm_wpo_wpojam_superjam_desc">
 		<text>Включает (или отключает) так называемый "супер-клин". При "супер-клине" нужно полностью разрядить оружие.</text>
 	</string>
-	<string id="ui_mcm_wpo_simplejam">
+	<string id="ui_mcm_wpo_wpojam_simplejam">
 		<text>Выброс магазина при супер-клине</text>
 	</string>
-	<string id="ui_mcm_wpo_simplejam_desc">
+	<string id="ui_mcm_wpo_wpojam_simplejam_desc">
 		<text>Если включено, при нажатии перезарядки (по стандарту R) с сильно заклинившем оружием, магазин будет извлечен. Больше не придется возиться с инвентарем.</text>
 	</string>
-	<string id="ui_mcm_wpo_threshold">
+
+	<string id="ui_mcm_wpo_wpoecon_degradation">
+		<text>Коэффициент деградации под дождём</text>
+	</string>
+	<string id="ui_mcm_wpo_wpoecon_degradation_desc">
+		<text>Множитель деградации оружия, когда оно используется во время дождя.</text>
+	</string>
+	<string id="ui_mcm_wpo_wpoecon_threshold">
 		<text>Порог состояния повреждения детали</text>
 	</string>
-	<string id="ui_mcm_wpo_threshold_desc">
+	<string id="ui_mcm_wpo_wpoecon_threshold_desc">
 		<text>Состояние оружия при котором есть шанс повредить детали. Чем меньше, тем оружие должно быть больше повреждено чтобы детали начали повреждаться.</text>
 	</string>
-	<string id="ui_mcm_wpo_cleancoef">
-		<text>Множитель очистки оружия техником</text>
+	<string id="ui_mcm_wpo_wpoecon_repairkit">
+		<text>Ремнаборы восстанавливают компоненты</text>
 	</string>
-	<string id="ui_mcm_wpo_cleancoef_desc">
-		<text>Настройка множителя цены при чистке оружия у техника.</text>
+	<string id="ui_mcm_wpo_wpoecon_repairkit_desc">
+		<text>Ремонтные наборы будут восстанавливать компоненты оружия (до 100%). Если не включено, лишь добавляет 25% к состоянию. Увеличивает сложность в выключенном состоянии.</text>
 	</string>
-	<string id="ui_mcm_wpo_verbosity">
-		<text>Подробная информация в сообщении о клине</text>
+	<string id="ui_mcm_wpo_wpoecon_altroll">
+		<text>Распределённый вес состояния оружия</text>
 	</string>
-	<string id="ui_mcm_wpo_verbosity_desc">
-		<text>Три варианта сообщений о состоянии оружия:\nНет сообщений: уведомления появляются по факту, иначе сбивают с толку.\nНормальный вариант (рекомендуется): будет предупреждать о заклинивании и разрядке оружия.\nПолный вариант : получаете предупреждения о всех нюансах состояния вашего оружия - когда заклинивает, о повреждении компонентов, потребуется чистка и разбор ствола.</text>
+	<string id="ui_mcm_wpo_wpoecon_altroll_desc">
+		<text>Распределение состояния оружия в мире на основе интерполяции Лагранжа. Снижает качество дропа в целом и поощряет собирательство. Хорошо сочетается со следующим пунктом.</text>
 	</string>
-	<string id="ui_mcm_wpo_minpart">
-		<text>Состояние запчастей для продажи Торговцам</text>
+	<string id="ui_mcm_wpo_wpoecon_altpartroll">
+		<text>Распределённый вес состояния компонентов</text>
 	</string>
-	<string id="ui_mcm_wpo_minpart_desc">
-		<text>Минимальное состояние для возможности продажи ВСЕХ оружейных частей. Если оружейная часть имеет состояние ниже данного, то её нельзя будет продать. Для отключения, установите значение на 0.</text>
+	<string id="ui_mcm_wpo_wpoecon_altpartroll_desc">
+		<text>Использование новой формулы для дропа оружейных компонентов, в которой состояние оружия определяет то, будут ли извлечены компоненты в хорошем или плохом качестве. На низких значениях увеличивает качество дропа, на высоких уменьшает.</text>
 	</string>
-	<string id="ui_mcm_wpo_fun">
-		<text>Уровень веселья</text>
+	<string id="ui_mcm_wpo_wpoecon_minpart">
+		<text>Минимальное состояние компонентов для продажи</text>
 	</string>
-	<string id="ui_mcm_wpo_title">
-		<text>Weapon Parts Overhaul</text>
+	<string id="ui_mcm_wpo_wpoecon_minpart_desc">
+		<text>Минимальное состояние для ВСЕХ оружейных компонентов, чтобы их принимали торговцы. Если в оружии есть хотя бы ОДИН компонент ниже этого значения, оружие у вас не купят. Значение 0 отключает данную проверку.</text>
+	</string>
+
+	<string id="ui_mcm_wpo_wpomisc_profanity">
+		<text>Мат при клине оружия</text>
+	</string>
+	<string id="ui_mcm_wpo_wpomisc_profanity_desc">
+		<text>Включает красочные выражения при клине оружия.</text>
+	</string>
+	<string id="ui_mcm_wpo_wpomisc_profanity_timeout">
+		<text>Уменьшить частоту ругательств</text>
+	</string>
+	<string id="ui_mcm_wpo_wpomisc_profanity_timeout_desc">
+		<text>Добавляет задержку при включённой опции "мат при клине оружия". Используйте, если вам слишком весело.</text>
+	</string>
+	<string id="ui_mcm_wpo_wpomisc_profanity_language">
+		<text>Язык ругательств</text>
 	</string>
 	<string id="ui_mcm_lst_eng">
 		<text>Английский</text>
@@ -150,14 +180,23 @@
 	<string id="ui_mcm_lst_rus">
 		<text>Русский</text>
 	</string>
+	<string id="ui_mcm_wpo_wpomisc_verbosity">
+		<text>Текстовое сообщение о клине</text>
+	</string>
+	<string id="ui_mcm_wpo_wpomisc_verbosity_desc">
+		<text>Вывод сообщений о клине в интерфейс. Всего три уровня:\nНет: только клин по общему состоянию оружия (иначе совсем запутано будет).\nСтандарт (рекомендуется): уведомление о клине и об успешном расклине.\nВсё: Как и предыдущий пункт, но в добавок будет выдано уведомление о супер-клине, а так же информация о повреждении компонентов, если оно происходит.</text>
+	</string>
 	<string id="ui_mcm_lst_verbosity_none">
-		<text>Выключен</text>
+		<text>Нет</text>
 	</string>
 	<string id="ui_mcm_lst_verbosity_normal">
-		<text>Обычный</text>
+		<text>Стандарт</text>
 	</string>
 	<string id="ui_mcm_lst_verbosity_full">
-		<text>Полный</text>
+		<text>Всё</text>
+	</string>
+	<string id="ui_mcm_wpo_wpomisc_fun">
+		<text>Уровень веселья</text>
 	</string>
 	<string id="ui_mcm_lst_no">
 		<text>Долг</text>
@@ -168,47 +207,45 @@
 	<string id="ui_mcm_lst_ofc">
 		<text>Свобода</text>
 	</string>
-	<string id="ui_mcm_wpo_debug">
-		<text>Журнал отладки</text>
+	<string id="ui_mcm_wpo_wpomisc_debug">
+		<text>Отладочный журнал</text>
 	</string>
-	<string id="ui_mcm_wpo_debug_desc">
-		<text>Журнал отладки отображает дополнительную информацию в консоли.</text>
+	<string id="ui_mcm_wpo_wpomisc_debug_desc">
+		<text>Дополнительная отладочная информация, которая будет записана в лог-файл игры.</text>
 	</string>
 	<string id="ui_mcm_wpo_babymode">
 		<text>Режим для детей (без клина) </text>
 	</string>
 	<string id="ui_mcm_wpo_babymode_desc">
-		<text>Отключает функционал заедания оружия. Если тебе это нужно... Зачем ты вообще тогда установил этот аддон?</text>
+		<text>И зачем?</text>
 	</string>
-	<string id="ui_mcm_wpo_newdrops">
-		<text>Включает альтернативные значения состояния выпадаемых частей</text>
+
+	<string id="ui_st_mockery_1">
+		<text>У тебя бы всё заклинило, но похоже, тебе это кажется чрезмерным.</text>
 	</string>
-	<string id="ui_mcm_wpo_newdrops_desc">
-		<text>Для определения значения состояния частей оружия используется новая формула. На шанс частей в хорошем состоянии влияет состояние оружия и скрытый вес. Усложняет игровой процесс. Отключите что бы использовать старый метод.</text>
+	<string id="ui_st_mockery_2">
+		<text>Нравятся простенькие ремонты?</text>
 	</string>
-	<string id="ui_mcm_wpo_newdropschance">
-		<text>Шанс извлечь части в хорошем состоянии по альтернативной формуле</text>
+	<string id="ui_st_mockery_3">
+		<text>Кстати, почему бы заодно переносимый вес до 600 не поднять, раз такое дело?</text>
 	</string>
-	<string id="ui_mcm_wpo_degradation">
-		<text>Деградация оружия при дожде </text>
+	<string id="ui_st_mockery_4">
+		<text>Ты меня разочаровываешь.</text>
 	</string>
-	<string id="ui_mcm_wpo_degradation_desc">
-		<text>Множитель скорости поломки вашего оружия во время дождя.</text>
-	</string>
-	
+
 	<string id="st_field_strip">
-		<text>снять запчасти</text>
+		<text>Извлечь компоненты</text>
 	</string>
 	<string id="st_field_strip_fail">
-		<text>Из оружия больше нечего извлечь</text>
+		<text>Из этого оружия больше нечего извлекать.</text>
 	</string>
 	<string id="ui_st_missing">
-		<text>В оружии отсутствуют запчасти.</text>
+		<text>В оружии отсутствуют компоненты.</text>
 	</string>
 
 	
 	<string id="article_wpo">
-		<text>Обслуживание оружия WPO</text>
+		<text>Обслуживание оружия</text>
 	</string>
 	<string id="article_wpo_text">
 		<text>
@@ -247,7 +284,7 @@
 			\n• Техники будут случайным образом продавать оружейные части по серьезной наценке.
 			\n• Оружейные части по прочности выше 60% могут быть отремонтированы напильником, шомполом или мультитулом.
 			\n• Оружейные части по прочности выше 10% могут быть отремонтированы очень дорогими рем-комплектами доступными у трейдеров.
-			\n \n По всем остальным вопросам, пишите arti#3278 в Discord. Я слишком ленив чтобы читать комментарии на Moddb.
+			\n \n По всем остальным вопросам, пишите arti#3278 в Discord (разумеется, на английском). Я слишком ленив чтобы читать комментарии на Moddb.
 		</text>
 	</string>
 	
@@ -263,24 +300,33 @@
 		<text>•</text>
 	</string>
 	<string id="st_damage_missing">
-		<text>отсутствует</text>
+		<text>отсутствует:</text>
 	</string>
 	<string id="st_damage_0">
-		<text>сломан</text>
+		<text>сломано:</text>
 	</string>
 	<string id="st_damage_1">
-		<text>поврежден</text>
+		<text>повреждено:</text>
 	</string>
 	<string id="st_damage_2">
-		<text>изношен</text>
+		<text>изношено:</text>
 	</string>
 	<string id="st_damage_3">
-		<text>загрязнен</text>
+		<text>загрязнено:</text>
 	</string>
+	<string id="st_damage_4">
+		<text>функционально:</text>
+	</string>
+	<string id="st_damage_5">
+		<text>исправно:</text>
+	</string>						  
 	<string id="st_wpo_replace_parts">
 		<text>обслуживание</text>
 	</string>
 	
+	<string id="st_wpo_repair">
+		<text>восстановить 25% состояния: </text>
+	</string>		  
 	<string id="st_wpo_replace">
 		<text>заменить</text>
 	</string>
@@ -327,6 +373,6 @@
 		<text>все</text>
 	</string>
 	<string id="st_name_issues">
-		<text>ПРОБЛЕМЫ:</text>
+		<text>СОСТОЯНИЕ:</text>
 	</string>
 </string_table>
