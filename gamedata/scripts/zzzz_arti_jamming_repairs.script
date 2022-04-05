@@ -573,6 +573,17 @@ end
 
 -- custom parts replacement shit
 
+function can_remove(sec)
+	if is_part(sec) then
+		if is_barrel(sec) and not get_config("easybarrel") then
+		elseif is_trigger(sec) and not get_config("easytrigger") then
+		else
+			return true
+		end
+	end
+	return false
+end
+
 function name_fieldstrip(obj)
 	return gc("st_field_strip")
 end
@@ -582,7 +593,7 @@ function has_parts_fieldstrip(wpn)
 	local parts = item_parts.get_parts_con(wpn, nil, true)
 	local has_parts = false
 	for k,v in pairs(parts) do
-		if v > 0 and is_part(k) and not arti_jamming.is_barrel(k) then has_parts = true end
+		if v > 0 and can_remove(k) then has_parts = true end
 	end
 	return has_parts
 end
@@ -610,8 +621,6 @@ end
 
 local fs_gui
 function init_fieldstrip_menu(obj)
-	
-
 
 	local context_str = {}
 	local context_action = {}
@@ -620,7 +629,7 @@ function init_fieldstrip_menu(obj)
 	local parts = item_parts.get_parts_con(obj)
 	local num = 0
 	for k,v in pairs(parts) do
-		if is_part(k) and not arti_jamming.is_barrel(k) and v > 0 then
+		if can_remove(k) and v > 0 then
 			table.insert(context_str, remove_name(k))
 			table.insert(context_action,  "remove_part")
 			table.insert(context_params, {obj:id(), k, v})
@@ -659,7 +668,7 @@ function act_fieldstrip(id, part_name)
 		parts_removed = true
 	else
 		for k,v in pairs(parts) do
-			if is_part(k) and v ~= -1 and not arti_jamming.is_barrel(k) then
+			if can_remove(k) and v ~= -1 then
 				str_msg = str_msg .. "\\n -" .. ui_item.get_sec_name(k)
 				remove_part(k, parts)
 				parts_removed = true

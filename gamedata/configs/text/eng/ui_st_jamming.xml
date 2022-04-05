@@ -64,6 +64,9 @@
 	<string id="st_news_parts_barrel">
 		<text>%c[d_red]Barrels cannot be replaced in the field.</text>
 	</string>
+	<string id="st_news_parts_trigger">
+		<text>%c[d_red]Triggers cannot be replaced in the field.</text>
+	</string>
 	<string id="st_news_parts_rusty">
 		<text>%c[d_red]Weapon is too rusty to take apart in the field.</text>
 	</string>
@@ -121,9 +124,21 @@
 	<string id="ui_mcm_wpo_wpojam_simplejam_desc">
 		<text>If enabled, on pressing reload with a superjammed weapon, the magazine will be ejected for you. No more inventory fumbling!</text>
 	</string>
+	<string id="ui_mcm_wpo_wpojam_heat">
+		<text>Enable weapon overheating</text>
+	</string>
+	<string id="ui_mcm_wpo_wpojam_heat_desc">
+		<text>Weapons will become hotter when firing, which will affect degradation, jam chance, and part damage.</text>
+	</string>
+	<string id="ui_mcm_wpo_wpojam_oldammo">
+		<text>Old Ammo Affects Degradation</text>
+	</string>
+	<string id="ui_mcm_wpo_wpojam_oldammo_desc">
+		<text>Old ammo will increase rate of barrel wear and chance of jams.</text>
+	</string>
 
 	<string id="ui_mcm_wpo_wpoecon_degradation">
-		<text>Degradation in rain </text>
+		<text>Degradation in rain</text>
 	</string>
 	<string id="ui_mcm_wpo_wpoecon_degradation_desc">
 		<text>Rate at which your weapon degrades faster in rainy weather.</text>
@@ -157,6 +172,12 @@
 	</string>
 	<string id="ui_mcm_wpo_wpoecon_minpart_desc">
 		<text>Minimum condition for ALL parts for a weapon to be eligible for sale. If a weapon has ANY part below this condition, it will be blacklisted from sale. Set to 0 to disable.</text>
+	</string>
+	<string id="ui_mcm_wpo_wpoecon_easybarrel">
+		<text>Replace barrels without workbench</text>
+	</string>
+	<string id="ui_mcm_wpo_wpoecon_easytrigger">
+		<text>Replace triggers without workbench</text>
 	</string>
 	
 
