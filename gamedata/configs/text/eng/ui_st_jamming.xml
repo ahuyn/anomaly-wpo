@@ -289,9 +289,9 @@
 			\n%c[d_red]   •  Missing
 			\n%c[d_orange]   •  Damaged and cannot be cleaned
 			\n%c[pda_yellow]   • Dirty and can be cleaned%c[ui_gray_1]
-			\n• Weapon parts can be removed by field-stripping the weapon. This removes every component that is not a barrel.
+			\n• Weapon parts can be removed by field-stripping the weapon. This removes every component that is not a barrel or trigger.
 			\n• Weapon parts can also be ad-hoc replaced with drag and drop. %c[d_red]NOTE THAT THIS DEPLETES WEAPON CONDITION IF ABOVE 60%. Have a Leatherman present to reduce this impact. %c[ui_gray_1]. 
-			\n• Weapon parts can also be replaced at workbench for free if the correct repair kit is owned. %c[pda_yellow]This is one of two ways to replace barrels.
+			\n• Weapon parts can also be replaced at workbench for free if the correct repair kit is owned. %c[pda_yellow]This is one of two ways to replace barrels or triggers.
 			\n \n
 			%c[pda_green]II. Jamming and Part Damage%c[ui_gray_1]\n
 			\n• Parts have five levels of damage: %c[d_red]broken%c[ui_gray_1], %c[d_red]damaged%c[ui_gray_1], %c[d_orange]worn%c[ui_gray_1], %c[0,250,250,0]dirty%c[ui_gray_1], %c[d_green]functional%c[ui_gray_1]
@@ -302,10 +302,10 @@
 			\n• Barrels do not contribute to jam chance. However, dirty and below barrels reduce weapon damage up to 50%.
 			\n• Firing a weapon below 85% condition(default, change %c[pda_yellow]MCM: Part damage condition threshold%c[ui_gray_1]) has a chance to deal damage to weapon parts. 
 			\n• Firing a weapon in heavy rain will degrade the weapon faster.
-			\n• Firing a weapon for too long causes overheating, leading to more jams and faster degradation.
+			\n• (TEMP REMOVED) Firing a weapon for too long causes overheating, leading to more jams and faster degradation.
 			%c[pda_green]III. Economy changes%c[ui_gray_1]\n
 			\n• Having a cleaning kit will allow you to clean "dirty" weapon parts (above 60% condition). This also restores 10% condition.
-			\n• Having a repair kit will allow you to repair parts through a right-click menu. This uses a charge and restores 25% condition to the part, as well as 10% condition to the weapon.%c[pda_yellow]This is the other way to fix barrels.%c[ui_gray_1]
+			\n• Having a repair kit will allow you to repair parts through a right-click menu. This uses a charge and restores 25% condition to the part, as well as 10% condition to the weapon.%c[pda_yellow]This is the other way to fix barrels/triggers.%c[ui_gray_1]
 			\n• Technicians will randomly sell weapon parts at a serious markup. 
 			\n• Weapon parts above 60% can be repaired with files, ramrods or multitools.
 			\n• Weapon parts above 10% can be repaired with a very expensive toolkit available at traders.

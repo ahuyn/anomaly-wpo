@@ -515,7 +515,7 @@ function replace_part(id, part, kit_name, clean)
 		se_save_var(id, nil, "parts", parts)
 		-- restore condition too
 		local wpn = level.object_by_id(id)
-		wpn:set_condition( clamp(wpn:condition() + 0.1, 0, 0.999) )
+		wpn:set_condition(clamp(wpn:condition() + 0.1, 0, 0.999) )
 		if id == current_id() then
 			reset_cgd()
 		end

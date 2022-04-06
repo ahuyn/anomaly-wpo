@@ -220,6 +220,18 @@ function update_current()
 			cgd.has_parts = true
 			print_dbg("Current gun changed to %s (%s)", cgd.id, sec)
 			cgd.current_gun_shot_dec = gun and SYS_GetParam(2, sec,"condition_shot_dec") or 0.0005
+			
+			-- consider upgrades
+			local upgrades = utils_item.get_upgrades_installed(obj)
+			for _, upgrade in pairs(upgrades) do
+				local section = ini_sys:r_string_ex(upgrade, "section")
+				local shot_dec = ini_sys:r_string_ex(section,"condition_shot_dec")
+				if shot_dec then
+					local op = string.sub(shot_dec, 1, 1)
+					local val = tonumber(string.sub(shot_dec, 2))
+					cgd.current_gun_shot_dec = op == "+" and cgd.current_gun_shot_dec + val or cgd.current_gun_shot_dec - val
+				end
+			end
 			cgd.parts = {}
 			local saved_parts = item_parts.get_parts_con(gun, nil, true)
 			for k, v in pairs(saved_parts) do
@@ -329,7 +341,7 @@ local function calculate_damage(wpn)
 	-- print_dbg("weapon %s, heat is %s. heat modifier is  %s", wpn:section(), cgd.heat, overheat_modifier)
 	if (cond < threshold) then
 		-- 200 x (threshold - condition) * per shot decrease, should result in pretty small chances
-		damage_chance = (threshold - cond) * cgd.current_gun_shot_dec * 2 * overheat_modifier * (cgd.data.damage_chance_mult or 1)
+		damage_chance = (threshold - cond) * cgd.current_gun_shot_dec * 200 * overheat_modifier * (cgd.data.damage_chance_mult or 1)
 		-- add flat 2% chance of damage w. old ammo
 		if old_ammo then
 			damage_chance = damage_chance + 0.02
