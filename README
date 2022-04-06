@@ -68,6 +68,10 @@ Barrels below 75% condition will lose damage up to 50% less damage at 0% conditi
 Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
 
 Changelog
+1.13
+- Removed overheating for now. Will be reworked in the future.
+- Weapons now belong to families. Custom parameters for most aspects of a weapon can be customized using the new family system. Default behavior resembles that of previous versions of WPO.
+- Barrel replacement in the field is now toggleable. Triggers can now optionally require kits to replace. The misfire chance has been dropped globally and doesn't scale with condition, unlike ordinary jams.
 1.12.1
 - Weapon repair kits only fix 25% condition to a part. Scavenge those parts! Cleaning kits are still the same.
 1.12

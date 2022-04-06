@@ -3,6 +3,8 @@ local defaults = {
     ["jamchance"] = 1,
     ["superjam"] = true,
     ["simplejam"] = false,
+    -- ["heat"] = false,
+    ["oldammo"] = true,
 
     ["degradation"] = 1.4,
     ["threshold"] = 85,
@@ -10,6 +12,8 @@ local defaults = {
     ["altroll"] = false,
     ["altpartroll"] = false,
     ["minpart"] = 60,
+    ["easybarrel"] = false,
+    ["easytrigger"] = false,
 
     ["profanity"] = true,
     ["profanity_timeout"] = true,
@@ -23,6 +27,8 @@ local mcm_map = {
     ["jamchance"] = "wpojam",
     ["superjam"] = "wpojam",
     ["simplejam"] = "wpojam",
+    -- ["heat"] = "wpojam",
+    ["oldammo"] = "wpojam",
 
     ["degradation"] = "wpoecon",
     ["threshold"] = "wpoecon",
@@ -30,6 +36,8 @@ local mcm_map = {
     ["altroll"] = "wpoecon",
     ["altpartroll"] = "wpoecon",
     ["minpart"] = "wpoecon",
+    ["easybarrel"] = "wpoecon",
+    ["easytrigger"] = "wpoecon",
 
     ["profanity"] = "wpomisc",
     ["profanity_timeout"] = "wpomisc",
@@ -51,6 +59,8 @@ function on_mcm_load()
                     {id = "jamchance", type = "track", val = 2, min=0.5,max=2,step=0.01, def = 1},
                     {id = "superjam", type = "check", val = 1, def = true},
                     {id = "simplejam", type = "check", val = 1, def = false},
+                    {id = "oldammo", type = "check", val = 1, def = true},
+                    {id = "heat", type = "check", val = 1, def = false},
                 }
             },
             {
@@ -61,7 +71,9 @@ function on_mcm_load()
                     {id = "repairkit", type = "check", val = 1, def = true},                    
                     {id = "altroll", type = "check", val = 1, def = false},                    
                     {id = "altpartroll", type = "check", val = 1, def = false},
-                    {id = "minpart", type = "track", val = 2, min=0,max=99,step=1, def = 60}
+                    {id = "minpart", type = "track", val = 2, min=0,max=99,step=1, def = 60},                    
+                    {id = "easybarrel", type = "check", val = 1, def = false},
+                    {id = "easytrigger", type = "check", val = 1, def = true},
                 }
             },
             {
