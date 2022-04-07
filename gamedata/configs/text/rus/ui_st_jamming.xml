@@ -164,7 +164,7 @@
 	<string id="ui_mcm_wpo_wpoecon_altpartroll">
 		<text>Распределённый вес состояния компонентов</text>
 	</string>
-	<string id="ui_mcm_wpo_wpoecon_altpart_desc">
+	<string id="ui_mcm_wpo_wpoecon_altpartroll_desc">
 		<text>Использование новой формулы для дропа оружейных компонентов, в которой состояние оружия определяет то, будут ли извлечены компоненты в хорошем или плохом качестве. На низких значениях увеличивает качество дропа, на высоких уменьшает.</text>
 	</string>
 	<string id="ui_mcm_wpo_wpoecon_minpart">
@@ -174,10 +174,10 @@
 		<text>Минимальное состояние для ВСЕХ оружейных компонентов, чтобы их принимали торговцы. Если в оружии есть хотя бы ОДИН компонент ниже этого значения, оружие у вас не купят. Значение 0 отключает данную проверку.</text>
 	</string>
 	<string id="ui_mcm_wpo_wpoecon_easybarrel">
-		<text>Замена стволов без верстака</text>
+		<text>Замена стволов без верстака.</text>
 	</string>
 	<string id="ui_mcm_wpo_wpoecon_easytrigger">
-		<text>Возможность замены ствола в полевых условиях.</text>
+		<text>Замена спусковых механизмов без верстака.</text>
 	</string>											
 
 	<string id="ui_mcm_wpo_wpomisc_profanity">
