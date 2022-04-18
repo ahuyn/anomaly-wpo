@@ -68,6 +68,11 @@ Barrels below 75% condition will lose damage up to 50% less damage at 0% conditi
 Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
 
 Changelog
+1.13.1
+- Small tweaks for 1.5.2 support
+- Classic jams now dovetail into the new jams
+- Changed how unjams work to prevent soft locks
+- Nativized unjam keybind. Still defaults to doubletap use without MCM.
 1.13
 - Removed overheating for now. Will be reworked in the future.
 - Weapons now belong to families. Custom parameters for most aspects of a weapon can be customized using the new family system. Default behavior resembles that of previous versions of WPO.

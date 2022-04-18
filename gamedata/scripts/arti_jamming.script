@@ -337,7 +337,7 @@ local function calculate_damage(wpn)
 	local threshold = (get_config("threshold") or 85)/100
 	local overheat_modifier = 1-- get_overheat_modifier(wpn)
 	local old_ammo = get_config("oldammo") and wpn:get_ammo_type() % 3 ~= 0
-	local damage_chance = old_ammo and 0.006 or 0.002
+	local damage_chance = old_ammo and cgd.current_gun_shot_dec * 2 or cgd.current_gun_shot_dec
 	-- print_dbg("weapon %s, heat is %s. heat modifier is  %s", wpn:section(), cgd.heat, overheat_modifier)
 	if (cond < threshold) then
 		-- 200 x (threshold - condition) * per shot decrease, should result in pretty small chances
@@ -595,6 +595,11 @@ function get_sound(sec)
 	end
 end
 
+function toggle_slot(slot)
+	db.actor:activate_slot(slot)
+	return true
+end
+
 -- do an unjam, optionally playing sounds and such
 function apply_unjam(id, sound, message, verbosity)
 	if not unjam_in_progress then 
@@ -650,11 +655,12 @@ function unjam_simple(weapon)
 	local id = weapon:id()
 	local sec = parent_section(weapon:section())
 	local sound = get_sound(sec)
-	db.actor:hide_weapon()
+	local active_slot = db.actor:active_slot()
+	toggle_slot(0)
 
 	unjam_in_progress = true
 	CreateTimeEvent("arti_jamming", "unjam"..id, 0.1, 
-	function(id, sound, message, verbosity)
+	function(slot, id, sound, message, verbosity)
 		if not unjam_in_progress then
 			print_dbg("unjam_replace_simple interrupted")
 			db.actor:restore_weapon()
@@ -663,13 +669,13 @@ function unjam_simple(weapon)
 		local current_weapon = db.actor:active_item()
 		if current_weapon then return false end
 		
-		db.actor:restore_weapon()
+		toggle_slot(slot)
 		-- premature interrupt
 		apply_unjam(id, sound, message, verbosity)
 	
 		return true
 	end,
-	id, sound, str, 1)
+	active_slot, id, sound, str, 1)
 end
 
 -- unjam held weapon with animation
@@ -722,50 +728,50 @@ function determine_slot(weapon)
 	end
 end
 
-function unjam_and_clone(weapon, slot, sound)
-	if not unjam_in_progress then
-		print_dbg("unjam_replace_simple interrupted")
-		db.actor:restore_weapon()
-		return true
-	end
-	local current_weapon = db.actor:active_item()
-	if current_weapon then return false end
+-- function unjam_and_clone(weapon, slot, sound)
+-- 	if not unjam_in_progress then
+-- 		print_dbg("unjam_replace_simple interrupted")
+-- 		db.actor:restore_weapon()
+-- 		return true
+-- 	end
+-- 	local current_weapon = db.actor:active_item()
+-- 	if current_weapon then return false end
 
-	apply_unjam(weapon:id(), sound)
-	local old_weapon = alife_object(weapon:id())
-	local new_weapon = alife_clone_weapon(old_weapon)
-	print_dbg("cloned weapon, doing restoration")
-	CreateTimeEvent("arti_jamming", "move_to_slot", 0.1, 
-		function(weapon, slot)
-			print_dbg("unjam_replace_simple - restoring weapon to slot %s", slot)
-			db.actor:restore_weapon()
-			db.actor:move_to_slot(level.object_by_id(weapon), slot)
-			return true
-		end, 
-	new_weapon.id, slot)
-	return true
-end
+-- 	apply_unjam(weapon:id(), sound)
+-- 	local old_weapon = alife_object(weapon:id())
+-- 	local new_weapon = alife_clone_weapon(old_weapon)
+-- 	print_dbg("cloned weapon, doing restoration")
+-- 	CreateTimeEvent("arti_jamming", "move_to_slot", 0.1, 
+-- 		function(weapon, slot)
+-- 			print_dbg("unjam_replace_simple - restoring weapon to slot %s", slot)
+-- 			db.actor:restore_weapon()
+-- 			db.actor:move_to_slot(level.object_by_id(weapon), slot)
+-- 			return true
+-- 		end, 
+-- 	new_weapon.id, slot)
+-- 	return true
+-- end
 
--- hide, clone, move
-function unjam_replace_simple(weapon)
-	if not weapon then return end
-	local slot = determine_slot(weapon)
-	local sound = get_sound(weapon:section())
-	print_dbg("slot determined is %s", slot)
-	unjam_in_progress = true
-	db.actor:hide_weapon()
-	print_dbg("replacing weapon %s", weapon:id())
-	CreateTimeEvent("arti_jamming", "move "..weapon:id(), 0.1, unjam_and_clone, weapon, slot, sound)
-	print_dbg("unjam replace returning")
-	return true
-end
+-- -- hide, clone, move
+-- function unjam_replace_simple(weapon)
+-- 	if not weapon then return end
+-- 	local slot = determine_slot(weapon)
+-- 	local sound = get_sound(weapon:section())
+-- 	print_dbg("slot determined is %s", slot)
+-- 	unjam_in_progress = true
+-- 	db.actor:hide_weapon()
+-- 	print_dbg("replacing weapon %s", weapon:id())
+-- 	CreateTimeEvent("arti_jamming", "move "..weapon:id(), 0.1, unjam_and_clone, weapon, slot, sound)
+-- 	print_dbg("unjam replace returning")
+-- 	return true
+-- end
 
--- just change the state to reloading and check when reloading is done
-function unjam_replace_anim(weapon)
-	weapon:switch_state(7)
-	unjam_in_progress = true
-	apply_unjam(weapon:id())
-end
+-- -- just change the state to reloading and check when reloading is done
+-- function unjam_replace_anim(weapon)
+-- 	weapon:switch_state(7)
+-- 	unjam_in_progress = true
+-- 	apply_unjam(weapon:id())
+-- end
 
 -- clear the entry, no qs asked
 function inv_unjam(weapon)
@@ -774,23 +780,23 @@ function inv_unjam(weapon)
 	apply_unjam(weapon:id(), get_sound(weapon:section()))
 end
 
-function inv_unjam_replace(weapon)
-	unjam_in_progress = true
-	apply_unjam(weapon:id(), get_sound(weapon:section()))
-	local slot = determine_slot(weapon)
-	local old_weapon = alife_object(weapon:id())
-	local new_weapon = alife_clone_weapon(old_weapon)
-	if slot then
-		CreateTimeEvent("arti_jamming", "move_to_slot", 0.1, 
-			function(weapon, slot)
-				print_dbg("unjam_replace_simple - restoring weapon to slot %s", slot)
-				db.actor:restore_weapon()
-				db.actor:move_to_slot(level.object_by_id(weapon), slot)
-				return true
-			end, 
-		new_weapon.id, slot)
-	end
-end
+-- function inv_unjam_replace(weapon)
+-- 	unjam_in_progress = true
+-- 	apply_unjam(weapon:id(), get_sound(weapon:section()))
+-- 	local slot = determine_slot(weapon)
+-- 	local old_weapon = alife_object(weapon:id())
+-- 	local new_weapon = alife_clone_weapon(old_weapon)
+-- 	if slot then
+-- 		CreateTimeEvent("arti_jamming", "move_to_slot", 0.1, 
+-- 			function(weapon, slot)
+-- 				print_dbg("unjam_replace_simple - restoring weapon to slot %s", slot)
+-- 				db.actor:restore_weapon()
+-- 				db.actor:move_to_slot(level.object_by_id(weapon), slot)
+-- 				return true
+-- 			end, 
+-- 		new_weapon.id, slot)
+-- 	end
+-- end
 
 
 -- conditions:
@@ -813,10 +819,10 @@ local unjam_router = {
 			["anim"] = unjam_super_anim,
 			["no_anim"] = unjam_super_simple
 		},
-		[4] = {
-			["anim"] = unjam_replace_anim,
-			["no_anim"] = unjam_replace_simple
-		}
+		-- [4] = {
+		-- 	["anim"] = unjam_replace_anim,
+		-- 	["no_anim"] = unjam_replace_simple
+		-- }
 	},
 	["inventory"] = {
 		[1] = {
@@ -827,10 +833,10 @@ local unjam_router = {
 			["anim"] = inv_unjam,
 			["no_anim"] = inv_unjam
 		},
-		[4] = {
-			["anim"] = inv_unjam_replace,
-			["no_anim"] = inv_unjam_replace
-		}
+		-- [4] = {
+		-- 	["anim"] = inv_unjam_replace,
+		-- 	["no_anim"] = inv_unjam_replace
+		-- }
 	}
 }
 -- Unjam works by clearing weapon ID from the jam table, if conditions are met.
@@ -916,10 +922,15 @@ function on_key_press(key)
 	end
 end
 
+-- thank fuck, now we can clear it from script
 function actor_on_weapon_jammed(actor)
 	local wpn = db.actor:active_item()
+	-- if not jammed_guns[wpn:id()] then
+	-- 	jammed_guns[wpn:id()] = 4
+	-- end
+	wpn:cast_Weapon():SetMisfire(false)
 	if not jammed_guns[wpn:id()] then
-		jammed_guns[wpn:id()] = 4
+		jammed_guns[wpn:id()] = 1
 	end
 	jam_swearing()
 end
