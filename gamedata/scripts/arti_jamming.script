@@ -173,6 +173,7 @@ function persist_current_weapon()
 			saved_parts[k] = v
 		end
 		saved_parts[cgd.barrel_name] = cgd.barrel_con
+		saved_parts[cgd.trigger_name] = cgd.trigger_con
 		item_parts.set_parts_con(cgd.id, saved_parts)
 		print_dbg("Persisted parts for weapon %s", cgd.id)
 	end
