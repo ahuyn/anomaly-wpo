@@ -130,7 +130,7 @@ function custom_disassembly_weapon(obj, obj_d)
 	
 	-- Collect weapon parts
 	for k,v in pairs(parts) do
-		if (k ~= sec_p) and v > 0 and (math.random(100) <= (disassembly_chance + con*100)) then
+		if (k ~= sec_p) and is_part(k) and v > 0 and (math.random(100) <= (disassembly_chance + con*100)) then
 			local index = #result_details
 			result_details[index + 1] = k
 			result_conditions[index + 1] = IsItem("part",k) and utils_item.get_cond_static(v) or v

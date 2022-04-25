@@ -28,23 +28,23 @@ function add_parts(npc)
 		end
 		npc:iterate_inventory(itr)
 		-- generate an amount of parts based on trader type
-		local table = {}
+		local tbl = {}
 		local supply_level = trader_autoinject.supply_level(npc, true) or 1
 		print_dbg("npc %s has supply level %s", npc:name(), supply_level)
 		for i=1,supply_level * BASE_AMT do
 			local part = parts_list[math.random(#parts_list)]
 			print_dbg("Adding %s to trader %s", part, npc:name())
-			if table[part] then
-				table[part] = table[part] + 1
+			if tbl[part] then
+				tbl[part] = tbl[part] + 1
 			else
-				table[part] = 1
+				tbl[part] = 1
 			end
 		end
 		if supply_level > 1 then
-			table["partskit_tool"] = 1
+			tbl["partskit_tool"] = 1
 		end
 		-- add the parts
-		trader_autoinject.spawn_items(npc, table, true)
+		trader_autoinject.spawn_items(npc, tbl, true)
 	end
 end
 
