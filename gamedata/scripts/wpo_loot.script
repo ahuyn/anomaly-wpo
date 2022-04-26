@@ -87,7 +87,6 @@ function weapon_eval_parts(wpn)
     local parts = get_parts_list(wpn)
 	local con = math_ceil(wpn:condition()*100)
 	local parts_data = {}
-	parts_data[wpn:section()] = con
 	local final_chance = 25 + math_ceil(con/2.5)
 	print_dbg("Chance to beat is %s", final_chance)
 	for i,part in pairs(str_explode(parts, ",")) do

@@ -172,7 +172,6 @@ function persist_current_weapon()
 		for k,v in pairs(cgd.parts) do
 			saved_parts[k] = v
 		end
-		saved_parts[cgd.trigger_name] = cgd.trigger_con
 		saved_parts[cgd.barrel_name] = cgd.barrel_con
 		saved_parts[cgd.trigger_name] = cgd.trigger_con
 		item_parts.set_parts_con(cgd.id, saved_parts)
@@ -473,7 +472,7 @@ function actor_on_weapon_before_fire(flags)
 			return
 		end
 
-		local trigger_con = cgd.parts[cgd.trigger_name] or 99
+		local trigger_con = cgd.trigger_con or 99
 		local severity = 5 - clamp(math_floor(trigger_con / 20), 0, 4)
 		local misfire_chance = cgd.data.misfire_chance[severity]
 		misfire_chance = misfire_chance * get_config("jamchance")
