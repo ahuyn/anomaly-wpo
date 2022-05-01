@@ -169,12 +169,13 @@ end
 function persist_current_weapon()
 	if cgd.id and cgd.has_parts then
 		local saved_parts = se_load_var(cgd.id, nil, "parts")
+		local copy_parts = {}
+		copy_table(saved_parts, copy_parts)
 		for k,v in pairs(cgd.parts) do
-			saved_parts[k] = v
+			copy_parts[k] = v
 		end
-		saved_parts[cgd.barrel_name] = cgd.barrel_con
-		saved_parts[cgd.trigger_name] = cgd.trigger_con
-		item_parts.set_parts_con(cgd.id, saved_parts)
+		copy_parts[cgd.barrel_name] = cgd.barrel_con
+		item_parts.set_parts_con(cgd.id, copy_parts)
 		print_dbg("Persisted parts for weapon %s", cgd.id)
 	end
 end
@@ -239,9 +240,10 @@ function update_current()
 				print_dbg("Part: %s, condition of part: %s", k, v)
 				if is_trigger(k) then
 					cgd.trigger_name = k
+					cgd.parts[k] = v
 				elseif is_barrel(k) then
-					cgd.barrel_con = v
 					cgd.barrel_name = k
+					cgd.barrel_con = v
 				elseif is_part(k) then
 					cgd.parts[k] = v
 				end
@@ -278,7 +280,7 @@ local function calculate_jam(wpn)
 	for k, v in pairs(cgd.parts) do -- skip barrel
 		local severity = 5 - clamp(math_floor(v / 20), 0, 4)
 		mechanism_cond = mechanism_cond + cgd.data.jam_data[severity]
-		print_dbg("Part: [%s], cond: [%s], severity: [%s], sum jam chance: [%s]", k,v, severity, mechanism_cond) 
+		-- print_dbg("Part: [%s], cond: [%s], severity: [%s], sum jam chance: [%s]", k,v, severity, mechanism_cond) 
 		count = count + 1
 	end
 
@@ -323,7 +325,7 @@ local function damage_part(wpn)
 	local damage = math_random(5, 12)
 	cgd.parts[to_damage] = part_con > damage and (part_con - damage) or 1
 
-	-- print_dbg("%s damaged to %s condition", to_damage, cgd.parts[to_damage])
+	print_dbg("%s damaged to %s condition", to_damage, cgd.parts[to_damage])
 	if (get_config("verbosity") > 1) then
 		news_manager.send_tip(db.actor, gc("ui_st_parts_damage"), nil, "swiss_knife", 6000)
 	end
@@ -472,7 +474,7 @@ function actor_on_weapon_before_fire(flags)
 			return
 		end
 
-		local trigger_con = cgd.trigger_con or 99
+		local trigger_con = cgd.parts[cgd.trigger_name] or 99
 		local severity = 5 - clamp(math_floor(trigger_con / 20), 0, 4)
 		local misfire_chance = cgd.data.misfire_chance[severity]
 		misfire_chance = misfire_chance * get_config("jamchance")
