@@ -218,6 +218,7 @@ function update_current()
 			cgd.id = gun:id()
 			print_dbg("Current gun (no parts) changed to %s (%s)", cgd.id, sec)
 		else
+
 			cgd.id = gun:id()
 			cgd.has_parts = true
 			print_dbg("Current gun changed to %s (%s)", cgd.id, sec)
@@ -236,6 +237,7 @@ function update_current()
 			end
 			cgd.parts = {}
 			local saved_parts = item_parts.get_parts_con(gun, nil, true)
+			-- fix mistakes - if weapon should have parts but were deleted, delete and restore
 			for k, v in pairs(saved_parts) do
 				print_dbg("Part: %s, condition of part: %s", k, v)
 				if is_trigger(k) then
@@ -953,13 +955,11 @@ function try_replace_part(wpn, tbl, part, using_tool)
 		news_manager.send_tip(db.actor, gc("st_news_parts_success") .. " " .. ui_item.get_sec_name(sec), nil, "swiss_knife", 6000)
 	end
 end
-
 EvaluateParts = item_parts.evaluate_parts
 
 function item_parts.evaluate_parts(obj)
     local sec = parent_section(obj:section())
 	local id = obj:id()
-	local m_con = math.ceil(obj:condition() * 100) -- default condition of the item
 	
 	local parts = ini_parts:r_string_ex("con_parts_list",sec)
 	if parts then
@@ -968,10 +968,10 @@ function item_parts.evaluate_parts(obj)
 		local data = se_load_var(id, obj:name(), "parts")
 
 		-- Savegame compatibility. Recalculate with changed parts
-		if data and data[sec] then
-			for i=1,#parts do
-				if (not data[parts[i]]) then
-					empty_table(data)
+		if data then
+			for k,v in pairs(parts) do
+				if (not data[v]) then
+					data = nil
 					break
 				end
 			end
