@@ -173,6 +173,7 @@ function persist_current_weapon()
 			saved_parts[k] = v
 		end
 		saved_parts[cgd.barrel_name] = cgd.barrel_con
+		saved_parts[cgd.trigger_name] = cgd.trigger_con
 		item_parts.set_parts_con(cgd.id, saved_parts)
 		print_dbg("Persisted parts for weapon %s", cgd.id)
 	end
@@ -471,7 +472,7 @@ function actor_on_weapon_before_fire(flags)
 			return
 		end
 
-		local trigger_con = cgd.parts[cgd.trigger_name] or 99
+		local trigger_con = cgd.trigger_con or 99
 		local severity = 5 - clamp(math_floor(trigger_con / 20), 0, 4)
 		local misfire_chance = cgd.data.misfire_chance[severity]
 		misfire_chance = misfire_chance * get_config("jamchance")
@@ -728,76 +729,12 @@ function determine_slot(weapon)
 	end
 end
 
--- function unjam_and_clone(weapon, slot, sound)
--- 	if not unjam_in_progress then
--- 		print_dbg("unjam_replace_simple interrupted")
--- 		db.actor:restore_weapon()
--- 		return true
--- 	end
--- 	local current_weapon = db.actor:active_item()
--- 	if current_weapon then return false end
-
--- 	apply_unjam(weapon:id(), sound)
--- 	local old_weapon = alife_object(weapon:id())
--- 	local new_weapon = alife_clone_weapon(old_weapon)
--- 	print_dbg("cloned weapon, doing restoration")
--- 	CreateTimeEvent("arti_jamming", "move_to_slot", 0.1, 
--- 		function(weapon, slot)
--- 			print_dbg("unjam_replace_simple - restoring weapon to slot %s", slot)
--- 			db.actor:restore_weapon()
--- 			db.actor:move_to_slot(level.object_by_id(weapon), slot)
--- 			return true
--- 		end, 
--- 	new_weapon.id, slot)
--- 	return true
--- end
-
--- -- hide, clone, move
--- function unjam_replace_simple(weapon)
--- 	if not weapon then return end
--- 	local slot = determine_slot(weapon)
--- 	local sound = get_sound(weapon:section())
--- 	print_dbg("slot determined is %s", slot)
--- 	unjam_in_progress = true
--- 	db.actor:hide_weapon()
--- 	print_dbg("replacing weapon %s", weapon:id())
--- 	CreateTimeEvent("arti_jamming", "move "..weapon:id(), 0.1, unjam_and_clone, weapon, slot, sound)
--- 	print_dbg("unjam replace returning")
--- 	return true
--- end
-
--- -- just change the state to reloading and check when reloading is done
--- function unjam_replace_anim(weapon)
--- 	weapon:switch_state(7)
--- 	unjam_in_progress = true
--- 	apply_unjam(weapon:id())
--- end
-
 -- clear the entry, no qs asked
 function inv_unjam(weapon)
 	if jammed_guns[weapon:id()] == 3 then return end
 	unjam_in_progress = true
 	apply_unjam(weapon:id(), get_sound(weapon:section()))
 end
-
--- function inv_unjam_replace(weapon)
--- 	unjam_in_progress = true
--- 	apply_unjam(weapon:id(), get_sound(weapon:section()))
--- 	local slot = determine_slot(weapon)
--- 	local old_weapon = alife_object(weapon:id())
--- 	local new_weapon = alife_clone_weapon(old_weapon)
--- 	if slot then
--- 		CreateTimeEvent("arti_jamming", "move_to_slot", 0.1, 
--- 			function(weapon, slot)
--- 				print_dbg("unjam_replace_simple - restoring weapon to slot %s", slot)
--- 				db.actor:restore_weapon()
--- 				db.actor:move_to_slot(level.object_by_id(weapon), slot)
--- 				return true
--- 			end, 
--- 		new_weapon.id, slot)
--- 	end
--- end
-
 
 -- conditions:
 -- unjam type? ok (0), misfire/feed (just 1), doublefeed(3), classic (4)
@@ -986,7 +923,7 @@ function monster_on_before_hit(monster,shit,bone_id, flags)
 end
 
 -- SECTION field stripping and part replacement -- 
-function try_replace_part(wpn, table, part, using_tool)
+function try_replace_part(wpn, tbl, part, using_tool)
 	local id = part:id()
 	local sec = part:section()
 	local pcon = part:condition()
@@ -999,17 +936,17 @@ function try_replace_part(wpn, table, part, using_tool)
 		news_manager.send_tip(db.actor, gc("st_news_parts_rusty"), nil, "swiss_knife", 6000)
 	else
 		print_dbg("Replacing %s", sec)
-		local tmp = table[sec]
-		table[sec] = math_floor(pcon * 100)
+		local tmp = tbl[sec]
+		tbl[sec] = math_floor(pcon * 100)
 		if tmp == -1 then
 			-- part missing, do not swap conditions
 			alife_release_id(id)
 		else
 			part:set_condition(tmp/100)
 		 end
-		item_parts.set_parts_con(wpn:id(), table)
+		item_parts.set_parts_con(wpn:id(), tbl)
 		if (wpn:id() == cgd.id) then
-			cgd.parts[sec] = table[sec]
+			cgd.parts[sec] = tbl[sec]
 		end
 		-- lose a little condition when replacing parts
 		if wcon > 0.6 then
