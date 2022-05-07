@@ -733,7 +733,68 @@ function inv_unjam(weapon)
 	unjam_in_progress = true
 	apply_unjam(weapon:id(), get_sound(weapon:section()))
 end
+function unjam_and_clone(weapon, slot, sound)
+	if not unjam_in_progress then
+		print_dbg("unjam_replace_simple interrupted")
+		db.actor:restore_weapon()
+		return true
+	end
+	local current_weapon = db.actor:active_item()
+	if current_weapon then return false end
 
+	apply_unjam(weapon:id(), sound)
+	local old_weapon = alife_object(weapon:id())
+	local new_weapon = alife_clone_weapon(old_weapon)
+	print_dbg("cloned weapon, doing restoration")
+	CreateTimeEvent("arti_jamming", "move_to_slot", 0.1, 
+		function(weapon, slot)
+			print_dbg("unjam_replace_simple - restoring weapon to slot %s", slot)
+			db.actor:restore_weapon()
+			db.actor:move_to_slot(level.object_by_id(weapon), slot)
+			return true
+		end, 
+	new_weapon.id, slot)
+	return true
+end
+
+-- hide, clone, move
+function unjam_replace_simple(weapon)
+	if not weapon then return end
+	local slot = determine_slot(weapon)
+	local sound = get_sound(weapon:section())
+	print_dbg("slot determined is %s", slot)
+	unjam_in_progress = true
+	db.actor:hide_weapon()
+	print_dbg("replacing weapon %s", weapon:id())
+	CreateTimeEvent("arti_jamming", "move "..weapon:id(), 0.1, unjam_and_clone, weapon, slot, sound)
+	print_dbg("unjam replace returning")
+	return true
+end
+
+-- just change the state to reloading and check when reloading is done
+function unjam_replace_anim(weapon)
+	weapon:switch_state(7)
+	unjam_in_progress = true
+	apply_unjam(weapon:id())
+end
+
+function inv_unjam_replace(weapon)
+	unjam_in_progress = true
+	apply_unjam(weapon:id(), get_sound(weapon:section()))
+	local slot = determine_slot(weapon)
+	local old_weapon = alife_object(weapon:id())
+	local new_weapon = alife_clone_weapon(old_weapon)
+	if slot then
+		CreateTimeEvent("arti_jamming", "move_to_slot", 0.1, 
+			function(weapon, slot)
+				print_dbg("unjam_replace_simple - restoring weapon to slot %s", slot)
+				db.actor:restore_weapon()
+				db.actor:move_to_slot(level.object_by_id(weapon), slot)
+				return true
+			end, 
+		new_weapon.id, slot)
+	end
+end
 -- conditions:
 -- unjam type? ok (0), misfire/feed (just 1), doublefeed(3), classic (4)
 -- currently held?
