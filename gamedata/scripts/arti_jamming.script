@@ -668,7 +668,7 @@ function unjam_simple(weapon)
 	function(slot, id, sound, message, verbosity)
 		if not unjam_in_progress then
 			print_dbg("unjam_replace_simple interrupted")
-			db.actor:restore_weapon()
+			toggle_slot(slot)
 			return true
 		end
 		local current_weapon = db.actor:active_item()
@@ -676,7 +676,7 @@ function unjam_simple(weapon)
 		
 		toggle_slot(slot)
 		-- premature interrupt
-		apply_unjam(id, sound, message, verbosity)
+		apply_unjam(active_slot, id, sound, message, verbosity)
 	
 		return true
 	end,
@@ -742,7 +742,7 @@ end
 function unjam_and_clone(weapon, slot, sound)
 	if not unjam_in_progress then
 		print_dbg("unjam_replace_simple interrupted")
-		db.actor:restore_weapon()
+		toggle_slot(slot)
 		return true
 	end
 	local current_weapon = db.actor:active_item()
@@ -755,8 +755,8 @@ function unjam_and_clone(weapon, slot, sound)
 	CreateTimeEvent("arti_jamming", "move_to_slot", 0.1, 
 		function(weapon, slot)
 			print_dbg("unjam_replace_simple - restoring weapon to slot %s", slot)
-			db.actor:restore_weapon()
 			db.actor:move_to_slot(level.object_by_id(weapon), slot)
+			toggle_slot(slot)
 			return true
 		end, 
 	new_weapon.id, slot)
