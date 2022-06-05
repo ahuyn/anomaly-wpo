@@ -680,7 +680,7 @@ function unjam_simple(weapon)
 	
 		return true
 	end,
-	id, sound, str, 1)
+	active_slot, id, sound, str, 1)
 end
 
 -- unjam held weapon with animation
@@ -762,46 +762,6 @@ function unjam_and_clone(weapon, slot, sound)
 	new_weapon.id, slot)
 	return true
 end
-
--- hide, clone, move
-function unjam_replace_simple(weapon)
-	if not weapon then return end
-	local slot = determine_slot(weapon)
-	local sound = get_sound(weapon:section())
-	print_dbg("slot determined is %s", slot)
-	unjam_in_progress = true
-	local active_slot = db.actor:active_slot()
-	toggle_slot(0)
-	print_dbg("replacing weapon %s", weapon:id())
-	CreateTimeEvent("arti_jamming", "move "..weapon:id(), 0.1, unjam_and_clone, weapon, slot, sound)
-	print_dbg("unjam replace returning")
-	return true
-end
-
--- just change the state to reloading and check when reloading is done
-function unjam_replace_anim(weapon)
-	weapon:switch_state(7)
-	unjam_in_progress = true
-	apply_unjam(weapon:id())
-end
-
-function inv_unjam_replace(weapon)
-	unjam_in_progress = true
-	apply_unjam(weapon:id(), get_sound(weapon:section()))
-	local slot = determine_slot(weapon)
-	local old_weapon = alife_object(weapon:id())
-	local new_weapon = alife_clone_weapon(old_weapon)
-	if slot then
-		CreateTimeEvent("arti_jamming", "move_to_slot", 0.1, 
-			function(weapon, slot)
-				print_dbg("unjam_replace_simple - restoring weapon to slot %s", slot)
-				db.actor:move_to_slot(level.object_by_id(weapon), slot)
-				toggle_slot(slot)
-				return true
-			end, 
-		new_weapon.id, slot)
-	end
-end
 -- conditions:
 -- unjam type? ok (0), misfire/feed (just 1), doublefeed(3), classic (4)
 -- currently held?
@@ -822,10 +782,10 @@ local unjam_router = {
 			["anim"] = unjam_super_anim,
 			["no_anim"] = unjam_super_simple
 		},
-		[4] = {
-			["anim"] = unjam_replace_anim,
-			["no_anim"] = unjam_replace_simple
-		}
+		-- [4] = {
+		-- 	["anim"] = unjam_replace_anim,
+		-- 	["no_anim"] = unjam_replace_simple
+		-- }
 	},
 	["inventory"] = {
 		[1] = {
@@ -836,10 +796,10 @@ local unjam_router = {
 			["anim"] = inv_unjam,
 			["no_anim"] = inv_unjam
 		},
-		[4] = {
-			["anim"] = inv_unjam_replace,
-			["no_anim"] = inv_unjam_replace
-		}
+		-- [4] = {
+		-- 	["anim"] = inv_unjam_replace,
+		-- 	["no_anim"] = inv_unjam_replace
+		-- }
 	}
 }
 -- Unjam works by clearing weapon ID from the jam table, if conditions are met.
@@ -925,10 +885,15 @@ function on_key_press(key)
 	end
 end
 
+-- thank fuck, now we can clear it from script
 function actor_on_weapon_jammed(actor)
 	local wpn = db.actor:active_item()
+	-- if not jammed_guns[wpn:id()] then
+	-- 	jammed_guns[wpn:id()] = 4
+	-- end
+	wpn:cast_Weapon():SetMisfire(false)
 	if not jammed_guns[wpn:id()] then
-		jammed_guns[wpn:id()] = 4
+		jammed_guns[wpn:id()] = 1
 	end
 	jam_swearing()
 end
