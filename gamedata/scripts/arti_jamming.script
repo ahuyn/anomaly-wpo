@@ -48,7 +48,7 @@ end
 
 function send_msg(msg, verbosity)
 	verbosity = verbosity or 1
-	local v = get_config("verbosity") or 1
+	local v = tonumber(get_config("verbosity")) or 1
 	if (v >= verbosity) then
 		actor_menu.set_msg(1, msg,3)
 	end
@@ -676,11 +676,11 @@ function unjam_simple(weapon)
 		
 		toggle_slot(slot)
 		-- premature interrupt
-		apply_unjam(active_slot, id, sound, message, verbosity)
+		apply_unjam(id, sound, message, verbosity)
 	
 		return true
 	end,
-	id, sound, str, 1)
+	active_slot, id, sound, str, 1)
 end
 
 -- unjam held weapon with animation
@@ -855,7 +855,7 @@ function unjam(wpn)
 	local sec = weapon:section()
 
 	if not weapon or not has_parts(weapon) then
-		send_msg(gc("ui_st_nothing"), verbosity)
+		send_msg(gc("ui_st_nothing"), 0)
 		return
 	end
 
