@@ -41,7 +41,7 @@ jobs:
           cp -r anomaly-demonized-scripts/custom_functor_autoinject/gamedata .
 
       - name: Zip folder
-        run: zip -r $RELEASE_NAME.zip gamedata README *.txt "mags patch" "unjam keybind"
+        run: zip -r $RELEASE_NAME.zip gamedata README *.txt "mags patch"
         env: 
           RELEASE_NAME: ${{ github.event.repository.name }}.${{ steps.date.outputs.today }}
       

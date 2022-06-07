@@ -701,9 +701,70 @@ function remove_part(part_name, part_con)
 	end
 end
 
+
+-- SECTION field stripping and part replacement -- 
+
+-- condition under which parts cannot be field replaced
+local REPLACE_THRESHOLD = 0.2
+function try_replace_part(wpn, tbl, part, using_tool)
+	local pid = part:id()
+	local wid = wpn:id()
+	local sec = part:section()
+	local pcon = part:condition()
+	local wcon = wpn:condition()
+	if is_barrel(sec) and not get_config("easybarrel") then
+		news_manager.send_tip(db.actor, gc("st_news_parts_barrel"), nil, "swiss_knife", 6000)
+	elseif is_trigger(sec) and not get_config("easytrigger") then
+		news_manager.send_tip(db.actor, gc("st_news_parts_trigger"), nil, "swiss_knife", 6000)
+	elseif (wcon < REPLACE_THRESHOLD) then
+		news_manager.send_tip(db.actor, gc("st_news_parts_rusty"), nil, "swiss_knife", 6000)
+	else
+		print_dbg("Replacing %s", sec)
+		local tmp = tbl[sec]
+		tbl[sec] = math_floor(pcon * 100)
+		if tmp == -1 then
+			-- part missing, do not swap conditions
+			alife_release_id(pid)
+		else
+			part:set_condition(tmp/100)
+		 end
+		item_parts.set_parts_con(wid, tbl)
+		if (wid == current_id()) then
+			reset_cgd()
+		end
+		-- lose a little condition when replacing parts
+		if wcon > 0.6 then
+			local range = using_tool and 3 or 13
+			wpn:set_condition(wcon - (math_random(3, 3 + range)/100)) 
+		end
+		if mag_support.using_mags() and mag_support.is_mag_loaded(wpn) then 
+			mag_support.eject_mag(wpn)
+		else
+			wpn:force_unload_magazine(true)
+		end
+
+		news_manager.send_tip(db.actor, gc("st_news_parts_success") .. " " .. ui_item.get_sec_name(sec), nil, "swiss_knife", 6000)
+	end
+end
+
+local function on_item_drag_dropped(obj_1, obj_2, slot_from, slot_to)
+	local part = obj_1 and obj_1:section() or nil
+	local wpn = obj_2 and obj_2:section() or nil
+	print_dbg("Dragging %s onto %s", part, wpn)
+	if is_part(part) and has_parts(obj_2) then
+		local parts = item_parts.get_parts_con(obj_2, nil, true)
+		if parts and parts[part] then
+			try_replace_part(obj_2, parts, obj_1, item_parts.get_suitable_dtool(obj_2))
+		else
+			news_manager.send_tip(db.actor, gc("st_news_parts_incompatible"), nil, "swiss_knife", 6000)
+		end
+	end
+end
+
 function on_game_start()
 	
 	disassembly_chance  = ini_parts:r_float_ex("settings","disassembly_chance") or 40
 	custom_functor_autoinject.add_functor("arti_fieldstrip", has_parts_fieldstrip, name_fieldstrip, nil, init_fieldstrip_menu, false)
 	custom_functor_autoinject.add_functor("arti_maintain", check_maintain, name_maintain, nil, init_maintenance_menu, false)
+    RegisterScriptCallback("ActorMenu_on_item_drag_drop",on_item_drag_dropped)
 end

@@ -20,8 +20,6 @@ local cgd = {}
 
 -- under this condition shooting gun might damage part
 local DAMAGE_THRESHOLD = 86
--- condition under which parts cannot be field replaced
-local REPLACE_THRESHOLD = 0.2
 local ini_families = ini_file("weapon_families\\families\\importer.ltx")
 local ini_weapons = ini_file("weapon_families\\weapons\\importer.ltx")
 local ini_overheat = ini_file("items\\settings\\overheat.ltx")
@@ -125,7 +123,7 @@ end
 
 function get_parts_list(wpn)
 	
-	if wpn and IsWeapon(wpn) and (not IsMelee(wpn)) then
+	if wpn and IsWeapon(wpn) and (not IsMelee(wpn)) and not IsItem("fake_ammo_wpn",sec) then
 		local sec = parent_section(wpn:section())
 		local parts = ini_parts:r_string_ex("con_parts_list", sec)
 		return parts
@@ -180,9 +178,32 @@ function persist_current_weapon()
 	end
 end
 
+-- current weapon access/update
+
+function update_part(part, cond)
+	if cgd.barrel_name == part then
+		cgd.barrel_con = cond
+	elseif cgd.parts[part] then
+		cgd.parts[part] = cond
+	end
+	persist_current_weapon()
+end
+
+function remove_part(part)
+	update_part(part, -1)
+end
+
+function get_parts()
+	local parts = {}
+	copy_table(cgd.parts, parts)
+	parts[cgd.barrel_name] = cgd.barrel_con
+	return parts
+end
+
 function current_id()
 	return cgd.id
 end
+
 function reset_cgd()
 	clear_cgd()
 	update_current()
@@ -197,9 +218,9 @@ end
 function clear_cgd()
 	empty_table(cgd.parts)
 	empty_table(cgd.data)
-	empty_table(cgd.heat)
+	-- empty_table(cgd.heat)
 	empty_table(cgd)
-	cgd.id = nil
+	cgd.id = 0
 	cgd.has_parts = false
 end
 
@@ -207,67 +228,66 @@ end
 -- update current gun to be gun in hand
 function update_current()
 	
-	local gun = db.actor:active_item()
-	if not gun then return end
-	if gun:id() == cgd.id then return end
+	local wpn = db.actor:active_item()
+	if not wpn then return end
+	local id = wpn:id()
+	if id == cgd.id then return end
 
-	local sec = gun:section()
-	if gun and gun:id() ~= cgd.id then
-		if not has_parts(gun) then
-			clear_cgd()
-			cgd.id = gun:id()
-			print_dbg("Current gun (no parts) changed to %s (%s)", cgd.id, sec)
-		else
-
-			cgd.id = gun:id()
-			cgd.has_parts = true
-			print_dbg("Current gun changed to %s (%s)", cgd.id, sec)
-			cgd.current_gun_shot_dec = gun and SYS_GetParam(2, sec,"condition_shot_dec") or 0.0005
-			
-			-- consider upgrades
-			local upgrades = utils_item.get_upgrades_installed(obj)
-			for _, upgrade in pairs(upgrades) do
-				local section = ini_sys:r_string_ex(upgrade, "section")
-				local shot_dec = ini_sys:r_string_ex(section,"condition_shot_dec")
-				if shot_dec then
-					local op = string.sub(shot_dec, 1, 1)
-					local val = tonumber(string.sub(shot_dec, 2))
-					cgd.current_gun_shot_dec = op == "+" and cgd.current_gun_shot_dec + val or cgd.current_gun_shot_dec - val
-				end
+	local sec = wpn:section()
+	if not has_parts(wpn) then
+		clear_cgd()
+		cgd.id = id
+		print_dbg("Current wpn (no parts) changed to %s (%s)", cgd.id, sec)
+	else
+		cgd.id = id
+		cgd.has_parts = true
+		print_dbg("Current wpn changed to %s (%s)", cgd.id, sec)
+		cgd.current_wpn_shot_dec = wpn and SYS_GetParam(2, sec,"condition_shot_dec") or 0.0005
+		
+		-- consider upgrades
+		local upgrades = utils_item.get_upgrades_installed(obj)
+		for _, upgrade in pairs(upgrades) do
+			local section = ini_sys:r_string_ex(upgrade, "section")
+			local shot_dec = ini_sys:r_string_ex(section,"condition_shot_dec")
+			if shot_dec then
+				local op = string.sub(shot_dec, 1, 1)
+				local val = tonumber(string.sub(shot_dec, 2))
+				cgd.current_wpn_shot_dec = op == "+" and cgd.current_wpn_shot_dec + val or cgd.current_wpn_shot_dec - val
 			end
-			cgd.parts = {}
-			local saved_parts = item_parts.get_parts_con(gun, nil, true)
-			-- fix mistakes - if weapon should have parts but were deleted, delete and restore
-			for k, v in pairs(saved_parts) do
-				print_dbg("Part: %s, condition of part: %s", k, v)
-				if is_trigger(k) then
-					cgd.trigger_name = k
-					cgd.parts[k] = v
-				elseif is_barrel(k) then
-					cgd.barrel_name = k
-					cgd.barrel_con = v
-				elseif is_part(k) then
-					cgd.parts[k] = v
-				end
-			end
-			-- manage family data
-			cgd.data = {}
-			local parent_section = parent_section(sec)
-			local family = ini_weapons:r_string_ex(parent_section, "family") or "family_base"
-			print_dbg("registering data for weapon family %s", family)
-			cgd.data.jam_data = larp.str_explode_num(ini_families:r_string_ex(family, "jam_chance"), ",")
-			cgd.data.misfire_chance = larp.str_explode_num(ini_families:r_string_ex(family, "misfire_chance"), ",")
-			cgd.data.superjam_mult = ini_families:r_float_ex(family, "superjam_mult")
-			cgd.data.damage_chance_mult = ini_families:r_float_ex(family, "damage_chance_mult")
-			cgd.data.barrel_wear = larp.str_explode_num(ini_families:r_string_ex(family, "barrel_wear"), ",")
 		end
-		-- manage heat
-		cgd.heat = {}
-		cgd.heat.level = 0
-		cgd.heat.overheat_base = get_overheat_base(wpn) or 50
-		cgd.heat.overheat_threshold = cgd.heat.overheat_base * 2
-		cgd.heat.overheat_max = (cgd.heat.overheat_base * 3) + 10
+		cgd.parts = {}
+		local saved_parts = item_parts.get_parts_con(wpn, nil, true)
+		-- fix mistakes - if weapon should have parts but were deleted, delete and restore
+		for k, v in pairs(saved_parts) do
+			print_dbg("Part: %s, condition of part: %s", k, v)
+			if is_trigger(k) then
+				cgd.trigger_name = k
+				cgd.parts[k] = v
+			elseif is_barrel(k) then
+				cgd.barrel_name = k
+				cgd.barrel_con = v
+			elseif is_part(k) then
+				cgd.parts[k] = v
+			end
+		end
+		-- manage family data
+		cgd.data = {}
+		local parent_section = parent_section(sec)
+		local family = ini_weapons:r_string_ex(parent_section, "family") or "family_base"
+		print_dbg("registering data for weapon family %s", family)
+		cgd.data.jam_data = larp.str_explode_num(ini_families:r_string_ex(family, "jam_chance"), ",")
+		cgd.data.misfire_chance = larp.str_explode_num(ini_families:r_string_ex(family, "misfire_chance"), ",")
+		cgd.data.superjam_mult = ini_families:r_float_ex(family, "superjam_mult")
+		cgd.data.damage_chance_mult = ini_families:r_float_ex(family, "damage_chance_mult")
+		cgd.data.barrel_wear = larp.str_explode_num(ini_families:r_string_ex(family, "barrel_wear"), ",")
 	end
+	-- manage heat
+	-- cgd.heat = {}
+	-- cgd.heat.level = 0
+	-- cgd.heat.overheat_base = get_overheat_base(wpn) or 50
+	-- cgd.heat.overheat_threshold = cgd.heat.overheat_base * 2
+	-- cgd.heat.overheat_max = (cgd.heat.overheat_base * 3) + 10
+	
 end
 
 -- individually calculate jam based on weapon parts, and jam the weapon if applicable
@@ -342,11 +362,11 @@ local function calculate_damage(wpn)
 	local threshold = (get_config("threshold") or 85)/100
 	local overheat_modifier = 1-- get_overheat_modifier(wpn)
 	local old_ammo = get_config("oldammo") and wpn:get_ammo_type() % 3 ~= 0
-	local damage_chance = old_ammo and cgd.current_gun_shot_dec * 2 or cgd.current_gun_shot_dec
+	local damage_chance = old_ammo and cgd.current_wpn_shot_dec * 2 or cgd.current_wpn_shot_dec
 	-- print_dbg("weapon %s, heat is %s. heat modifier is  %s", wpn:section(), cgd.heat, overheat_modifier)
 	if (cond < threshold) then
 		-- 200 x (threshold - condition) * per shot decrease, should result in pretty small chances
-		damage_chance = (threshold - cond) * cgd.current_gun_shot_dec * 200 * overheat_modifier * (cgd.data.damage_chance_mult or 1)
+		damage_chance = (threshold - cond) * cgd.current_wpn_shot_dec * 200 * overheat_modifier * (cgd.data.damage_chance_mult or 1)
 		-- add flat 2% chance of damage w. old ammo
 		if old_ammo then
 			damage_chance = damage_chance + 0.02
@@ -450,10 +470,9 @@ local tg_snd_empty = 0
 local delay_snd_empty = 300 -- ms
 -- before fire - misfire, block shot if jammed with same clicky sound for zeroed weapons
 function actor_on_weapon_before_fire(flags)
-	local tg = time_global()
 
 	local obj_wpn = db.actor:active_item()
-	local id = obj_wpn and obj_wpn:id() or 0
+	local id = obj_wpn and obj_wpn:id() or -1
 
 	if obj_wpn and id ~= cgd.id then
 		-- populate current gun
@@ -481,7 +500,7 @@ function actor_on_weapon_before_fire(flags)
 		local misfire_chance = cgd.data.misfire_chance[severity]
 		misfire_chance = misfire_chance * get_config("jamchance")
 		print_dbg("Misfire chance: "..misfire_chance)
-		if math_random() < misfire_chance then
+		if not jammed_guns[id] and math_random() < misfire_chance then
 			jammed_guns[id] = 1
 		end
 		
@@ -508,6 +527,7 @@ function actor_on_weapon_before_fire(flags)
 			jam_swearing()			
 			start_jammin(2)
 			-- Play empty clip sound
+			local tg = time_global()
 			if (last_wpn_snd_empty[2] ~= "$no_sound") and (tg > tg_snd_empty) then
 				utils_obj.play_sound( last_wpn_snd_empty[2], last_wpn_snd_empty[3] or 1 )
 				tg_snd_empty = tg + delay_snd_empty
@@ -559,7 +579,7 @@ function actor_on_weapon_fired(obj, wpn, ammo_elapsed, grenade_elapsed, ammo_typ
 		-- degradation_factor = degradation_factor * get_overheat_modifier(wpn_obj, true)
 		if degradation_factor > 1 then
 			degradation_factor = degradation_factor - 1
-			local degradation = degradation_factor * cgd.current_gun_shot_dec
+			local degradation = degradation_factor * cgd.current_wpn_shot_dec
 			print_dbg("Degrading by additional %s", degradation)
 			wpn_obj:set_condition(clamp(wpn_obj:condition() - degradation, 0, 0.999))
 		end
@@ -889,19 +909,7 @@ function get_unjam_animation(weapon)
 end
 
 -- SECTION callbacks --
-local function on_item_drag_dropped(obj_1, obj_2, slot_from, slot_to)
-	local part = obj_1 and obj_1:section() or nil
-	local wpn = obj_2 and obj_2:section() or nil
-	print_dbg("Dragging %s onto %s", part, wpn)
-	if is_part(part) and has_parts(obj_2) then
-		local parts = item_parts.get_parts_con(obj_2, nil, true)
-		if parts and parts[part] then
-			try_replace_part(obj_2, parts, obj_1, item_parts.get_suitable_dtool(obj_2))
-		else
-			news_manager.send_tip(db.actor, gc("st_news_parts_incompatible"), nil, "swiss_knife", 6000)
-		end
-	end
-end
+
 
 local disallowed = {
 	[key_bindings.kINVENTORY] = true,
@@ -928,7 +936,12 @@ end
 function actor_on_weapon_jammed(actor)
 	local wpn = db.actor:active_item()
 	if not jammed_guns[wpn:id()] then
-		jammed_guns[wpn:id()] = 4
+		if string.find(GAME_VERSION, "1.5.2") then
+			wpn:cast_Weapon():SetMisfire(false)
+			jammed_guns[wpn:id()] = 1
+		else
+			jammed_guns[wpn:id()] = 4
+		end
 	end
 	jam_swearing()
 end
@@ -968,10 +981,10 @@ local function reduce_damage(npc, shit, bone_id, flags)
 		return 
 	end
 
-	if barrel_con > 75 then
+	if barrel_con > 80 then
 		return 
 	else
-		local ratio = (75 - barrel_con)/75
+		local ratio = (80 - barrel_con)/80
 		shit.power = shit.power * (1 - (0.5 * ratio))
 	end
 end
@@ -983,46 +996,6 @@ function monster_on_before_hit(monster,shit,bone_id, flags)
 	reduce_damage(monster, shit, bone_id, flags)
 end
 
--- SECTION field stripping and part replacement -- 
-function try_replace_part(wpn, tbl, part, using_tool)
-	local id = part:id()
-	local sec = part:section()
-	local pcon = part:condition()
-	local wcon = wpn:condition()
-	if is_barrel(sec) and not get_config("easybarrel") then
-		news_manager.send_tip(db.actor, gc("st_news_parts_barrel"), nil, "swiss_knife", 6000)
-	elseif is_trigger(sec) and not get_config("easytrigger") then
-		news_manager.send_tip(db.actor, gc("st_news_parts_trigger"), nil, "swiss_knife", 6000)
-	elseif (wcon < REPLACE_THRESHOLD) then
-		news_manager.send_tip(db.actor, gc("st_news_parts_rusty"), nil, "swiss_knife", 6000)
-	else
-		print_dbg("Replacing %s", sec)
-		local tmp = tbl[sec]
-		tbl[sec] = math_floor(pcon * 100)
-		if tmp == -1 then
-			-- part missing, do not swap conditions
-			alife_release_id(id)
-		else
-			part:set_condition(tmp/100)
-		 end
-		item_parts.set_parts_con(wpn:id(), tbl)
-		if (wpn:id() == cgd.id) then
-			cgd.parts[sec] = tbl[sec]
-		end
-		-- lose a little condition when replacing parts
-		if wcon > 0.6 then
-			local range = using_tool and 3 or 13
-			wpn:set_condition(wcon - (math_random(3, 3 + range)/100)) 
-		end
-		if mag_support.using_mags() and mag_support.is_mag_loaded(wpn) then 
-			mag_support.eject_mag(wpn)
-		else
-			wpn:force_unload_magazine(true)
-		end
-
-		news_manager.send_tip(db.actor, gc("st_news_parts_success") .. " " .. ui_item.get_sec_name(sec), nil, "swiss_knife", 6000)
-	end
-end
 EvaluateParts = item_parts.evaluate_parts
 
 function item_parts.evaluate_parts(obj)
@@ -1064,7 +1037,6 @@ function on_game_start()
 	custom_functor_autoinject.add_functor("arti_unjam", check_unjam, string_unjam, nil, unjam, false)
 
 	RegisterScriptCallback("on_key_press",on_key_press)
-    RegisterScriptCallback("ActorMenu_on_item_drag_drop",on_item_drag_dropped)
     RegisterScriptCallback("actor_on_weapon_jammed",actor_on_weapon_jammed)
 	RegisterScriptCallback("actor_on_weapon_before_fire",actor_on_weapon_before_fire)
 	RegisterScriptCallback("actor_on_weapon_fired",actor_on_weapon_fired)

@@ -1,8 +1,0 @@
-function actor_on_weapon_before_fire(flags)
-	local obj_wpn = db.actor:active_item()
-    item_parts.set_parts_con(obj_wpn:id(), nil)
-    item_parts.evaluate_parts(obj_wpn)
-end
-function on_game_start()
-    RegisterScriptCallback("actor_on_weapon_before_fire",actor_on_weapon_before_fire)
-end
