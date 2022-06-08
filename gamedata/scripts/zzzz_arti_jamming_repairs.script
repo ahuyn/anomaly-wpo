@@ -13,6 +13,7 @@ print_dbg = arti_jamming.print_dbg
 print_ws = ui_workshop.print_ws
 get_config = a_arti_jamming_mcm.get_config
 math_floor = math.floor
+math_random = math.random
 current_id = arti_jamming.current_id
 reset_cgd = arti_jamming.reset_cgd
 SetTip = ui_workshop.SetTip
