@@ -349,13 +349,11 @@ end
 
 HowMuch = inventory_upgrades_mp.how_much_repair
 function inventory_upgrades_mp.how_much_repair( item_name, item_condition )
-	if not section_has_parts(item_name) then return HowMuch(item_name, item_condition) end
-	local cost = ini_sys:r_u32(item_name, "cost")
-	local class = ini_sys:r_string_ex(item_name, "class")
-	local cof = game_difficulties.get_eco_factor("repair") or 1.67
-	local wpncoef = string.find(item_name, "wpn_") and 0.4 or 1
-	-- printf("coef is %s", wpncoef)
-	return math.floor( cost * (1 - item_condition) * cof * wpncoef ) -- CoP formula, adjusted down further (arti)
+	local base_cost = HowMuch(item_name, item_condition)
+
+	if not section_has_parts(item_name) then return base_cost end
+	local wpncoef = string.find(item_name, "wpn_") and 0.35 or 1
+	return base_cost * wpncoef
 end
 
 quality_map = {
