@@ -747,6 +747,9 @@ function try_replace_part(wpn, tbl, part, using_tool)
 end
 
 local function on_item_drag_dropped(obj_1, obj_2, slot_from, slot_to)
+	if not (slot_from == EDDListType.iActorBag and (slot_to == EDDListType.iActorBag or slot_to == EDDListType.iActorSlot)) then
+        return
+    end
 	local part = obj_1 and obj_1:section() or nil
 	local wpn = obj_2 and obj_2:section() or nil
 	print_dbg("Dragging %s onto %s", part, wpn)

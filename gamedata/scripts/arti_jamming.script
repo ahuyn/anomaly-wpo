@@ -255,6 +255,8 @@ function update_current()
 				cgd.current_wpn_shot_dec = op == "+" and cgd.current_wpn_shot_dec + val or cgd.current_wpn_shot_dec - val
 			end
 		end
+
+		-- ingest parts
 		cgd.parts = {}
 		local saved_parts = item_parts.get_parts_con(wpn, nil, true)
 		-- fix mistakes - if weapon should have parts but were deleted, delete and restore
@@ -280,6 +282,7 @@ function update_current()
 		cgd.data.superjam_mult = ini_families:r_float_ex(family, "superjam_mult")
 		cgd.data.damage_chance_mult = ini_families:r_float_ex(family, "damage_chance_mult")
 		cgd.data.barrel_wear = larp.str_explode_num(ini_families:r_string_ex(family, "barrel_wear"), ",")
+		cgd.ammo_data = utils_item.get_ammo(nil, wpn:id())
 	end
 	-- manage heat
 	-- cgd.heat = {}
@@ -288,6 +291,17 @@ function update_current()
 	-- cgd.heat.overheat_threshold = cgd.heat.overheat_base * 2
 	-- cgd.heat.overheat_max = (cgd.heat.overheat_base * 3) + 10
 	
+end
+
+-- returns true if using ammo with impair > 1
+function using_old_ammo(wpn)
+	if wpn:id() ~= cgd.id then return false end
+	local ammo_type = wpn:get_ammo_type() + 1
+	local ammo = cgd.ammo_data[ammo_type]
+	if ammo and SYS_GetParam(2, ammo, "impair") > 1 then
+		return true
+	else return false
+	end
 end
 
 -- individually calculate jam based on weapon parts, and jam the weapon if applicable
@@ -309,16 +323,13 @@ local function calculate_jam(wpn)
 	-- jam chance. if we roll this twice, upgraded to severe jam
 	local jam_chance = count > 0 and mechanism_cond/count or 0
 	jam_chance = jam_chance * get_config("jamchance")
-	local heat_mod = 1 -- get_overheat_modifier(wpn, true)
-	jam_chance = jam_chance * heat_mod
 	-- also apply condition
 	local cond = wpn:condition()
 	local ratio = cond < 0.9 and  1 + (0.9-cond)/0.45 or 1
 	jam_chance = jam_chance * ratio
-	if get_config("oldammo") and wpn:get_ammo_type() % 3 ~= 0 then
-		-- bad ammo adds a flat 2% chance to jam
+
+	if get_config("oldammo") and using_old_ammo(wpn) then
 		jam_chance = jam_chance + 0.02
-		
 	end
 	print_dbg("Ratio %s, heat mod %s, Final jam chance: %s",ratio, heat_mod, jam_chance)
 
@@ -338,6 +349,14 @@ local function calculate_jam(wpn)
 		start_jammin(2)
 		send_msg(str, verbosity)
 	end
+end
+
+function calculate_jam_chance(wpn)
+
+
+end
+
+function apply_jam(weapon, level)
 end
 
 -- Randomly damage 1 part of the weapon by DAMAGE, skipping barrels
@@ -361,14 +380,15 @@ local function calculate_damage(wpn)
 	local roll = math_random()
 	local threshold = (get_config("threshold") or 85)/100
 	local overheat_modifier = 1-- get_overheat_modifier(wpn)
-	local old_ammo = get_config("oldammo") and wpn:get_ammo_type() % 3 ~= 0
+	local old_ammo = get_config("oldammo") and using_old_ammo(wpn)
 	local damage_chance = old_ammo and cgd.current_wpn_shot_dec * 2 or cgd.current_wpn_shot_dec
 	-- print_dbg("weapon %s, heat is %s. heat modifier is  %s", wpn:section(), cgd.heat, overheat_modifier)
 	if (cond < threshold) then
 		-- 200 x (threshold - condition) * per shot decrease, should result in pretty small chances
 		damage_chance = (threshold - cond) * cgd.current_wpn_shot_dec * 200 * overheat_modifier * (cgd.data.damage_chance_mult or 1)
 		-- add flat 2% chance of damage w. old ammo
-		if old_ammo then
+		if get_config("oldammo") then
+
 			damage_chance = damage_chance + 0.02
 		end
 	end

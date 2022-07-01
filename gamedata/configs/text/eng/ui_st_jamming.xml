@@ -106,6 +106,9 @@
 		<text>WPO Misc</text>
 	</string>
 
+	<string id="ui_mcm_wpo_wpojam_keybind">
+		<text>Unjam key</text>
+	</string>
 	<string id="ui_mcm_wpo_wpojam_jamchance">
 		<text>Jam Chance multiplier</text>
 	</string>
