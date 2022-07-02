@@ -19,7 +19,7 @@ local defaults = {
     ["profanity_timeout"] = true,
     ["profanity_language"] = "rus",
     ["verbosity"] = 1,
-    ["debug"] = true,
+    ["debug"] = false,
     ["fun"] = 0
 }
 

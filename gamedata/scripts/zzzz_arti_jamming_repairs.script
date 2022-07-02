@@ -26,12 +26,12 @@ is_trigger = arti_jamming.is_trigger
 local function disassembly_weapon_spare_parts(sec, condition)
 	local single_handed = ini_sys:r_float_ex(sec,"single_handed") or 1
 	local weight = ini_sys:r_float_ex(sec,"inv_weight") or 2
-	local number,finale = 0,0
+	local num,finale = 0,0
 	
-	number = math_floor(weight)
-	if (single_handed == 1) then number = 1 end
+	num = math_floor(weight)
+	if (single_handed == 1) then num = 1 end
 	
-	for i=1,number do
+	for i=1,num do
 		if (math.random(100) < condition) then
 			finale = finale + 1
 		end
@@ -127,7 +127,7 @@ function custom_disassembly_weapon(obj, obj_d)
 	end
 	
 	-- Unload mag and get ammo
-	obj:force_unload_magazine(true)
+	mag_support.eject_mag(obj)
 	
 	-- Collect weapon parts
 	for k,v in pairs(parts) do
@@ -651,26 +651,23 @@ end
 -- remove the given part
 -- if no part is specified, remove all
 function act_fieldstrip(id, part_name)
-	local wpn = level.object_by_id(id)
-	local parts = item_parts.get_parts_con(wpn)
+	print_dbg("Try remove %s from %s", part_name, id)
+	local parts = se_load_var(id, nil, "parts")
 	local parts_removed = false
 	local str_msg = gc("st_news_fieldstrip")
 
 	-- eject mag if applicable
-	if mag_support.using_mags() and mag_support.is_mag_loaded(wpn) then 
-		mag_support.eject_mag(wpn)
-	else
-		wpn:force_unload_magazine(true)
-	end
-
+	print_dbg("Before eject")
+	mag_support.eject_mag(get_object_by_id(id))
+	print_dbg("Removed ammo")
 	if part_name and parts[part_name] then
-		str_msg = str_msg .. "\\n -" .. ui_item.get_sec_name(part_name)
+		str_msg = str_msg .. "\\n - " .. ui_item.get_sec_name(part_name)
 		remove_part(part_name, parts)
 		parts_removed = true
 	else
 		for k,v in pairs(parts) do
 			if can_remove(k) and v ~= -1 then
-				str_msg = str_msg .. "\\n -" .. ui_item.get_sec_name(k)
+				str_msg = str_msg .. "\\n - " .. ui_item.get_sec_name(k)
 				remove_part(k, parts)
 				parts_removed = true
 			end
@@ -687,16 +684,17 @@ function act_fieldstrip(id, part_name)
 	reset_cgd()
 end
 
-function remove_part(part_name, part_con)
-	if part_con[part_name] and part_con[part_name] ~= -1 then
+function remove_part(part_name, part_list)
+	print_dbg("Removing part %s", part_name)
+	if part_list[part_name] and part_list[part_name] ~= -1 then
 
 		local part_to_spawn = alife_create(part_name, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id(), false)
 		local data = utils_stpk.get_item_data(part_to_spawn)
-		data.condition = part_con[part_name]/100
+		data.condition = part_list[part_name]/100
 		utils_stpk.set_item_data(data,part_to_spawn)
 		alife():register(part_to_spawn)	
 
-		part_con[part_name] = -1
+		part_list[part_name] = -1
 	end
 end
 
@@ -736,11 +734,7 @@ function try_replace_part(wpn, tbl, part, using_tool)
 			local range = using_tool and 3 or 13
 			wpn:set_condition(wcon - (math_random(3, 3 + range)/100)) 
 		end
-		if mag_support.using_mags() and mag_support.is_mag_loaded(wpn) then 
-			mag_support.eject_mag(wpn)
-		else
-			wpn:force_unload_magazine(true)
-		end
+		mag_support.eject_mag(wpn)
 
 		news_manager.send_tip(db.actor, gc("st_news_parts_success") .. " " .. ui_item.get_sec_name(sec), nil, "swiss_knife", 6000)
 	end

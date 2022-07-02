@@ -1,0 +1,61 @@
+
+
+local time_quant
+local decrease_quant
+local heat_per_shot = 10
+
+-- return overheat base amount (factor in section and suppressor)
+function get_overheat_base(weapon)
+	if not weapon then return end
+	local sec_p = parent_section(weapon:section())
+	local overheat_base = ini_overheat:r_float_ex("custom_overheat", sec_p) or overheat_data.base
+	if weapon:weapon_is_silencer() then overheat_base = overheat_base * overheat_data.suppressor_mult end
+	return overheat_base
+end
+
+function get_heat()
+	return cgd.heat.level
+end
+
+
+function actor_on_update()
+	-- overheat checks
+	if db.actor:active_item() and cgd.has_parts then
+		manage_overheat(db.actor:active_item())
+	end
+end
+-- this should only be invoked if the weapon can be overheated
+function manage_overheat(wpn)
+	-- ignore if not current (somehow)
+	if not wpn or wpn:id() ~= cgd.id then return end
+	if cgd.heat.level < cgd.heat.overheat_threshold then
+		decrease_quant = 0.15
+	else
+		decrease_quant = 0.05
+	end
+
+	local sec = wpn:section()
+	if not wpn then return end
+	if (string.match(tostring(sec),"knife") or string.match(tostring(sec),"axe")) then return end
+	
+	if IsWeapon(wpn) and cgd.heat.level > 0 and data.weapon_state ~= 5 then
+		-- decrease quantity over time when not shooting
+		cgd.heat.level = clamp(cgd.heat.level - decrease_quant, 0, cgd.heat.overheat_max)
+	end
+end
+
+-- return overheat damage modifier for current weapon, weapon itself is passed to get some convenience things
+-- if you are not passing current, return just 1
+-- eval returns multiplier, pass false gives just level
+function get_overheat_modifier(weapon, eval)
+	if true--not get_config("heat")
+	 then return eval and 1 or 0 end
+	local id = weapon:id()
+	if eval == nil then eval = true end
+	if id ~= cgd.id then return 1 end
+	local overheat_base = cgd.heat.overheat_base
+	local heat_severity = math.floor(cgd.heat.level/overheat_base)
+	if heat_severity > 0 then 
+		return eval and overheat_data.damage[heat_severity] or heat_severity
+	else return eval and 1 or 0 end 
+end

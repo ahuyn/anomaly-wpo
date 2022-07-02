@@ -3,7 +3,6 @@ gc = game.translate_string
 math_random = math.random
 math_floor = math.floor
 local jammin = sound_object("jammin")
-local overheat_data = {}
 -- associate jammed guns to type of jam
 local jammed_guns 	= {}
 --[[
@@ -22,7 +21,6 @@ local cgd = {}
 local DAMAGE_THRESHOLD = 86
 local ini_families = ini_file("weapon_families\\families\\importer.ltx")
 local ini_weapons = ini_file("weapon_families\\weapons\\importer.ltx")
-local ini_overheat = ini_file("items\\settings\\overheat.ltx")
 
 local guarantee_not_jam = 0
 -- use to block inputs while animations / unjam logic fires
@@ -59,6 +57,10 @@ end
 
 function set_jam_status(id, status)
 	jammed_guns[id] = status
+end
+
+function is_jammed(wpn)
+	return jammed_guns[wpn:id()] and jammed_guns[wpn:id()] > 0
 end
 
 local can_swear = true
@@ -125,8 +127,7 @@ function get_parts_list(wpn)
 	
 	if wpn and IsWeapon(wpn) and (not IsMelee(wpn)) and not IsItem("fake_ammo_wpn",sec) then
 		local sec = parent_section(wpn:section())
-		local parts = ini_parts:r_string_ex("con_parts_list", sec)
-		return parts
+		return ini_parts:r_string_ex("con_parts_list", sec)
 	else 
 		return nil
 	end
@@ -140,6 +141,7 @@ end
 
 function missing_parts(wpn)
 	if wpn:id() == cgd.id then
+		if not cgd.has_parts then return false end
 		if cgd.barrel_con == -1 then return true end
 		for k,v in pairs(cgd.parts) do
 			if v == -1 then return true end
@@ -218,7 +220,6 @@ end
 function clear_cgd()
 	empty_table(cgd.parts)
 	empty_table(cgd.data)
-	-- empty_table(cgd.heat)
 	empty_table(cgd)
 	cgd.id = 0
 	cgd.has_parts = false
@@ -277,25 +278,18 @@ function update_current()
 		local parent_section = parent_section(sec)
 		local family = ini_weapons:r_string_ex(parent_section, "family") or "family_base"
 		print_dbg("registering data for weapon family %s", family)
-		cgd.data.jam_data = larp.str_explode_num(ini_families:r_string_ex(family, "jam_chance"), ",")
+		cgd.data.jam_chance = larp.str_explode_num(ini_families:r_string_ex(family, "jam_chance"), ",")
 		cgd.data.misfire_chance = larp.str_explode_num(ini_families:r_string_ex(family, "misfire_chance"), ",")
 		cgd.data.superjam_mult = ini_families:r_float_ex(family, "superjam_mult")
 		cgd.data.damage_chance_mult = ini_families:r_float_ex(family, "damage_chance_mult")
-		cgd.data.barrel_wear = larp.str_explode_num(ini_families:r_string_ex(family, "barrel_wear"), ",")
+		cgd.data.barrel_wear = ini_families:r_float_ex(family, "barrel_wear")
 		cgd.ammo_data = utils_item.get_ammo(nil, wpn:id())
 	end
-	-- manage heat
-	-- cgd.heat = {}
-	-- cgd.heat.level = 0
-	-- cgd.heat.overheat_base = get_overheat_base(wpn) or 50
-	-- cgd.heat.overheat_threshold = cgd.heat.overheat_base * 2
-	-- cgd.heat.overheat_max = (cgd.heat.overheat_base * 3) + 10
-	
 end
 
 -- returns true if using ammo with impair > 1
 function using_old_ammo(wpn)
-	if wpn:id() ~= cgd.id then return false end
+	if wpn:id() ~= cgd.id or not get_config("oldammo") then return false end
 	local ammo_type = wpn:get_ammo_type() + 1
 	local ammo = cgd.ammo_data[ammo_type]
 	if ammo and SYS_GetParam(2, ammo, "impair") > 1 then
@@ -311,12 +305,36 @@ local function calculate_jam(wpn)
 		guarantee_not_jam = guarantee_not_jam - 1
 		return
 	end
+	
+	jam_chance = calculate_jam_chance(wpn)
+
+	print_dbg("Final jam chance: %s", jam_chance)
+
+	if (math_random() < jam_chance) then
+		local str = gc("ui_st_jam")
+		local verbosity = 1
+		if wpn:get_ammo_in_magazine() > 0 and get_config("superjam") and (math_random() < (cgd.data.superjam_mult * jam_chance/2)) then
+			set_jam_status(wpn:id(), 3)
+			print_dbg("Severe jam")
+			if get_config("verbosity") > 1 then
+				str = gc("ui_st_superjam")
+			end
+		else
+			set_jam_status(wpn:id(), 2)
+			print_dbg("Normal jam")
+		end
+		start_jammin(2)
+		send_msg(str, verbosity)
+	end
+end
+
+-- assumes weapon being used is current
+function calculate_jam_chance(wpn)
 	local count = 0
 	local mechanism_cond = #cgd.parts
 	for k, v in pairs(cgd.parts) do -- skip barrel
 		local severity = 5 - clamp(math_floor(v / 20), 0, 4)
-		mechanism_cond = mechanism_cond + cgd.data.jam_data[severity]
-		-- print_dbg("Part: [%s], cond: [%s], severity: [%s], sum jam chance: [%s]", k,v, severity, mechanism_cond) 
+		mechanism_cond = mechanism_cond + cgd.data.jam_chance[severity]
 		count = count + 1
 	end
 
@@ -325,52 +343,27 @@ local function calculate_jam(wpn)
 	jam_chance = jam_chance * get_config("jamchance")
 	-- also apply condition
 	local cond = wpn:condition()
-	local ratio = cond < 0.9 and  1 + (0.9-cond)/0.45 or 1
+	local ratio = cond < 0.9 and 1 + (0.9-cond)/0.45 or 1
 	jam_chance = jam_chance * ratio
 
-	if get_config("oldammo") and using_old_ammo(wpn) then
+	if using_old_ammo(wpn) then
 		jam_chance = jam_chance + 0.02
 	end
-	print_dbg("Ratio %s, heat mod %s, Final jam chance: %s",ratio, heat_mod, jam_chance)
 
-	if (math_random() < jam_chance) then
-		local str = gc("ui_st_jam")
-		local verbosity = 1
-		if wpn:get_ammo_in_magazine() > 0 and get_config("superjam") and (math_random() < (cgd.data.superjam_mult * jam_chance/2)) then
-			jammed_guns[wpn:id()] = 3
-			print_dbg("Severe jam")
-			if get_config("verbosity") > 1 then
-				str = gc("ui_st_superjam")
-			end
-		else
-			jammed_guns[wpn:id()] = 2
-			print_dbg("Normal jam")
-		end
-		start_jammin(2)
-		send_msg(str, verbosity)
-	end
+	return jam_chance
 end
 
-function calculate_jam_chance(wpn)
-
-
-end
-
-function apply_jam(weapon, level)
-end
 
 -- Randomly damage 1 part of the weapon by DAMAGE, skipping barrels
 local function damage_part(wpn)
 	local to_damage = random_key_table(cgd.parts)
 	local part_con = cgd.parts[to_damage]
-	local damage = math_random(5, 12)
-	cgd.parts[to_damage] = part_con > damage and (part_con - damage) or 1
+	cgd.parts[to_damage] = clamp(part_con - math_random(5, 12), 0, 99)
 
 	print_dbg("%s damaged to %s condition", to_damage, cgd.parts[to_damage])
 	if (get_config("verbosity") > 1) then
 		news_manager.send_tip(db.actor, gc("ui_st_parts_damage"), nil, "swiss_knife", 6000)
 	end
-	-- play a sound?
 end
 
 -- Calculate chance to damage based on weapon condition
@@ -379,28 +372,17 @@ local function calculate_damage(wpn)
 	local damaged = false
 	local roll = math_random()
 	local threshold = (get_config("threshold") or 85)/100
-	local overheat_modifier = 1-- get_overheat_modifier(wpn)
-	local old_ammo = get_config("oldammo") and using_old_ammo(wpn)
-	local damage_chance = old_ammo and cgd.current_wpn_shot_dec * 2 or cgd.current_wpn_shot_dec
-	-- print_dbg("weapon %s, heat is %s. heat modifier is  %s", wpn:section(), cgd.heat, overheat_modifier)
-	if (cond < threshold) then
-		-- 200 x (threshold - condition) * per shot decrease, should result in pretty small chances
-		damage_chance = (threshold - cond) * cgd.current_wpn_shot_dec * 200 * overheat_modifier * (cgd.data.damage_chance_mult or 1)
-		-- add flat 2% chance of damage w. old ammo
-		if get_config("oldammo") then
+	local old_ammo = using_old_ammo(wpn)
+	local damage_chance = calculate_damage_chance(wpn, old_ammo)
 
-			damage_chance = damage_chance + 0.02
-		end
-	end
 	if (roll < damage_chance) then
 		damage_part(wpn)
 		damaged = true
 	end
 
-	local barrel_wear = old_ammo and cgd.data.barrel_wear[2] or cgd.data.barrel_wear[1]
-	barrel_wear = barrel_wear * overheat_modifier
+	local barrel_wear = calculate_barrel_wear(wpn, old_ammo)
 
-	print_dbg("Heat %s, old ammo %s, barrel wear %s, Final: %s",overheat_modifier, old_ammo, barrel_wear, damage_chance)
+	print_dbg("Calculating damage: Old ammo %s, barrel wear %s, Final: %s", old_ammo, barrel_wear, damage_chance)
 
 	if (roll < barrel_wear) then
 		print_dbg("Damaged barrel")
@@ -413,76 +395,36 @@ local function calculate_damage(wpn)
 	end
 end
 
--- overheat support, hot hot hot
-
-function update_heat()
-	-- if get_config("heat") then
-	-- 	RegisterScriptCallback("actor_on_update", actor_on_update)
-	-- 	print_dbg("Enabling heat")
-	-- else
-	-- 	UnregisterScriptCallback("actor_on_update", actor_on_update)
-	-- 	print_dbg("Disabling heat")
-	-- 	cgd.heat.level = 0
-	-- end
-end
-
-function actor_on_update()
-	-- overheat checks
-	if db.actor:active_item() and cgd.has_parts then
-		manage_overheat(db.actor:active_item())
-	end
-end
-
-local time_quant
-local decrease_quant
-local heat_per_shot = 10
--- this should only be invoked if the weapon can be overheated
-function manage_overheat(wpn)
-	-- ignore if not current (somehow)
-	if not wpn or wpn:id() ~= cgd.id then return end
-	if cgd.heat.level < cgd.heat.overheat_threshold then
-		decrease_quant = 0.15
+function calculate_damage_chance(wpn, old_ammo)
+	local cond = wpn and wpn:condition() or 1
+	local threshold = (get_config("threshold") or 85)/100
+	local damage_chance = 0
+	old_ammo = old_ammo or using_old_ammo(wpn)
+	if (cond < threshold) then
+		-- 200 x (threshold - condition) * per shot decrease, should result in pretty small chances
+		damage_chance = (threshold - cond) * cgd.current_wpn_shot_dec * 200 * (cgd.data.damage_chance_mult or 1)
+		-- add flat 2% chance of damage w. old ammo
+		if old_ammo then
+			damage_chance = damage_chance + 0.02
+		end
 	else
-		decrease_quant = 0.05
+		if old_ammo then damage_chance = 0.005 end
 	end
-
-	local sec = wpn:section()
-	if not wpn then return end
-	if (string.match(tostring(sec),"knife") or string.match(tostring(sec),"axe")) then return end
-	
-	if IsWeapon(wpn) and cgd.heat.level > 0 and data.weapon_state ~= 5 then
-		-- decrease quantity over time when not shooting
-		cgd.heat.level = clamp(cgd.heat.level - decrease_quant, 0, cgd.heat.overheat_max)
-	end
+	return damage_chance
 end
 
--- return overheat damage modifier for current weapon, weapon itself is passed to get some convenience things
--- if you are not passing current, return just 1
--- eval returns multiplier, pass false gives just level
-function get_overheat_modifier(weapon, eval)
-	if true--not get_config("heat")
-	 then return eval and 1 or 0 end
-	local id = weapon:id()
-	if eval == nil then eval = true end
-	if id ~= cgd.id then return 1 end
-	local overheat_base = cgd.heat.overheat_base
-	local heat_severity = math.floor(cgd.heat.level/overheat_base)
-	if heat_severity > 0 then 
-		return eval and overheat_data.damage[heat_severity] or heat_severity
-	else return eval and 1 or 0 end 
+function calculate_barrel_wear(wpn, old_ammo)
+	old_ammo = old_ammo or using_old_ammo(wpn)
+	return old_ammo and cgd.data.barrel_wear * 2 or cgd.data.barrel_wear
 end
 
--- return overheat base amount (factor in section and suppressor)
-function get_overheat_base(weapon)
-	if not weapon then return end
-	local sec_p = parent_section(weapon:section())
-	local overheat_base = ini_overheat:r_float_ex("custom_overheat", sec_p) or overheat_data.base
-	if weapon:weapon_is_silencer() then overheat_base = overheat_base * overheat_data.suppressor_mult end
-	return overheat_base
-end
-
-function get_heat()
-	return cgd.heat.level
+-- calculate misfire change of held weapon
+function calculate_misfire()
+	local trigger_con = cgd.parts[cgd.trigger_name] or 99
+	local severity = 5 - clamp(math_floor(trigger_con / 20), 0, 4)
+	local misfire_chance = cgd.data.misfire_chance[severity]
+	misfire_chance = misfire_chance * get_config("jamchance")
+	return misfire_chance
 end
 
 local last_wpn_snd_empty = {nil, "$no_sound", 1}
@@ -491,21 +433,21 @@ local delay_snd_empty = 300 -- ms
 -- before fire - misfire, block shot if jammed with same clicky sound for zeroed weapons
 function actor_on_weapon_before_fire(flags)
 
-	local obj_wpn = db.actor:active_item()
-	local id = obj_wpn and obj_wpn:id() or -1
+	local wpn = db.actor:active_item()
+	local id = wpn and wpn:id() or 0
 
-	if obj_wpn and id ~= cgd.id then
+	if wpn and id ~= cgd.id then
 		-- populate current gun
 		update_current()
 	end
 
-	if obj_wpn and id == cgd.id then
-		if obj_wpn:get_ammo_in_magazine() == 0 or not cgd.has_parts or obj_wpn:weapon_in_grenade_mode() then
+	if wpn and id == cgd.id then
+		if wpn:get_ammo_in_magazine() == 0 or not cgd.has_parts or wpn:weapon_in_grenade_mode() then
 			return 
 		end
 
 		-- if missing parts do not roll for misfire
-		if missing_parts(obj_wpn) then
+		if missing_parts(wpn) then
 			send_msg(gc("ui_st_missing"), 1)
 			flags.ret_value = false
 			return
@@ -514,20 +456,16 @@ function actor_on_weapon_before_fire(flags)
 		if guarantee_not_jam > 0 then
 			return
 		end
-
-		local trigger_con = cgd.parts[cgd.trigger_name] or 99
-		local severity = 5 - clamp(math_floor(trigger_con / 20), 0, 4)
-		local misfire_chance = cgd.data.misfire_chance[severity]
-		misfire_chance = misfire_chance * get_config("jamchance")
+		local misfire_chance = calculate_misfire()
 		print_dbg("Misfire chance: "..misfire_chance)
 		if not jammed_guns[id] and math_random() < misfire_chance then
-			jammed_guns[id] = 1
+			set_jam_status(wpn:id(), 1)
 		end
 		
 		local str = ""
 		-- check for malfunction
-		if jammed_guns[id] then
-			local sec = obj_wpn:section()
+		if is_jammed(wpn) then
+			local sec = wpn:section()
 			-- Cache
 			if (sec ~= last_wpn_snd_empty[1]) then
 				-- Reset
@@ -543,15 +481,15 @@ function actor_on_weapon_before_fire(flags)
 					last_wpn_snd_empty[3] = snd[2] or 1
 				end
 			end
-				--ADDED jam_swearing()
-			jam_swearing()			
-			start_jammin(2)
 			-- Play empty clip sound
 			local tg = time_global()
 			if (last_wpn_snd_empty[2] ~= "$no_sound") and (tg > tg_snd_empty) then
 				utils_obj.play_sound( last_wpn_snd_empty[2], last_wpn_snd_empty[3] or 1 )
 				tg_snd_empty = tg + delay_snd_empty
 			end
+			--ADDED jam_swearing()
+			jam_swearing()			
+			start_jammin(2)
 			if (get_config("verbosity") == 2 and jammed_guns[id] == 3) then
 				str = gc("ui_st_superjam")
 			else
@@ -570,25 +508,26 @@ function actor_on_weapon_fired(obj, wpn, ammo_elapsed, grenade_elapsed, ammo_typ
 	if (obj:id() ~= AC_ID) then
 		return
 	end
-	if wpn:id() ~= cgd.id or not cgd.has_parts or wpn:get_ammo_in_magazine() == 0 or missing_parts(wpn) or wpn:weapon_in_grenade_mode() then
+	local id = wpn:id()
+	if id ~= cgd.id or not cgd.has_parts or wpn:get_ammo_in_magazine() == 0 or missing_parts(wpn) or wpn:weapon_in_grenade_mode() then
 		return 
 	end
 
-	if guarantee_not_jam > 0 then
-		guarantee_not_jam = guarantee_not_jam - 1
-	end
-
 	-- calc and apply jam
-	local wpn_obj = utils_item.item_is_fa(wpn) and wpn
-	if wpn_obj then
+	wpn = utils_item.item_is_fa(wpn) and wpn
+	if wpn then
 
-		if jammed_guns[wpn_obj:id()] then
+		if jammed_guns[wpn:id()] then
 			level.release_action(bind_to_dik(key_bindings.kWPN_FIRE))
 		end
 		if not cgd.parts or is_empty(cgd.parts) then return 
-		elseif (not jammed_guns[wpn_obj:id()]) then
-			calculate_jam(wpn_obj)
-			calculate_damage(wpn_obj)
+		elseif (not jammed_guns[wpn:id()]) then
+			calculate_jam(wpn)
+			calculate_damage(wpn)
+		end
+
+		if guarantee_not_jam > 0 then
+			guarantee_not_jam = guarantee_not_jam - 1
 		end
 
 		-- calc and apply extra degradation in rain
@@ -596,34 +535,18 @@ function actor_on_weapon_fired(obj, wpn, ammo_elapsed, grenade_elapsed, ammo_typ
 		if level.rain_factor() > 0.3 and not GetEvent("current_safe_cover") then
 			degradation_factor = degradation_factor * (get_config("degradation") or 1.5)
 		end
-		-- degradation_factor = degradation_factor * get_overheat_modifier(wpn_obj, true)
+
 		if degradation_factor > 1 then
 			degradation_factor = degradation_factor - 1
 			local degradation = degradation_factor * cgd.current_wpn_shot_dec
 			print_dbg("Degrading by additional %s", degradation)
-			wpn_obj:set_condition(clamp(wpn_obj:condition() - degradation, 0, 0.999))
+			wpn:set_condition(clamp(wpn:condition() - degradation, 0, 0.999))
 		end
-		-- apply overheat
-		-- if get_config("heat") then
-			
-		-- 	local rpm = ui_wpn_params.GetRPM(wpn_obj:section())
-		-- 	-- Grab packet data
-		-- 	local se_wpn = alife_object(wpn_obj:id())
-		-- 	local data = utils_stpk.get_weapon_data(se_wpn)
-
-		-- 	if not data then return end
-		-- 	--printf("RPM: "..rpm)
-		-- 	time_quant = rpm/100
-			
-		-- end
 	end
 end
 
-function check_unjam(obj)
-	if jammed_guns[obj:id()] then
-		return true
-	else return false
-	end
+function check_unjam(wpn)
+	return jammed_guns[wpn:id()] ~= nil
 end
 
 function string_unjam()
@@ -665,18 +588,12 @@ function apply_unjam(id, sound, message, verbosity)
 	return true
 end
 
--- provide heat readout
 function check_simple(weapon)
 	local str = gc("ui_st_functional")
-	local heat_lvl = get_overheat_modifier(weapon, false)
-	if heat_lvl > 0 then
-		str = str .. gc("ui_st_heat"..heat_lvl)
-	end
 	send_msg(str, 0)
 	guarantee_not_jam = 1
 end
 
--- provide heat readout + idle anim
 function check_anim(weapon)
 	check_simple(weapon)
 	local sec = weapon:section()
@@ -947,7 +864,7 @@ local disallowed = {
 function on_key_press(key)
 	-- certain actions interrupt any unjams in progress
 	local bind = dik_to_bind(key)
-	if unjam_in_progress and disallowed[bind]then
+	if unjam_in_progress and disallowed[bind] then
 		print_dbg("unjam interrupted by action")
 		unjam_in_progress = false
 	end
@@ -956,11 +873,12 @@ end
 function actor_on_weapon_jammed(actor)
 	local wpn = db.actor:active_item()
 	if not jammed_guns[wpn:id()] then
-		if string.find(GAME_VERSION, "1.5.2") then
+		if not pcall(function(wpn)
 			wpn:cast_Weapon():SetMisfire(false)
-			jammed_guns[wpn:id()] = 1
-		else
-			jammed_guns[wpn:id()] = 4
+			set_jam_status(wpn:id(), 1)
+			print_dbg("Old jam erased")
+		end, wpn) then
+			set_jam_status(wpn:id(), 4)
 		end
 	end
 	jam_swearing()
@@ -973,11 +891,7 @@ function actor_on_weapon_reload(wpn)
 		-- drop mag if simplejam enabled and superjammed
 		if get_config("simplejam") and jammed_guns[id] == 2 then
 			-- on simplejam, unload the magazine
-			if mag_support.using_mags() and mag_support.is_mag_loaded(wpn) then
-				mag_support.eject_mag(wpn)
-			else
-				wpn:force_unload_magazine(true)
-			end
+			mag_support.eject_mag(wpn)
 		end
 		CreateTimeEvent("arti_jamming", "cancel_reload", 0.1, 
 			function(wpn)		
@@ -1046,12 +960,6 @@ function item_parts.evaluate_parts(obj)
 end
 
 function on_game_start()
-	overheat_data.base = ini_overheat:r_float_ex("overheat", "base_threshold") or 50
-	overheat_data.suppressor_mult = ini_overheat:r_float_ex("overheat", "suppressed_mult") or 0.6
-	overheat_data.damage = {}
-	overheat_data.damage[1] = ini_overheat:r_float_ex("overheat", "heat_1") or 1.2
-	overheat_data.damage[2] = ini_overheat:r_float_ex("overheat", "heat_2") or 2.5
-	overheat_data.damage[3] = ini_overheat:r_float_ex("overheat", "heat_3") or 4
 
 	-- add custom functors
 	custom_functor_autoinject.add_functor("arti_unjam", check_unjam, string_unjam, nil, unjam, false)
@@ -1061,7 +969,6 @@ function on_game_start()
 	RegisterScriptCallback("actor_on_weapon_before_fire",actor_on_weapon_before_fire)
 	RegisterScriptCallback("actor_on_weapon_fired",actor_on_weapon_fired)
 	RegisterScriptCallback("actor_on_weapon_reload",actor_on_weapon_reload)
-	RegisterScriptCallback("on_option_change",update_heat)
 	RegisterScriptCallback("actor_on_first_update",actor_on_first_update)
 	RegisterScriptCallback("npc_on_before_hit",npc_on_before_hit)
 	RegisterScriptCallback("monster_on_before_hit",monster_on_before_hit)

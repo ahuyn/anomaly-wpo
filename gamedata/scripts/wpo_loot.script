@@ -94,7 +94,6 @@ function death_manager.set_weapon_drop_condition(npc,itm)
 	end
 end
 
-local good_breakpoint = 60
 function weapon_eval_parts(wpn)
     local parts = get_parts_list(wpn)
 	local con = math_ceil(wpn:condition()*100)
