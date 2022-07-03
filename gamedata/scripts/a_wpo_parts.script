@@ -4,7 +4,7 @@ GetCost = utils_item.get_item_cost
 -- for mechanics, part prices are very high to buy
 function utils_item.get_item_cost(obj, profile)
 	if not (obj and profile) or utils_item.on_get_item_cost then
-		return
+		return  GetCost(obj, profile)
 	end
 	local sec = obj:section()
 	-- printf("profile cfg = %s, sec = %s, parent id %s", profile.cfg, sec, obj:parent() and obj:parent():id() or 0)
@@ -22,7 +22,7 @@ GetStatus = utils_item.get_item_trade_status
 function utils_item.get_item_trade_status(obj, profile)
 	
 	if not (obj and profile) or utils_item.on_get_item_cost then
-		return
+		return GetStatus(obj, profile)
 	end
 	
 	if not (IsWeapon(obj) and (not IsItem("fake_ammo_wpn",obj:section()))) or (obj:parent() and obj:parent():id() ~= 0) then return GetStatus(obj, profile) end
