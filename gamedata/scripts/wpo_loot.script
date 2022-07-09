@@ -8,6 +8,7 @@ is_part 			= arti_jamming.is_part
 get_parts_list 		= arti_jamming.get_parts_list
 get_config 			= a_arti_jamming_mcm.get_config
 math_ceil = math.ceil
+parts_list = a_wpo_parts.parts_list
 
 TraderAuto = trader_autoinject.update
 function trader_autoinject.update(npc)
