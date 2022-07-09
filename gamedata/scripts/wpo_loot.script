@@ -34,7 +34,7 @@ function add_parts(npc)
 		local supply_level = trader_autoinject.supply_level(npc, true) or 1
 		print_dbg("npc %s has supply level %s", npc:name(), supply_level)
 		for i=1,supply_level * BASE_AMT do
-			local part = parts_list[math.random(#parts_list)]
+			local part = random_key_table(parts_list)
 			print_dbg("Adding %s to trader %s", part, npc:name())
 			if tbl[part] then
 				tbl[part] = tbl[part] + 1
