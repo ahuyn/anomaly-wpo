@@ -5,6 +5,7 @@ local min_con_obj = 0.001
 local spare_parts = utils_data.collect_section(ini_parts,"weapons_spare_parts")
 local parts_info = {}
 ini_drop = wpo_loot.ini_drops
+parts_list = a_wpo_parts.parts_list
 
 gc = game.translate_string
 has_parts = arti_jamming.has_parts
@@ -18,7 +19,7 @@ current_id = arti_jamming.current_id
 reset_cgd = arti_jamming.reset_cgd
 SetTip = ui_workshop.SetTip
 is_barrel = arti_jamming.is_barrel
-is_trigger = arti_jamming.is_trigger	
+is_trigger = arti_jamming.is_trigger
 
 -- below here is all mostly copied from item repair and workshop, due to difficulty of patching
 
@@ -36,7 +37,6 @@ local function disassembly_weapon_spare_parts(sec, condition)
 			finale = finale + 1
 		end
 	end
-	
 	return finale
 end
 
@@ -350,10 +350,60 @@ end
 HowMuch = inventory_upgrades_mp.how_much_repair
 function inventory_upgrades_mp.how_much_repair( item_name, item_condition )
 	local base_cost = HowMuch(item_name, item_condition)
-
+	local cof = game_difficulties.get_eco_factor("repair") or 1.67
+	local id = inventory_upgrades_mp.get_repair_id()
 	if not section_has_parts(item_name) then return base_cost end
-	local wpncoef = string.find(item_name, "wpn_") and 0.35 or 1
-	return base_cost * wpncoef
+
+	local wpncoef = arti_jamming.sec_has_parts(item_name) and 0.2 or 1
+	
+	local parts_cost = repair_parts_price(inventory_upgrades_mp.get_repair_id())
+	return math_floor((base_cost * wpncoef) + (parts_cost * cof))
+end
+
+-- determine extra cost from parts and stuff
+function repair_parts_price(id)
+	local lvl = get_config("fullservice") or 0
+	local obj = get_object_by_id(id)
+	local parts = item_parts.get_parts_con(obj)
+	if lvl == 0 or not obj or not parts then return 0 end
+	local cost = 0
+	for k,v in pairs(parts) do
+		local part_cost = parts_list[k] or 0
+		-- pay replacement
+		if v < 60 and lvl == 2 then
+			cost = cost + part_cost
+		-- pay a 20% fractional cleaning fee
+		elseif v < 99 and lvl > 0 then
+			cost = cost + (part_cost / 5)
+		end
+	end
+	return cost
+end
+
+function tech_restore_parts(obj)
+	local parts = item_parts.get_parts_con(obj)
+	local lvl = get_config("fullservice") or 0
+	for k,v in pairs(parts) do
+		if v < 60 and lvl == 2 then
+			parts[k] = 99
+		-- pay a 20% fractional cleaning fee
+		elseif v < 99 and lvl > 0 then
+			parts[k] = 99
+		end
+	end
+	item_parts.set_parts_con(obj:id(), parts)
+	reset_cgd()
+end
+
+OnUIRepair = ui_inventory.UIInventory.RMode_RepairYes
+
+function ui_inventory.UIInventory:RMode_RepairYes()
+    
+	local obj = get_object_by_id(self.upgr.id)
+    OnUIRepair(self)
+    if has_parts(obj) then
+		tech_restore_parts(obj)
+	end
 end
 
 quality_map = {
@@ -385,7 +435,6 @@ name_mapping = {
 --Patching ui_item.script
 local string_find         = string.find
 local math_ceil           = math.ceil
-local math_floor          = math.floor
 local gc                  = game.translate_string
 local clr_r  = utils_xml.get_color("d_red")
 local clr_o  = utils_xml.get_color("d_orange")
@@ -394,7 +443,7 @@ local clr_g  = utils_xml.get_color("d_green")
 local clr_p  = utils_xml.get_color("d_purple")
 
 function process_part(name, condition)
-	local severity = condition == -1 and "missing" or math.floor(condition / 20)
+	local severity = condition == -1 and "missing" or math_floor(condition / 20)
 	local clr = clr_o
 	if condition > 79 then clr = clr_g
 	elseif condition > 59 then clr = clr_y 
@@ -569,8 +618,6 @@ function init_maintenance_menu(obj)
 	maint_gui:Reset(GetCursorPosition(), context_action, context_str, context_params)
 	ui_inventory.GUI:PlaySND(sound_object([[interface\inv_properties_2]]))
 end
-
-
 
 -- custom parts replacement shit
 

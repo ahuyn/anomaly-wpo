@@ -16,7 +16,11 @@ This is the meaty stuff. For an easier start guide, consult Maintenance Guide. Y
 - Mechanic repair is cheaper - you're only cleaning the weapon (Configurable with MCM).
 
 ## Technician changes (PLEASE READ)
-- Technicians will NOT restore parts condition. They will only restore base gun condition (they are only cleaning the weapon)
+
+- Technicians have three levels of service, configurable in MCM.
+- Clean Weapon Only restores weapon condition and no parts.
+- Clean Parts restores weapon parts if they are above 60%.
+- Full service completely fixes weapons and parts, but is the most expensive.
 - Technicians have random parts in stock. The amount increases with toolkits turned in.
 
 ## Parts overhaul

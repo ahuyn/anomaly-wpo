@@ -1,4 +1,4 @@
-local parts_list = {}
+parts_list = {}
 local ini_parts = itms_manager.ini_parts
 GetCost = utils_item.get_item_cost
 -- for mechanics, part prices are very high to buy
@@ -41,14 +41,12 @@ function utils_item.get_item_trade_status(obj, profile)
 end
 
 function on_game_start()
-	if not utils_item.on_get_item_cost then
-		local prices = ini_file("items\\settings\\part_prices.ltx")
-		local part_section = utils_data.collect_section(prices, "wpo_part_prices")
-		local n = prices:line_count("wpo_part_prices") or 0
+	local prices = ini_file("items\\settings\\part_prices.ltx")
+	local part_section = utils_data.collect_section(prices, "wpo_part_prices")
+	local n = prices:line_count("wpo_part_prices") or 0
 
-		for i=0, n-1 do
-			local result, sec, value = prices:r_line("wpo_part_prices" , i , "", "")
-			parts_list[sec] = value
-		end
+	for i=0, n-1 do
+		local result, sec, value = prices:r_line("wpo_part_prices" , i , "", "")
+		parts_list[sec] = value
 	end
 end

@@ -1,4 +1,5 @@
 local ini_parts   = itms_manager.ini_parts
+parts_list = a_wpo_parts.parts_list
 gc = game.translate_string
 math_random = math.random
 math_floor = math.floor
@@ -66,7 +67,7 @@ end
 local can_swear = true
 
 --gun jam play swearing sound
-function jam_swearing()
+local function jam_swearing()
 	local timeout = get_config("profanity_timeout")
 	if timeout and not can_swear then return end
 	if get_config("profanity") and math_random(1,100) > 50 then
@@ -79,12 +80,12 @@ function jam_swearing()
     end
 end
 
-function reset_swear()
+local function reset_swear()
 	can_swear = true
 	return true
 end
 
-function start_jammin(chance)
+local function start_jammin(chance)
 	local fun_level = get_config("fun")
 	fun_level = tonumber(fun_level)
 	print_dbg("fun level: %s", fun_level)
@@ -102,14 +103,14 @@ function start_jammin(chance)
 	end
 end
 
-function stop_jammin()
+local function stop_jammin()
 	if jammin:playing() then
 		jammin:stop()
 	end
 end
 
 function is_part(part)
-	return IsItem("part", part)
+	return parts_list[part]
 end
 
 function is_barrel(part)
@@ -119,7 +120,7 @@ function is_trigger(part)
 	return is_part(part) and string.find(part, "trigger")
 end
 
-function parent_section(sec)
+local function parent_section(sec)
 	return SYS_GetParam(0, sec,"parent_section") or sec
 end
 
@@ -137,7 +138,14 @@ end
 function has_parts(wpn)
 	return get_parts_list(wpn) ~= nil
 end
-
+ 
+function sec_has_parts(sec)
+	sec = parent_section(sec)
+	if sec then
+		return string.find(sec, "wpn_") and ini_parts:r_string_ex("con_parts_list", sec)
+	else return false
+	end
+end
 
 function missing_parts(wpn)
 	if wpn:id() == cgd.id then
