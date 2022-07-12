@@ -67,7 +67,7 @@ end
 local can_swear = true
 
 --gun jam play swearing sound
-local function jam_swearing()
+function jam_swearing()
 	local timeout = get_config("profanity_timeout")
 	if timeout and not can_swear then return end
 	if get_config("profanity") and math_random(1,100) > 50 then
@@ -80,12 +80,12 @@ local function jam_swearing()
     end
 end
 
-local function reset_swear()
+function reset_swear()
 	can_swear = true
 	return true
 end
 
-local function start_jammin(chance)
+function start_jammin(chance)
 	local fun_level = get_config("fun")
 	fun_level = tonumber(fun_level)
 	print_dbg("fun level: %s", fun_level)
@@ -103,7 +103,7 @@ local function start_jammin(chance)
 	end
 end
 
-local function stop_jammin()
+function stop_jammin()
 	if jammin:playing() then
 		jammin:stop()
 	end
@@ -629,25 +629,27 @@ function unjam_simple(weapon)
 	toggle_slot(0)
 
 	unjam_in_progress = true
+	print_dbg("Conducting simple unjam timed evt")
 	CreateTimeEvent("arti_jamming", "unjam"..id, 0.1, 
-	function(slot, id, sound, message, verbosity)
-		if not unjam_in_progress then
-			print_dbg("unjam_replace_simple interrupted")
-			toggle_slot(slot)
-			return true
-		end
-		local current_weapon = db.actor:active_item()
-		if current_weapon then return false end
-		
-		toggle_slot(slot)
-		-- premature interrupt
-		apply_unjam(id, sound, message, verbosity)
-	
-		return true
-	end,
+	unjam_simple_timed,
 	active_slot, id, sound, str, 1)
 end
 
+function unjam_simple_timed(slot, id, sound, message, verbosity)
+	if not unjam_in_progress then
+		print_dbg("unjam_replace_simple interrupted")
+		toggle_slot(slot)
+		return true
+	end
+	local current_weapon = db.actor:active_item()
+	if current_weapon then return false end
+	
+	toggle_slot(slot)
+	-- premature interrupt
+	apply_unjam(id, sound, message, verbosity)
+
+	return true
+end
 -- unjam held weapon with animation
 function unjam_anim(weapon)
 	stop_jammin()
