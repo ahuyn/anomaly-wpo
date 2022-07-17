@@ -186,7 +186,7 @@
 	<string id="ui_mcm_wpo_wpoecon_altpartroll">
 		<text>Weighted part conditions</text>
 	</string>
-	<string id="ui_mcm_wpo_wpoecon_altpart_desc">
+	<string id="ui_mcm_wpo_wpoecon_altpartroll_desc">
 		<text>Use new formula for weapon part drops, where condition of weapon determines if parts are rolled in good or bad condition. Improves drop quality at low tiers and reduces drop quality at high tiers.</text>
 	</string>
 	<string id="ui_mcm_wpo_wpoecon_minpart">
