@@ -1,7 +1,6 @@
 
 
 local function supports_mags(wpn)
-    printf("Check mag supported")
     if wuut_mags then
 		local defaultMagSection = wuut_mags.WeaponGetDefaulMagSection(wpn)
 		local defaultMagSectionExists = system_ini():section_exist(defaultMagSection)
@@ -13,7 +12,6 @@ local function supports_mags(wpn)
 end
 
 function eject_mag(wpn)
-    printf("Try eject mag")
     if not supports_mags(wpn) then 
         wpn:force_unload_magazine(true) 
         return
@@ -22,7 +20,6 @@ function eject_mag(wpn)
     if wuut_mags then
         return wuut_mags.weapon_eject_mag_functor(wpn)
     elseif magazines then
-        printf("Try eject mag from mag support")
         magazines.eject_magazine(wpn)
     else wpn:force_unload_magazine(true) end
 end

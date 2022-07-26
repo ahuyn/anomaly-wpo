@@ -28,12 +28,12 @@ function utils_item.get_item_trade_status(obj, profile)
 	if not (IsWeapon(obj) and (not IsItem("fake_ammo_wpn",obj:section()))) or (obj:parent() and obj:parent():id() ~= 0) then return GetStatus(obj, profile) end
 	
 	local parts = se_load_var(obj:id(), obj:name(), "parts")
-	printf("Checking parts for %s", obj:section())
+	-- printf("Checking parts for %s", obj:section())
 	if not parts then return GetStatus(obj, profile) end
 	local threshold = a_arti_jamming_mcm.get_config("minpart")
 	for k,v in pairs(parts) do
 		if string.find(k, "prt_w_") and v < threshold then
-			printf("weapon %s has busted part %s", obj:section(), k)
+			-- printf("weapon %s has busted part %s", obj:section(), k)
 			return 2
 		end
 	end

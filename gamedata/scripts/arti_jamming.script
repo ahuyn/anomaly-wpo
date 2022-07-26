@@ -612,8 +612,9 @@ function check_anim(weapon)
 	local bored_anim = hud and ini_sys:r_string_ex(hud, idle_section)
 	if bored_anim then
 		print_dbg("found bored anim "..bored_anim)
-		local bored_sound = bored_anim and ini_sys:r_string_ex(sec, "snd_bore") or "$no_sound"
-		play_anim(weapon, idle_section, bored_sound)
+		weapon:switch_state(4)
+		-- local bored_sound = bored_anim and ini_sys:r_string_ex(sec, "snd_bore") or "$no_sound"
+		-- play_anim(weapon, idle_section, bored_sound)
 	end
 	guarantee_not_jam = 1
 end

@@ -162,7 +162,8 @@
 		<text>Technician Service Level</text>
 	</string>
 	<string id="ui_mcm_wpo_wpoecon_fullservice_desc">
-		<text>Determines the level of service that technicians provide. 	\n\n Clean Weapon Only: Only restores base weapon condition.
+		<text>Determines the level of service that technicians provide. 	
+			\n\n Clean Weapon Only: Only restores base weapon condition.
 			\n\n Clean Parts: Restores base weapon condition and cleans parts, if applicable.
 			\n\n Full service: Restores base condition, fixes parts, replaces parts.
 		</text>
