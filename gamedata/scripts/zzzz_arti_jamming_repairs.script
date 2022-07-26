@@ -192,7 +192,6 @@ function ui_workshop.UIWorkshopRepair:ReplacePart()
 	end
 
 	if not has_parts(obj) then
-		print_dbg("ReplacePart: Not weapon, going through original route")
 		WorkshopReplacePart(self)
 		return
 	end
@@ -387,7 +386,7 @@ function tech_restore_parts(obj)
 		if v < 60 and lvl == 2 then
 			parts[k] = 99
 		-- pay a 20% fractional cleaning fee
-		elseif v < 99 and lvl > 0 then
+		elseif v < 99 and v > 59 and lvl == 1 then
 			parts[k] = 99
 		end
 	end
