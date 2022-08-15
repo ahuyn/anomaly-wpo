@@ -435,6 +435,33 @@ function calculate_misfire()
 	return misfire_chance
 end
 
+local allow_fire = true
+-- track first shot from weapon
+local start_shooting = false
+-- 'pull' is the factor of using a poor quality trigger and having it delay the shot / move point of aim
+-- local function manage_interrupt(wpn)
+	
+-- 	-- if it doesn't misfire, roll to pull the shot
+-- 	print_dbg("Weapon state: %s", wpn:get_state())
+-- 	actor_direction = vector_rotate_y(device().cam_dir, (math.random() - 0.5))
+-- 	-- db.actor:actor_look_at_point(vector():set(device().cam_pos):add(actor_direction:mul(300)))
+-- 	if allow_fire and start_shooting then
+-- 		print_dbg("Delaying shot")
+-- 		allow_fire = false
+-- 		CreateTimeEvent("arti pull", math.random(10), 0, function(wpn)
+-- 			print_dbg("Allowing delayed shot")
+-- 			allow_fire = true
+-- 			-- db.actor:actor_stop_look_at_point()
+-- 			wpn:switch_state(5)
+-- 			if is_shooting then
+-- 				level.press_action(bind_to_dik(key_bindings.kWPN_FIRE))
+-- 			end
+-- 			return true
+-- 		end, wpn)
+-- 	end
+-- 	return false
+-- end
+
 local last_wpn_snd_empty = {nil, "$no_sound", 1}
 local tg_snd_empty = 0
 local delay_snd_empty = 300 -- ms
@@ -449,63 +476,59 @@ function actor_on_weapon_before_fire(flags)
 		update_current()
 	end
 
-	if wpn and id == cgd.id then
-		if wpn:get_ammo_in_magazine() == 0 or not cgd.has_parts or wpn:weapon_in_grenade_mode() then
-			return 
-		end
+	if not wpn or not allow_fire or id ~= cgd.id or wpn:get_ammo_in_magazine() == 0 or not cgd.has_parts or wpn:weapon_in_grenade_mode() then return end
 
-		-- if missing parts do not roll for misfire
-		if missing_parts(wpn) then
-			send_msg(gc("ui_st_missing"), 1)
-			flags.ret_value = false
-			return
-		end
-		-- if guarantee not jam, don't even calculate this
-		if guarantee_not_jam > 0 then
-			return
-		end
-		local misfire_chance = calculate_misfire()
-		print_dbg("Misfire chance: "..misfire_chance)
-		if not jammed_guns[id] and math_random() < misfire_chance then
-			set_jam_status(wpn:id(), 1)
-		end
-		
-		local str = ""
-		-- check for malfunction
-		if is_jammed(wpn) then
-			local sec = wpn:section()
-			-- Cache
-			if (sec ~= last_wpn_snd_empty[1]) then
-				-- Reset
-				last_wpn_snd_empty[1] = sec
-				last_wpn_snd_empty[2] = "$no_sound"
-				last_wpn_snd_empty[3] = 1
-				
-				-- Get empty sound
-				local snd = ini_sys:r_string_ex(sec,"snd_empty")
-				if snd and (snd ~= "") then
-					snd = str_explode(snd,",")
-					last_wpn_snd_empty[2] = snd[1]
-					last_wpn_snd_empty[3] = snd[2] or 1
-				end
+	-- if missing parts do not roll for misfire
+	if missing_parts(wpn) then
+		send_msg(gc("ui_st_missing"), 1)
+		flags.ret_value = false
+		return
+	end
+	-- if guarantee not jam, don't even calculate this
+	if guarantee_not_jam > 0 then
+		return
+	end
+	local misfire_chance = calculate_misfire()
+	print_dbg("Misfire chance: "..misfire_chance)
+	if not jammed_guns[id] and math_random() < misfire_chance then
+		set_jam_status(id, 1)
+	end
+	
+	local str = ""
+	-- check for malfunction
+	if is_jammed(wpn) then
+		local sec = wpn:section()
+		-- Cache
+		if (sec ~= last_wpn_snd_empty[1]) then
+			-- Reset
+			last_wpn_snd_empty[1] = sec
+			last_wpn_snd_empty[2] = "$no_sound"
+			last_wpn_snd_empty[3] = 1
+			
+			-- Get empty sound
+			local snd = ini_sys:r_string_ex(sec,"snd_empty")
+			if snd and (snd ~= "") then
+				snd = str_explode(snd,",")
+				last_wpn_snd_empty[2] = snd[1]
+				last_wpn_snd_empty[3] = snd[2] or 1
 			end
-			-- Play empty clip sound
-			local tg = time_global()
-			if (last_wpn_snd_empty[2] ~= "$no_sound") and (tg > tg_snd_empty) then
-				utils_obj.play_sound( last_wpn_snd_empty[2], last_wpn_snd_empty[3] or 1 )
-				tg_snd_empty = tg + delay_snd_empty
-			end
-			--ADDED jam_swearing()
-			jam_swearing()			
-			start_jammin(2)
-			if (get_config("verbosity") == 2 and jammed_guns[id] == 3) then
-				str = gc("ui_st_superjam")
-			else
-				str = jammed_guns[id] == 1 and gc("ui_st_misfire") or gc("ui_st_jam")
-			end
-			-- Don't shoot
-			flags.ret_value = false
 		end
+		-- Play empty clip sound
+		local tg = time_global()
+		if (last_wpn_snd_empty[2] ~= "$no_sound") and (tg > tg_snd_empty) then
+			utils_obj.play_sound( last_wpn_snd_empty[2], last_wpn_snd_empty[3] or 1 )
+			tg_snd_empty = tg + delay_snd_empty
+		end
+		--ADDED jam_swearing()
+		jam_swearing()			
+		start_jammin(2)
+		if (get_config("verbosity") == 2 and jammed_guns[id] == 3) then
+			str = gc("ui_st_superjam")
+		else
+			str = jammed_guns[id] == 1 and gc("ui_st_misfire") or gc("ui_st_jam")
+		end
+		-- Don't shoot
+		flags.ret_value = false
 		send_msg(str, 1)
 	end
 end
@@ -881,6 +904,7 @@ function on_key_press(key)
 	end
 end
 
+
 function actor_on_weapon_jammed(actor)
 	local wpn = db.actor:active_item()
 	if not jammed_guns[wpn:id()] then
@@ -976,7 +1000,8 @@ function on_game_start()
 	custom_functor_autoinject.add_functor("arti_unjam", check_unjam, string_unjam, nil, unjam, false)
 
 	RegisterScriptCallback("on_key_press",on_key_press)
-    RegisterScriptCallback("actor_on_weapon_jammed",actor_on_weapon_jammed)
+
+	RegisterScriptCallback("actor_on_weapon_jammed",actor_on_weapon_jammed)
 	RegisterScriptCallback("actor_on_weapon_before_fire",actor_on_weapon_before_fire)
 	RegisterScriptCallback("actor_on_weapon_fired",actor_on_weapon_fired)
 	RegisterScriptCallback("actor_on_weapon_reload",actor_on_weapon_reload)

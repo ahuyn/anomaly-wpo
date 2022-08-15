@@ -190,11 +190,27 @@
 	<string id="ui_mcm_wpo_wpoecon_altpartroll_desc">
 		<text>Use new formula for weapon part drops, where condition of weapon determines if parts are rolled in good or bad condition. Improves drop quality at low tiers and reduces drop quality at high tiers.</text>
 	</string>
-	<string id="ui_mcm_wpo_wpoecon_minpart">
-		<text>Sale parts condition minimum</text>
+	
+	<string id="ui_mcm_wpo_wpoecon_saletype">
+		<text>Weapon Sale Logic</text>
 	</string>
-	<string id="ui_mcm_wpo_wpoecon_minpart_desc">
-		<text>Minimum condition for ALL parts for a weapon to be eligible for sale. If a weapon has ANY part below this condition, it will be blacklisted from sale. Set to 0 to disable.</text>
+	<string id="ui_mcm_wpo_wpoecon_saletype_desc">
+		<text>Determine how weapon selling works. \n \n
+			- Vanilla: Weapons sell for a price commensurate with their condition (not recommended for balance)\n
+			- Relaxed: Weapon sell price scales with part condition, based on damaged/not damaged (60% threshold). Recommended.\n
+			- Strict: Weapons must have all parts not damaged (>60%) in order to be eligible for sale.\n
+			Note that any missing part invalidates a weapon for sale, regardless of the conditions above.
+		</text>
+	</string>
+	
+	<string id="ui_mcm_lst_vanilla">
+		<text>Vanilla</text>
+	</string>
+	<string id="ui_mcm_lst_easy">
+		<text>Relaxed</text>
+	</string>
+	<string id="ui_mcm_lst_hard">
+		<text>Strict</text>
 	</string>
 	<string id="ui_mcm_wpo_wpoecon_easybarrel">
 		<text>Replace barrels without workbench</text>
@@ -346,6 +362,9 @@
 
 	<string id="st_dot">
 		<text>•</text>
+	</string>
+	<string id="st_clean_half">
+		<text>halved cleaning effectiveness below threshold: </text>
 	</string>
 	<string id="st_damage_missing">
 		<text>missing</text>

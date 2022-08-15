@@ -1,27 +1,27 @@
 parts_list = {}
 local ini_parts = itms_manager.ini_parts
-GetCost = utils_item.get_item_cost
--- for mechanics, part prices are very high to buy
-function utils_item.get_item_cost(obj, profile)
-	if not (obj and profile) or utils_item.on_get_item_cost then
-		return  GetCost(obj, profile)
-	end
-	local sec = obj:section()
-	-- printf("profile cfg = %s, sec = %s, parent id %s", profile.cfg, sec, obj:parent() and obj:parent():id() or 0)
-	if profile.cfg == "items\\trade\\trade_generic_mechanic.ltx" and parts_list[sec] and obj:parent() and obj:parent():id() ~= 0 then	
-		local discount = profile.discount
-		local cost_final = discount * parts_list[sec]
-		-- printf("Set sale cost of %s to be %s", sec, cost_final)
-		return cost_final
-	else
-		return GetCost(obj, profile)
-	end
-end
+-- GetCost = utils_item.get_item_cost
+-- -- for mechanics, part prices are very high to buy
+-- function utils_item.get_item_cost(obj, profile)
+-- 	if not (obj and profile) or utils_item.on_get_item_cost then
+-- 		return  GetCost(obj, profile)
+-- 	end
+-- 	local sec = obj:section()
+-- 	-- printf("profile cfg = %s, sec = %s, parent id %s", profile.cfg, sec, obj:parent() and obj:parent():id() or 0)
+-- 	if profile.cfg == "items\\trade\\trade_generic_mechanic.ltx" and parts_list[sec] and obj:parent() and obj:parent():id() ~= 0 then	
+-- 		local discount = profile.discount
+-- 		local cost_final = discount * parts_list[sec]
+-- 		-- printf("Set sale cost of %s to be %s", sec, cost_final)
+-- 		return cost_final
+-- 	else
+-- 		return GetCost(obj, profile)
+-- 	end
+-- end
 
 GetStatus = utils_item.get_item_trade_status
 function utils_item.get_item_trade_status(obj, profile)
 	
-	if not (obj and profile) or utils_item.on_get_item_cost then
+	if not (obj and profile) or profile.mode == 2 then
 		return GetStatus(obj, profile)
 	end
 	
@@ -30,14 +30,19 @@ function utils_item.get_item_trade_status(obj, profile)
 	local parts = se_load_var(obj:id(), obj:name(), "parts")
 	-- printf("Checking parts for %s", obj:section())
 	if not parts then return GetStatus(obj, profile) end
-	local threshold = a_arti_jamming_mcm.get_config("minpart")
+	local has_broken, has_missing = false, false
 	for k,v in pairs(parts) do
-		if string.find(k, "prt_w_") and v < threshold then
+		if string.find(k, "prt_w_") and v < 60 then
 			-- printf("weapon %s has busted part %s", obj:section(), k)
-			return 2
+			has_broken = true
+			if v == -1 then has_missing = true end
 		end
 	end
-	return GetStatus(obj, profile)
+	if has_missing or ( a_arti_jamming_mcm.get_config("saletype") == 2 and has_broken) then
+		return 2
+	else	
+		return GetStatus(obj, profile)
+	end
 end
 
 function on_game_start()
