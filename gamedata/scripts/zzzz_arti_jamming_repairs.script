@@ -832,7 +832,7 @@ function item_repair.UIRepair:OnItemSelect(n)
 	local sec_r = self.obj:section()
 	local threshold_repair = ini_custom_repair:section_exist(sec_r) and ini_custom_repair:r_float_ex(sec_r, "repair_threshold") or 0
 	print_dbg("Cond of item is %s, threshold %s", cond_1, threshold_repair)
-	local repair_add = repair_override.get_prop(sec_r,"repair_add_condition", 2) or 0
+	local repair_add = a_repair_override.get_prop(sec_r,"repair_add_condition", 2) or 0
 	self.add_condition = threshold_repair < cond_1 and repair_add or repair_add/2
 	RepairOnItemSelect(self, n)
 end
