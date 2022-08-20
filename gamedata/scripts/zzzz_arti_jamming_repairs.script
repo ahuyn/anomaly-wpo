@@ -19,7 +19,7 @@ math_floor = math.floor
 math_random = math.random
 current_id = arti_jamming.current_id
 reset_cgd = arti_jamming.reset_cgd
-SetTip = ui_workshop.SetTipd
+SetTip = ui_workshop.SetTip
 is_barrel = arti_jamming.is_barrel
 is_trigger = arti_jamming.is_trigger
 
