@@ -6,6 +6,8 @@ local spare_parts = utils_data.collect_section(ini_parts,"weapons_spare_parts")
 local parts_info = {}
 ini_drop = wpo_loot.ini_drops
 parts_list = a_wpo_parts.parts_list
+local ini_custom_repair = ini_file("repair\\importer.ltx")
+
 
 gc = game.translate_string
 has_parts = arti_jamming.has_parts
@@ -466,6 +468,20 @@ function process_part(name, condition)
 	return " " .. clr .. gc("st_dot") .. " " .. gc("st_damage_"..severity) .. " " .. gc("st_name_"..part_name) .. "\\n"
 end
 
+local clr_o  = utils_xml.get_color("d_orange")
+local clr_1  = utils_xml.get_color("ui_gray_2")
+local clr_2  = utils_xml.get_color("ui_gray_1")
+original_build_desc_footer = ui_item.build_desc_footer
+function ui_item.build_desc_footer(obj, sec, str)
+	str = original_build_desc_footer(obj, sec, str)
+	local threshold_repair = ini_custom_repair:section_exist(sec) and ini_custom_repair:r_float_ex(sec, "repair_threshold") or 0
+	if threshold_repair > 0 then
+		str = str .. clr_o .. "  ".. gc("st_dot") .." " .. clr_1 .. " " .. gc("st_clean_half") .. ": " .. clr_2 .. " " .. tostring(math_ceil(threshold_repair*100)) .. "% \\n"
+	end
+	
+	return str
+end
+
 original_build_desc_header = ui_item.build_desc_header
 function ui_item.build_desc_header(obj, sec, str)
 	local _str = ""
@@ -500,7 +516,7 @@ function has_suitable_kit(obj)
 	local repair_sec = SYS_GetParam(0, obj:section(), "repair_type") or "none"
 	local toolkit_sec = toolkit_map[repair_sec] or "none"
 	print_dbg("checking suitability for %s, repair %s", obj:section(), repair_sec)
-	local has_clean = db.actor:object(toolkit_sec[1])
+	local has_clean = db.actor:object(toolkit_sec[1]) or db.actor:object("cleaning_kit_u")
 	local has_repair = db.actor:object(toolkit_sec[2])
 	if not (has_clean or has_repair) then return false end
 	local parts = item_parts.get_parts_con(obj)
@@ -522,8 +538,9 @@ end
 function get_suitable_kit(obj, clean)
 	local repair_sec = SYS_GetParam(0, obj:section(), "repair_type") or "none"
 	local toolkit_sec = toolkit_map[repair_sec] or "none"
-
-	return clean and db.actor:object(toolkit_sec[1]) or db.actor:object(toolkit_sec[2])
+	if clean then
+		 return db.actor:object(toolkit_sec[1]) or db.actor:object("cleaning_kit_u")
+	else return db.actor:object(toolkit_sec[2]) end
 end
 
 function replace_name(name, clean)
@@ -817,6 +834,23 @@ local function on_item_drag_dropped(obj_1, obj_2, slot_from, slot_to)
 			news_manager.send_tip(db.actor, gc("st_news_parts_incompatible"), nil, "swiss_knife", 6000)
 		end
 	end
+end
+
+
+RepairOnItemSelect = item_repair.UIRepair.OnItemSelect
+function item_repair.UIRepair:OnItemSelect(n)
+	local obj_1 = self.CC[1]:GetCell_Selected(true) -- item to be fixed
+	local obj_n = self.CC[n]:GetCell_Selected(true) -- support item
+	if not (obj_1 and obj_n) then
+		return
+	end
+	local cond_1 = obj_1:condition()
+	local sec_r = self.obj:section()
+	local threshold_repair = ini_custom_repair:section_exist(sec_r) and ini_custom_repair:r_float_ex(sec_r, "repair_threshold") or 0
+	print_dbg("Cond of item is %s, threshold %s", cond_1, threshold_repair)
+	local repair_add = a_repair_override.get_prop(sec_r,"repair_add_condition", 2) or 0
+	self.add_condition = threshold_repair < cond_1 and repair_add or repair_add/2
+	RepairOnItemSelect(self, n)
 end
 
 function on_game_start()

@@ -58,6 +58,19 @@ function on_get_item_cost(kind, obj, profile, calculated_cost, ret)
 		if price and price > 0 then 
 			ret.new_cost = price * profile.discount
 		end
+	elseif has_parts(obj) and get_config("saletype") == 1 then
+		local parts = se_load_var(obj:id(), obj:name(), "parts")
+		local count, count_dmg = 0, 0
+		calculated_cost = ret.new_cost or calculated_cost
+		for k,v in pairs(parts) do
+			if is_part(k) then
+				count = count + 1
+				if v < 60 then
+					count_dmg = count_dmg + 1
+				end
+			end
+		end
+		ret.new_cost = clamp(calculated_cost * (1 - count_dmg/count), 1, calculated_cost)
 	end 
 end
 

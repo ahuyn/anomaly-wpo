@@ -1,3 +1,6 @@
+# NOTE
+Please download from 'releases' on the right hand side.
+
 Complete overhaul of weapon parts and jamming.
 
 # Motivation
@@ -73,6 +76,11 @@ Barrels below 75% condition will lose damage up to 50% less damage at 0% conditi
 Compatible with MCM. If MCM is not installed, variables can be tweaked in arti_jamming_mcm.
 
 ## Changelog
+### 1.13.2
+- Removed dependency on OPO patch and item_repair.ltx with new repair modifier system.
+- Changes to price and uses of weapon repair items have been reverted.
+- Repair items have been reworked appropriately. Solvents and sprays can be used from 25% condition but are half as effective below certain thresholds.
+- Simplified sale logic to be less restrictive.
 ### 1.13.1
 - Small tweaks for 1.5.2 support (implicit)
 - Classic jams now dovetail into the new jams
