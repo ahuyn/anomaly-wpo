@@ -19,7 +19,7 @@ math_floor = math.floor
 math_random = math.random
 current_id = arti_jamming.current_id
 reset_cgd = arti_jamming.reset_cgd
-SetTip = ui_workshop.SetTipd
+SetTip = ui_workshop.SetTip
 is_barrel = arti_jamming.is_barrel
 is_trigger = arti_jamming.is_trigger
 
@@ -652,7 +652,23 @@ function name_fieldstrip(obj)
 	return gc("st_field_strip")
 end
 
-function has_parts_fieldstrip(wpn)
+local allowed_modes = {
+	["inventory"] 	= true,
+	["loot"] 		= true
+}
+
+local allowed_bags = {
+	["actor_equ"] 	= true,
+	["actor_belt"] 	= true,
+	["actor_bag"] 	= true,
+	["npc_bag"] 	= true,
+}
+
+function has_parts_fieldstrip(wpn, bag, mode)
+	if not (allowed_modes[mode] and allowed_bags[bag]) then
+		return false
+	end
+
 	if not has_parts(wpn) then return false end
 	local parts = item_parts.get_parts_con(wpn, nil, true)
 	local has_parts = false
@@ -832,7 +848,7 @@ function item_repair.UIRepair:OnItemSelect(n)
 	local sec_r = self.obj:section()
 	local threshold_repair = ini_custom_repair:section_exist(sec_r) and ini_custom_repair:r_float_ex(sec_r, "repair_threshold") or 0
 	print_dbg("Cond of item is %s, threshold %s", cond_1, threshold_repair)
-	local repair_add = repair_override.get_prop(sec_r,"repair_add_condition", 2) or 0
+	local repair_add = a_repair_override.get_prop(sec_r,"repair_add_condition", 2) or 0
 	self.add_condition = threshold_repair < cond_1 and repair_add or repair_add/2
 	RepairOnItemSelect(self, n)
 end
@@ -840,7 +856,7 @@ end
 function on_game_start()
 	
 	disassembly_chance  = ini_parts:r_float_ex("settings","disassembly_chance") or 40
-	custom_functor_autoinject.add_functor("arti_fieldstrip", has_parts_fieldstrip, name_fieldstrip, nil, init_fieldstrip_menu, false)
+	custom_functor_autoinject.add_functor("arti_fieldstrip", has_parts_fieldstrip, name_fieldstrip, nil, init_fieldstrip_menu, true)
 	custom_functor_autoinject.add_functor("arti_maintain", check_maintain, name_maintain, nil, init_maintenance_menu, false)
     RegisterScriptCallback("ActorMenu_on_item_drag_drop",on_item_drag_dropped)
 end

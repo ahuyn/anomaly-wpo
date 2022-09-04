@@ -61,6 +61,7 @@ function on_get_item_cost(kind, obj, profile, calculated_cost, ret)
 	elseif has_parts(obj) and get_config("saletype") == 1 then
 		local parts = se_load_var(obj:id(), obj:name(), "parts")
 		local count, count_dmg = 0, 0
+		calculated_cost = ret.new_cost or calculated_cost
 		for k,v in pairs(parts) do
 			if is_part(k) then
 				count = count + 1

@@ -32,7 +32,7 @@ function utils_item.get_item_trade_status(obj, profile)
 	if not parts then return GetStatus(obj, profile) end
 	local has_broken, has_missing = false, false
 	for k,v in pairs(parts) do
-		if string.find(k, "prt_w_") and v < 60 then
+		if parts_list[k] and v < 60 then
 			-- printf("weapon %s has busted part %s", obj:section(), k)
 			has_broken = true
 			if v == -1 then has_missing = true end
