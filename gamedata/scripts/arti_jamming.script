@@ -156,6 +156,7 @@ function missing_parts(wpn)
 		end
 	else
 		local parts = item_parts.get_parts_con(wpn, nil, true)
+		if not parts or is_empty(parts) then return false end
 		for k,v in pairs(parts) do
 			if is_part(k) and v == -1 then return true end
 		end
@@ -845,8 +846,7 @@ function unjam(wpn)
 	local active_id = db.actor:active_item() and db.actor:active_item():id() or 0 
 	local sec = weapon:section()
 
-	if not weapon or not has_parts(weapon) then
-		send_msg(gc("ui_st_nothing"), 0)
+	if not weapon then
 		return
 	end
 
