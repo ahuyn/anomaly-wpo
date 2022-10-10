@@ -276,11 +276,11 @@ function update_current()
 		cgd.data = {}
 		local parent = parent_section(sec)
 		if not ini_weapon:section_exist(parent) then parent = "base" end
-		cgd.data.jam_chance = larp.str_explode_num(ini_weapon:r_string_ex(parent, "jam_chance"), ",")
+		cgd.data.jam_chance = larp.str_explode_num(ini_weapon:r_string_ex(parent, "jam_chance") or "0.001, 0.03, 0.09, 0.27, 0.81", ",")
 		cgd.data.misfire_chance = larp.str_explode_num(ini_weapon:r_string_ex(parent, "misfire_chance"), ",")
-		cgd.data.superjam_mult = ini_weapon:r_float_ex(parent, "superjam_mult")
-		cgd.data.damage_chance_mult = ini_weapon:r_float_ex(parent, "damage_chance_mult")
-		cgd.data.barrel_wear = ini_weapon:r_float_ex(parent, "barrel_wear")
+		cgd.data.superjam_mult = ini_weapon:r_float_ex(parent, "superjam_mult") or 1
+		cgd.data.damage_chance_mult = ini_weapon:r_float_ex(parent, "damage_chance_mult") or 1
+		cgd.data.barrel_wear = ini_weapon:r_float_ex(parent, "barrel_wear") or 1
 		cgd.ammo_data = utils_item.get_ammo(nil, wpn:id())
 	end
 end
