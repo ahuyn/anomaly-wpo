@@ -25,6 +25,27 @@ is_trigger = arti_jamming.is_trigger
 
 -- below here is all mostly copied from item repair and workshop, due to difficulty of patching
 
+-- monkey patches
+EvaluateParts = item_parts.evaluate_parts
+
+function item_parts.evaluate_parts(obj)
+    local sec = obj:section()
+	sec = SYS_GetParam(0, sec,"parent_section") or sec
+	local id = obj:id()
+	
+	local parts = ini_parts:r_string_ex("con_parts_list",sec)
+	if parts then
+		parts = str_explode(parts,",")
+		
+		local data = se_load_var(id, obj:name(), "parts")
+		-- premature terminate if data exists
+		if has_parts(obj) and data then return
+        else
+            EvaluateParts(obj)
+		end
+    end
+end
+
 -- original functions are local reeeee
 local function disassembly_weapon_spare_parts(sec, condition)
 	local single_handed = ini_sys:r_float_ex(sec,"single_handed") or 1
@@ -385,10 +406,10 @@ function tech_restore_parts(obj)
 	local parts = item_parts.get_parts_con(obj)
 	local lvl = get_config("fullservice") or 0
 	for k,v in pairs(parts) do
-		if v < 60 and lvl == 2 then
+		if lvl == 2 then
 			parts[k] = 99
 		-- pay a 20% fractional cleaning fee
-		elseif v < 99 and v > 59 and lvl == 1 then
+		elseif v > 59 and lvl == 1 then
 			parts[k] = 99
 		end
 	end

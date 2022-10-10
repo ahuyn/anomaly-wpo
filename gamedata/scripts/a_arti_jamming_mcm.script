@@ -19,7 +19,7 @@ local defaults = {
     ["profanity"] = true,
     ["profanity_timeout"] = true,
     ["profanity_language"] = "rus",
-    ["verbosity"] = 1,
+    ["verbosity"] = true,
     ["debug"] = false,
     ["fun"] = 0
 }
@@ -99,8 +99,8 @@ function on_mcm_load()
                     {id= "econtitle",type= "slide",text="ui_mcm_wpo_wpoecon",link="ui_options_slider_player",size= {512,50},spacing= 20},
                     {id = "degradation", type = "track", val = 2, min=1,max=3,step=0.1, def = 1.4},
                     {id = "threshold", type = "track", val = 2, min=60,max=99,step=1, def = 85},
-                    {id = "repairkit", type = "check", val = 1, def = true},                    
-                    {id = "altroll", type = "check", val = 1, def = false},                    
+                    {id = "repairkit", type = "check", val = 1, def = true},
+                    {id = "altroll", type = "check", val = 1, def = false},
                     {id = "altpartroll", type = "check", val = 1, def = false},
                     {id = "fullservice", type = "radio_h",  content={ {0, "clean"} , {1, "parts"}, {2, "full"}} ,val = 2, def = 2},
                     {id = "saletype", type = "list", val = 2, content={ {0,"vanilla"} , {1,"easy"}, {2,"hard"}}, def=1},                   
@@ -115,7 +115,7 @@ function on_mcm_load()
                     {id = "profanity", type = "check", val = 1, def = true},
                     {id = "profanity_timeout", type = "check", val = 1, def = true},
                     {id = "profanity_language", type = "radio_h",  content={ {"eng","eng"} , {"rus","rus"}} ,val = 0, def ="rus"},
-                    {id = "verbosity", type = "radio_h", val = 2, content={ {0,"verbosity_none"} , {1,"verbosity_normal"} , {2,"verbosity_full"} }, def = 1 },
+                    {id = "verbosity", type = "check", val = 1, def = true},
                     {id = "fun", type = "list", val = 2, content={ {0,"no"} , {1,"yes"}, {2,"ofc"}}, def=0},
                 }
             }
@@ -129,9 +129,6 @@ local modes = {
     [1] = { ["call"] = {"on_key_press", "on_key_hold"}, ["function"] = function(key) if ui_mcm.double_tap(mcm_id, key) then key_function() end end },
     [2] = { ["call"] = {"on_key_hold", "on_key_press"}, ["function"] = function(key) if ui_mcm.key_hold(mcm_id, key) then key_function() end end }
 }
-function key_func()
-    arti_jamming.unjam()
-end
 function on_key_press(key)
 	if not ui_mcm then
 		local bind = dik_to_bind(key)

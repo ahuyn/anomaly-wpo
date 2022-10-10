@@ -242,19 +242,10 @@
 		<text>Russian</text>
 	</string>
 	<string id="ui_mcm_wpo_wpomisc_verbosity">
-		<text>Jam message verbosity</text>
+		<text>Enable jam messaging</text>
 	</string>
 	<string id="ui_mcm_wpo_wpomisc_verbosity_desc">
-		<text>Verbosity of HUD jamming messages. There are three levels:\nNone: Only condition-based jam is alerted (because it is confusing otherwise).\nNormal (recommended): You will be notified when your weapon jams, when your weapon unjams successfully.\nFull: Everything with Normal, but you will also know when you have a severe jam that requires unloading the weapon and unjamming to clear, and when your weapon suffers component damage.</text>
-	</string>
-	<string id="ui_mcm_lst_verbosity_none">
-		<text>None</text>
-	</string>
-	<string id="ui_mcm_lst_verbosity_normal">
-		<text>Normal</text>
-	</string>
-	<string id="ui_mcm_lst_verbosity_full">
-		<text>Full</text>
+		<text>Controls whether or not information is displayed to user on jams and internal part damage.</text>
 	</string>
 	<string id="ui_mcm_wpo_wpomisc_fun">
 		<text>Fun level</text>
@@ -273,25 +264,6 @@
 	</string>
 	<string id="ui_mcm_wpo_wpomisc_debug_desc">
 		<text>Debug logging, enables a whole bunch of additional information in console log.</text>
-	</string>
-	<string id="ui_mcm_wpo_babymode">
-		<text>Disable weapon part based jams</text>
-	</string>
-	<string id="ui_mcm_wpo_babymode_desc">
-		<text>Why?</text>
-	</string>
-
-	<string id="ui_st_mockery_1">
-		<text>You would have jammed, but you couldn't handle it it seems.</text>
-	</string>
-	<string id="ui_st_mockery_2">
-		<text>Enjoying those easy repairs?</text>
-	</string>
-	<string id="ui_st_mockery_3">
-		<text>Why don't you increase your weight carried to 600 while you're at it?</text>
-	</string>
-	<string id="ui_st_mockery_4">
-		<text>I am disappointed in you.</text>
 	</string>
 
 	<string id="st_field_strip">

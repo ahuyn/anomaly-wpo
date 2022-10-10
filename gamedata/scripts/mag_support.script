@@ -1,4 +1,4 @@
-
+-- mag support wrapper
 
 local function supports_mags(wpn)
     if wuut_mags then

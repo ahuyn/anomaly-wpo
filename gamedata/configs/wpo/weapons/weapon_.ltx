@@ -1,0 +1,71 @@
+[base]
+jam_chance = 0.001, 0.03, 0.09, 0.27, 0.81
+misfire_chance = 0, 0.01, 0.02, 0.04, 0.08
+superjam_mult = 1
+damage_chance_mult = 1
+barrel_wear = 0.01
+unjam_sound = handgun_unjam
+jam_sound = PistolSmall_Malf
+damage_sound = Weapon_Break
+
+[base_pistol]:base
+jam_chance = 0.001, 0.01, 0.02, 0.04, 0.08
+
+; revolvers can only misfire
+[base_revolver]:base
+jam_chance = 0, 0, 0, 0, 0
+superjam_mult = 0
+jam_sound = ManuallyActivated_Malf
+
+[base_smg]:base
+unjam_sound = ar_unjam
+jam_sound = PlasticReceiver_Malf
+
+[base_shotgun_db]:base
+unjam_sound = shotgun_unjam
+barrel_wear = 0.1
+jam_chance = 0, 0, 0.01, 0.03, 0.1
+superjam_mult = 0
+misfire_chance = 0, 0.02, 0.04, 0.08, 0.16
+jam_sound = ManuallyActivated_Malf
+
+[base_shotgun_pump]:base
+unjam_sound = shotgun_unjam
+barrel_wear = 0.07
+jam_chance = 0, 0.01, 0.05, 0.10, 0.15
+superjam_mult = 0.5
+jam_sound = Shotgun_Malf
+
+[base_shotgun_semi]:base
+unjam_sound = ak_unjam
+barrel_wear = 0.05
+jam_sound = Shotgun_Malf
+
+[base_ak]:base
+jam_chance = 0.001, 0.02, 0.05, 0.15, 0.30
+unjam_sound = ak_unjam
+jam_sound = AR_Malf
+
+[base_ar]:base
+unjam_sound = ar_unjam
+jam_sound = AR_Malf
+
+; lr300, l85
+[base_ar_shitty]:base_ar
+jam_chance = 0.001, 0.05, 0.10, 0.20, 0.50
+superjam_mult = 2
+
+[base_sniper_bolt]:base
+unjam_sound = bolt_unjam
+superjam_mult = 0
+jam_sound = ManuallyActivated_Malf
+
+[base_sniper_semi]:base
+unjam_sound = ak_unjam
+jam_sound = AR_Malf
+
+[base_sniper_svt]:base
+jam_chance = 0.001, 0.05, 0.10, 0.20, 0.50
+damage_chance_mult = 2
+superjam_mult = 2
+jam_sound = AR_Malf
