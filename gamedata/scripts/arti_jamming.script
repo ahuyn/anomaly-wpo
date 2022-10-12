@@ -54,7 +54,7 @@ function set_jam_status(id, status)
 	jammed_guns[id] = status
 end
 
-function is_jammed(id)
+function get_jammed(id)
 	return jammed_guns[id] and jammed_guns[id] > 0
 end
 
@@ -456,13 +456,13 @@ function actor_on_weapon_before_fire(flags)
 	end
 	local misfire_chance = calculate_misfire()
 	print_dbg("Misfire chance: "..misfire_chance)
-	if not is_jammed(id) and math_random() < misfire_chance then
+	if not get_jammed(id) and math_random() < misfire_chance then
 		set_jam_status(id, 1)
 	end
 	
 	local str = ""
 	-- check for malfunction
-	if is_jammed(id) then
+	if get_jammed(id) then
 		local sec = wpn:section()
 		-- Cache
 		if (sec ~= last_wpn_snd_empty[1]) then
@@ -514,11 +514,11 @@ function actor_on_weapon_fired(obj, wpn, ammo_elapsed, grenade_elapsed, ammo_typ
 	wpn = utils_item.item_is_fa(wpn) and wpn
 	if not wpn then return end
 	
-	if is_jammed(id) then
+	if get_jammed(id) then
 		level.release_action(bind_to_dik(key_bindings.kWPN_FIRE))
 	end
 	if not cgd.parts or is_empty(cgd.parts) then return 
-	elseif (not is_jammed(id)) then
+	elseif (not get_jammed(id)) then
 		calculate_jam(wpn)
 		calculate_damage(wpn)
 	end
@@ -542,7 +542,7 @@ function actor_on_weapon_fired(obj, wpn, ammo_elapsed, grenade_elapsed, ammo_typ
 end
 
 function check_unjam(wpn)
-	return is_jammed(wpn:id())
+	return get_jammed(wpn:id())
 end
 
 function string_unjam()
@@ -874,7 +874,7 @@ end
 
 function actor_on_weapon_jammed(actor)
 	local wpn = db.actor:active_item()
-	if not is_jammed(wpn:id()) then
+	if not get_jammed(wpn:id()) then
 		if not pcall(function(wpn)
 			wpn:cast_Weapon():SetMisfire(false)
 			set_jam_status(wpn:id(), 1)
