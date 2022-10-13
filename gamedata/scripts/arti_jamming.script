@@ -389,7 +389,7 @@ local function calculate_damage(wpn)
 		persist_current_weapon()
 		CreateTimeEvent("arti_jamming", "damsound", 0.1, 
 		function(sec, key)
-			play_sound(nil, 1, sec, key)
+			play_sound(nil, 0.5, sec, key)
 			return true
 		end
 		, wpn:section(), "damage_sound")

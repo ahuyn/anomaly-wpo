@@ -17,7 +17,7 @@ function eject_mag(wpn)
         return
     end
     
-    if wuut_mags then
+    if wuut_mags and wuut_mags.MagazineInWeaponIsValid(wpn) then
         return wuut_mags.weapon_eject_mag_functor(wpn)
     elseif magazines then
         magazines.eject_magazine(wpn)
