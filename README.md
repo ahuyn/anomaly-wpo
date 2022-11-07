@@ -70,6 +70,8 @@ Quick guide to addressing jams:
 2. Press the unjam button.
 3. If your weapon is severely jammed, unload your weapon from the inventory. Press the unjam button.
 
+In addition to jams, other small issues will arise with poorly maintained parts. Unreliable triggers may not work when you want them, and weapon dirtiness may be randomly accelerated.
+
 Barrel quality affects damage dealt, because modifying dispersion dynamically is not possible.
 Barrels below 75% condition will lose damage up to 50% less damage at 0% condition.
 

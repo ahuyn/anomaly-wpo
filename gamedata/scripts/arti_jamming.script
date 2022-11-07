@@ -302,6 +302,17 @@ local function calculate_jam(wpn)
 	
 	jam_chance = calculate_jam_chance(wpn)
 
+	-- enhancing jam chance
+	jam_chance = jam_chance * get_config("jamchance")
+	-- also apply condition
+	local cond = wpn:condition()
+	local ratio = cond < 0.9 and 1 + (0.9-cond)/0.45 or 1
+	jam_chance = jam_chance * ratio
+
+	if using_old_ammo(wpn) then
+		jam_chance = jam_chance + 0.02
+	end
+
 	print_dbg("Final jam chance: %s", jam_chance)
 
 	if (math_random() < jam_chance) then
@@ -332,22 +343,8 @@ function calculate_jam_chance(wpn)
 		mechanism_cond = mechanism_cond + cgd.data.jam_chance[severity]
 		count = count + 1
 	end
-
-	-- jam chance. if we roll this twice, upgraded to severe jam
-	local jam_chance = count > 0 and mechanism_cond/count or 0
-	jam_chance = jam_chance * get_config("jamchance")
-	-- also apply condition
-	local cond = wpn:condition()
-	local ratio = cond < 0.9 and 1 + (0.9-cond)/0.45 or 1
-	jam_chance = jam_chance * ratio
-
-	if using_old_ammo(wpn) then
-		jam_chance = jam_chance + 0.02
-	end
-
-	return jam_chance
+	return mechanism_cond/count
 end
-
 
 -- Randomly damage 1 part of the weapon by DAMAGE, skipping barrels
 local function damage_part(wpn)
@@ -373,6 +370,16 @@ local function calculate_damage(wpn)
 	if (roll < damage_chance) then
 		damage_part(wpn)
 		damaged = true
+	end
+
+	-- calculate random condition damage
+	if wpn:condition() > 0.2 then
+		local chance = 2 * calculate_jam_chance(wpn)
+		if math_random() < chance then
+			local degrade = math_random(5)/100
+			wpn:set_condition(wpn:condition() - degrade, 0, 1)
+			damaged = true
+		end
 	end
 
 	local barrel_wear = calculate_barrel_wear(wpn, old_ammo)
@@ -454,8 +461,16 @@ function actor_on_weapon_before_fire(flags)
 	if guarantee_not_jam > 0 then
 		return
 	end
+
+	-- misfire the weapon
 	local misfire_chance = calculate_misfire()
 	print_dbg("Misfire chance: "..misfire_chance)
+	-- soft misfire
+	if math_random() < clamp(misfire_chance * 3, 0, 1) then
+		flags.ret_value = false
+		return
+	end
+	-- hard misfire
 	if not get_jammed(id) and math_random() < misfire_chance then
 		set_jam_status(id, 1)
 	end
