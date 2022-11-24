@@ -154,7 +154,7 @@ function custom_disassembly_weapon(obj, obj_d)
 	
 	-- Collect weapon parts
 	for k,v in pairs(parts) do
-		if (k ~= sec_p) and is_part(k) and v > 0 and (math.random(100) <= (disassembly_chance + con*100)) then
+		if (k ~= sec_p) and is_part(k) and v > 0 then
 			local index = #result_details
 			result_details[index + 1] = k
 			result_conditions[index + 1] = IsItem("part",k) and utils_item.get_cond_static(v) or v
@@ -286,7 +286,6 @@ function ui_workshop.UIWorkshopRepair:Repair()
 		return
 	end
 	
-	local sim = alife()
 	local tot_con = 0
 	local cnt = 0
 	if is_not_empty(self.new_con) then
@@ -367,14 +366,81 @@ function section_has_parts(sec)
 	local psec = ini_sys:r_string_ex(sec,"parent_section") or sec
 	local parts = ini_parts:r_string_ex("con_parts_list", psec)
 	return parts ~= nil
-end 
+end
+
+--[[
+	0 = clean only
+	1 = clean parts (req. basic)
+	2 = full service
+]]
+
+rtype = 0
+
+GUI = nil -- instance, don't touch
+function ui_inventory.UIInventory:rotate()
+	rtype = math.fmod(rtype+1, 3)
+	self.repair_type_txt:SetText(gc("st_wpn_clean_"..rtype))
+end
+
+function ui_inventory.UIInventory:InitRepairTypeButton()
+	self.repair_type_btn = self.xml:Init3tButton("npc:trade_delimiter:trade_buy_button", self.npc_up_dialog)
+
+	self.repair_type_txt = self.xml:InitTextWnd("npc:trade_delimiter:trade_price", self.npc_up_dialog)
+
+	local txt_x = self.npc_up_name:GetWndPos().x
+	local txt_y = self.npc_up_money:GetWndPos().y
+	local btn_y = self.npc_up_repair:GetWndPos().y
+
+	self.repair_type_txt:SetWndPos(vector2():set(
+		txt_x,
+		txt_y
+	))
+	self.repair_type_btn:SetWndPos(vector2():set(
+		txt_x,
+		btn_y
+	))
+
+	self.repair_type_txt:SetText(gc("st_wpn_clean_"..rtype))
+	self.repair_type_btn:TextControl():SetText(gc("st_wpn_clean_cycle"))
+	
+	self:Register(self.repair_type_btn, "repair_type")
+	self:AddCallback("repair_type", ui_events.BUTTON_CLICKED, self.rotate, self)
+
+end
+
+function GUI_on_show(name, path)
+	local instance = ui_inventory.GUI
+	if name ~= "UIInventory" or (not instance ) then return end
+
+	if (not instance.repair_type_btn) then
+		instance:InitRepairTypeButton()
+	end
+	-- local partner = instance:GetPartner()
+
+	-- instance.repair_type_btn:Show(instance.mode == "repair")
+end
+
+InitItem = ui_inventory.UIInventory.RMode_InitItem
+function ui_inventory.UIInventory:RMode_InitItem(obj, bag, idx)
+	InitItem(self, obj, bag, idx)
+	local is_wep = IsWeapon(obj) and section_has_parts(obj:section())
+	if not self.repair_type_btn then self:InitRepairTypeButton() end
+	self.repair_type_btn:Show(is_wep)
+	self.repair_type_txt:Show(is_wep)
+end
+
+Close = ui_inventory.UIInventory.Close
+function ui_inventory.UIInventory:Close()
+	Close(self)
+	rtype = 0
+end
 
 HowMuch = inventory_upgrades_mp.how_much_repair
 function inventory_upgrades_mp.how_much_repair( item_name, item_condition )
 	local base_cost = HowMuch(item_name, item_condition)
+	if not section_has_parts(item_name) then return base_cost end
 	local cof = game_difficulties.get_eco_factor("repair") or 1.67
 	local id = inventory_upgrades_mp.get_repair_id()
-	if not section_has_parts(item_name) then return base_cost end
 
 	local wpncoef = arti_jamming.sec_has_parts(item_name) and 0.2 or 1
 	
@@ -384,7 +450,7 @@ end
 
 -- determine extra cost from parts and stuff
 function repair_parts_price(id)
-	local lvl = get_config("fullservice") or 0
+	local lvl = rtype
 	local obj = get_object_by_id(id)
 	local parts = item_parts.get_parts_con(obj)
 	if lvl == 0 or not obj or not parts then return 0 end
@@ -880,4 +946,5 @@ function on_game_start()
 	custom_functor_autoinject.add_functor("arti_fieldstrip", has_parts_fieldstrip, name_fieldstrip, nil, init_fieldstrip_menu, true)
 	custom_functor_autoinject.add_functor("arti_maintain", check_maintain, name_maintain, nil, init_maintenance_menu, false)
     RegisterScriptCallback("ActorMenu_on_item_drag_drop",on_item_drag_dropped)
+	RegisterScriptCallback("GUI_on_show", GUI_on_show)
 end

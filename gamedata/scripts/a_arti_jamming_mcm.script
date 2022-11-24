@@ -12,7 +12,7 @@ local defaults = {
     ["altroll"] = false,
     ["altpartroll"] = false,
     ["saletype"] = 1,
-    ["fullservice"] = 2,
+    -- ["fullservice"] = 2,
     ["easybarrel"] = false,
     ["easytrigger"] = true,
 
@@ -37,7 +37,7 @@ local mcm_map = {
     ["altroll"] = "wpoecon",
     ["altpartroll"] = "wpoecon",
     ["saletype"] = "wpoecon",
-    ["fullservice"] = "wpoecon",
+    -- ["fullservice"] = "wpoecon",
     ["easybarrel"] = "wpoecon",
     ["easytrigger"] = "wpoecon",
 
@@ -102,7 +102,7 @@ function on_mcm_load()
                     {id = "repairkit", type = "check", val = 1, def = true},
                     {id = "altroll", type = "check", val = 1, def = false},
                     {id = "altpartroll", type = "check", val = 1, def = false},
-                    {id = "fullservice", type = "radio_h",  content={ {0, "clean"} , {1, "parts"}, {2, "full"}} ,val = 2, def = 2},
+                    -- {id = "fullservice", type = "radio_h",  content={ {0, "clean"} , {1, "parts"}, {2, "full"}} ,val = 2, def = 2},
                     {id = "saletype", type = "list", val = 2, content={ {0,"vanilla"} , {1,"easy"}, {2,"hard"}}, def=1},                   
                     {id = "easybarrel", type = "check", val = 1, def = false},
                     {id = "easytrigger", type = "check", val = 1, def = true},
