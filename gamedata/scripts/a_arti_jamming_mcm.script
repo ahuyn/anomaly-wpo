@@ -75,7 +75,6 @@ function on_mcm_load()
                     {id = "superjam", type = "check", val = 1, def = true},
                     {id = "simplejam", type = "check", val = 1, def = false},
                     {id = "oldammo", type = "check", val = 1, def = true},
-                    -- {id = "heat", type = "check", val = 1, def = false},
                     { id = "keybind", type = "key_bind"          , val = 2, def = mcm_key },
                     { id = "modifier", type = ui_mcm.kb_mod_radio , val = 2, def = 1, hint = "mcm_kb_mode" , 
                         content = {

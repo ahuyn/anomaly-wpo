@@ -376,7 +376,6 @@ end
 
 rtype = 0
 
-GUI = nil -- instance, don't touch
 function ui_inventory.UIInventory:rotate()
 	rtype = math.fmod(rtype+1, 3)
 	self.repair_type_txt:SetText(gc("st_wpn_clean_"..rtype))
@@ -450,18 +449,17 @@ end
 
 -- determine extra cost from parts and stuff
 function repair_parts_price(id)
-	local lvl = rtype
 	local obj = get_object_by_id(id)
 	local parts = item_parts.get_parts_con(obj)
-	if lvl == 0 or not obj or not parts then return 0 end
+	if rtype == 0 or not obj or not parts then return 0 end
 	local cost = 0
 	for k,v in pairs(parts) do
 		local part_cost = parts_list[k] or 0
 		-- pay replacement
-		if v < 60 and lvl == 2 then
+		if v < 60 and rtype == 2 then
 			cost = cost + part_cost
 		-- pay a 20% fractional cleaning fee
-		elseif v < 99 and lvl > 0 then
+		elseif v < 99 and rtype > 0 then
 			cost = cost + (part_cost / 5)
 		end
 	end
@@ -470,12 +468,11 @@ end
 
 function tech_restore_parts(obj)
 	local parts = item_parts.get_parts_con(obj)
-	local lvl = get_config("fullservice") or 0
 	for k,v in pairs(parts) do
-		if lvl == 2 then
+		if rtype == 2 then
 			parts[k] = 99
 		-- pay a 20% fractional cleaning fee
-		elseif v > 59 and lvl == 1 then
+		elseif v > 59 and rtype == 1 then
 			parts[k] = 99
 		end
 	end
