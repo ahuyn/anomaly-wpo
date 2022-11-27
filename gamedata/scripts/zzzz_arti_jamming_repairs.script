@@ -205,6 +205,8 @@ function custom_disassembly_weapon(obj, obj_d)
 	CreateTimeEvent(0,"delay_disassembly" .. id, delay, timer_disassembly_weapon, npc:id(), result_details, result_conditions, name)
 end
 
+
+
 -- here we go again
 WorkshopReplacePart = ui_workshop.UIWorkshopRepair.ReplacePart
 
@@ -236,25 +238,21 @@ function ui_workshop.UIWorkshopRepair:ReplacePart()
 	
 	-- Calculate individual condition and update text
 	self.btn_repair:Enable(true)
-	local tot_con = 0
 	local cnt = 0
-	local active = 0
 	for i=1,6 do
 		if self.parts[i] and self.parts[i].sec and (self.parts[i].sec ~= "na") then
 			local t = self.parts[i].con
 			if self.new_con[i] then
 				t = self.new_con[i].con
-				active = active + 1
 			end
 			local clr = utils_xml.get_color_con(t)
-			self.itm_con[i]:SetText(clr .. t .. "%")
-			tot_con = tot_con + t --AdjustCon(self.parts[i].sec, t, #self.parts, IsOutfit(self.object))
-			cnt = cnt + 1
+			local str = t < 0 and "[X]" or t .. "%"
+			self.itm_con[i]:SetText(clr .. str)
 		end
 	end
 	
 	-- Calculate total condition and update text
-	tot_con = clamp(math.ceil(obj:condition() * 100),0,100)
+	local tot_con = clamp(math.ceil(obj:condition() * 100),0,100)
 	self.itm_con_r:SetText(tot_con .. "%")
 	
 	-- Update remaining toolkit count
@@ -271,6 +269,16 @@ function ui_workshop.UIWorkshopRepair:ReplacePart()
 	-- Reset
 	self.selected_btn = nil
 	self.highlight_btn = nil
+end
+
+WorkshopPartScheme = ui_workshop.UIWorkshopRepair.ListPartScheme
+function ui_workshop.UIWorkshopRepair:ListPartScheme()
+	WorkshopPartScheme(self)
+	for i=1,6 do
+		if self.parts[i] and self.parts[i].sec and (self.parts[i].sec ~= "na") and self.parts[i].con < 0 then
+			self.itm_con[i]:SetText(utils_xml.get_color("d_red") .. "[X]")
+		end
+	end
 end
 
 WorkshopRepair = ui_workshop.UIWorkshopRepair.Repair
