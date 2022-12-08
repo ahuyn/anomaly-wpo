@@ -154,7 +154,7 @@ function custom_disassembly_weapon(obj, obj_d)
 	
 	-- Collect weapon parts
 	for k,v in pairs(parts) do
-		if (k ~= sec_p) and is_part(k) and v > 0 and (math.random(100) <= (disassembly_chance + con*100)) then
+		if (k ~= sec_p) and is_part(k) and v > 0 then
 			local index = #result_details
 			result_details[index + 1] = k
 			result_conditions[index + 1] = IsItem("part",k) and utils_item.get_cond_static(v) or v
@@ -205,6 +205,8 @@ function custom_disassembly_weapon(obj, obj_d)
 	CreateTimeEvent(0,"delay_disassembly" .. id, delay, timer_disassembly_weapon, npc:id(), result_details, result_conditions, name)
 end
 
+
+
 -- here we go again
 WorkshopReplacePart = ui_workshop.UIWorkshopRepair.ReplacePart
 
@@ -236,25 +238,21 @@ function ui_workshop.UIWorkshopRepair:ReplacePart()
 	
 	-- Calculate individual condition and update text
 	self.btn_repair:Enable(true)
-	local tot_con = 0
 	local cnt = 0
-	local active = 0
 	for i=1,6 do
 		if self.parts[i] and self.parts[i].sec and (self.parts[i].sec ~= "na") then
 			local t = self.parts[i].con
 			if self.new_con[i] then
 				t = self.new_con[i].con
-				active = active + 1
 			end
 			local clr = utils_xml.get_color_con(t)
-			self.itm_con[i]:SetText(clr .. t .. "%")
-			tot_con = tot_con + t --AdjustCon(self.parts[i].sec, t, #self.parts, IsOutfit(self.object))
-			cnt = cnt + 1
+			local str = t < 0 and "[X]" or t .. "%"
+			self.itm_con[i]:SetText(clr .. str)
 		end
 	end
 	
 	-- Calculate total condition and update text
-	tot_con = clamp(math.ceil(obj:condition() * 100),0,100)
+	local tot_con = clamp(math.ceil(obj:condition() * 100),0,100)
 	self.itm_con_r:SetText(tot_con .. "%")
 	
 	-- Update remaining toolkit count
@@ -273,6 +271,16 @@ function ui_workshop.UIWorkshopRepair:ReplacePart()
 	self.highlight_btn = nil
 end
 
+WorkshopPartScheme = ui_workshop.UIWorkshopRepair.ListPartScheme
+function ui_workshop.UIWorkshopRepair:ListPartScheme()
+	WorkshopPartScheme(self)
+	for i=1,6 do
+		if self.parts[i] and self.parts[i].sec and (self.parts[i].sec ~= "na") and self.parts[i].con < 0 then
+			self.itm_con[i]:SetText(utils_xml.get_color("d_red") .. "[X]")
+		end
+	end
+end
+
 WorkshopRepair = ui_workshop.UIWorkshopRepair.Repair
 function ui_workshop.UIWorkshopRepair:Repair()
 	local obj = self.CC["inventory"]:GetCell_Selected(true)
@@ -286,7 +294,6 @@ function ui_workshop.UIWorkshopRepair:Repair()
 		return
 	end
 	
-	local sim = alife()
 	local tot_con = 0
 	local cnt = 0
 	if is_not_empty(self.new_con) then
@@ -367,14 +374,80 @@ function section_has_parts(sec)
 	local psec = ini_sys:r_string_ex(sec,"parent_section") or sec
 	local parts = ini_parts:r_string_ex("con_parts_list", psec)
 	return parts ~= nil
-end 
+end
+
+--[[
+	0 = clean only
+	1 = clean parts (req. basic)
+	2 = full service
+]]
+
+rtype = 0
+
+function ui_inventory.UIInventory:rotate()
+	rtype = math.fmod(rtype+1, 3)
+	self.repair_type_txt:SetText(gc("st_wpn_clean_"..rtype))
+end
+
+function ui_inventory.UIInventory:InitRepairTypeButton()
+	self.repair_type_btn = self.xml:Init3tButton("npc:trade_delimiter:trade_buy_button", self.npc_up_dialog)
+
+	self.repair_type_txt = self.xml:InitTextWnd("npc:trade_delimiter:trade_price", self.npc_up_dialog)
+
+	local txt_x = self.npc_up_name:GetWndPos().x
+	local txt_y = self.npc_up_money:GetWndPos().y
+	local btn_y = self.npc_up_repair:GetWndPos().y
+
+	self.repair_type_txt:SetWndPos(vector2():set(
+		txt_x,
+		txt_y
+	))
+	self.repair_type_btn:SetWndPos(vector2():set(
+		txt_x,
+		btn_y
+	))
+
+	self.repair_type_txt:SetText(gc("st_wpn_clean_"..rtype))
+	self.repair_type_btn:TextControl():SetText(gc("st_wpn_clean_cycle"))
+	
+	self:Register(self.repair_type_btn, "repair_type")
+	self:AddCallback("repair_type", ui_events.BUTTON_CLICKED, self.rotate, self)
+
+end
+
+function GUI_on_show(name, path)
+	local instance = ui_inventory.GUI
+	if name ~= "UIInventory" or (not instance ) then return end
+
+	if (not instance.repair_type_btn) then
+		instance:InitRepairTypeButton()
+	end
+	-- local partner = instance:GetPartner()
+
+	-- instance.repair_type_btn:Show(instance.mode == "repair")
+end
+
+InitItem = ui_inventory.UIInventory.RMode_InitItem
+function ui_inventory.UIInventory:RMode_InitItem(obj, bag, idx)
+	InitItem(self, obj, bag, idx)
+	local is_wep = IsWeapon(obj) and section_has_parts(obj:section())
+	if not self.repair_type_btn then self:InitRepairTypeButton() end
+	self.repair_type_btn:Show(is_wep)
+	self.repair_type_txt:Show(is_wep)
+end
+
+Close = ui_inventory.UIInventory.Close
+function ui_inventory.UIInventory:Close()
+	Close(self)
+	rtype = 0
+end
 
 HowMuch = inventory_upgrades_mp.how_much_repair
 function inventory_upgrades_mp.how_much_repair( item_name, item_condition )
 	local base_cost = HowMuch(item_name, item_condition)
+	if not section_has_parts(item_name) then return base_cost end
 	local cof = game_difficulties.get_eco_factor("repair") or 1.67
 	local id = inventory_upgrades_mp.get_repair_id()
-	if not section_has_parts(item_name) then return base_cost end
 
 	local wpncoef = arti_jamming.sec_has_parts(item_name) and 0.2 or 1
 	
@@ -384,18 +457,17 @@ end
 
 -- determine extra cost from parts and stuff
 function repair_parts_price(id)
-	local lvl = get_config("fullservice") or 0
 	local obj = get_object_by_id(id)
 	local parts = item_parts.get_parts_con(obj)
-	if lvl == 0 or not obj or not parts then return 0 end
+	if rtype == 0 or not obj or not parts then return 0 end
 	local cost = 0
 	for k,v in pairs(parts) do
 		local part_cost = parts_list[k] or 0
 		-- pay replacement
-		if v < 60 and lvl == 2 then
+		if v < 60 and rtype == 2 then
 			cost = cost + part_cost
 		-- pay a 20% fractional cleaning fee
-		elseif v < 99 and lvl > 0 then
+		elseif v < 99 and rtype > 0 then
 			cost = cost + (part_cost / 5)
 		end
 	end
@@ -404,12 +476,11 @@ end
 
 function tech_restore_parts(obj)
 	local parts = item_parts.get_parts_con(obj)
-	local lvl = get_config("fullservice") or 0
 	for k,v in pairs(parts) do
-		if lvl == 2 then
+		if rtype == 2 then
 			parts[k] = 99
 		-- pay a 20% fractional cleaning fee
-		elseif v > 59 and lvl == 1 then
+		elseif v > 59 and rtype == 1 then
 			parts[k] = 99
 		end
 	end
@@ -880,4 +951,5 @@ function on_game_start()
 	custom_functor_autoinject.add_functor("arti_fieldstrip", has_parts_fieldstrip, name_fieldstrip, nil, init_fieldstrip_menu, true)
 	custom_functor_autoinject.add_functor("arti_maintain", check_maintain, name_maintain, nil, init_maintenance_menu, false)
     RegisterScriptCallback("ActorMenu_on_item_drag_drop",on_item_drag_dropped)
+	RegisterScriptCallback("GUI_on_show", GUI_on_show)
 end

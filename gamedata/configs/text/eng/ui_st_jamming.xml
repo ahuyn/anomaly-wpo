@@ -169,13 +169,16 @@
 		</text>
 	</string>
 	
-	<string id="ui_mcm_lst_clean">
+	<string id="st_wpn_clean_cycle">
+		<text>Change Repair Type</text>
+	</string>
+	<string id="st_wpn_clean_0">
 		<text>Clean Weapon Only</text>
 	</string>
-	<string id="ui_mcm_lst_parts">
+	<string id="st_wpn_clean_1">
 		<text>Clean Parts</text>
 	</string>
-	<string id="ui_mcm_lst_full">
+	<string id="st_wpn_clean_2">
 		<text>Full Service</text>
 	</string>
 	<string id="ui_mcm_wpo_wpoecon_altroll">
