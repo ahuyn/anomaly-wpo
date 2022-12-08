@@ -669,7 +669,8 @@ function unjam_anim(weapon)
 		unjam_in_progress = true
 		local to_search = utils_item.addon_attached(weapon ,"gl") and "anm_reload_misfire_w_gl" or "anm_reload_misfire"
 		local unjam_sound = ini_sys:r_string_ex(sec, "snd_reload_misfire") or ini_sys:r_string_ex(sec, "snd_reload_1") or "$no_sound"
-		length = play_anim(weapon, to_search, unjam_sound)
+		-- shorten time so that jam is cleared before the next animation plays
+		length = play_anim(weapon, to_search, unjam_sound) - 10
 		CreateTimeEvent("arti_jamming", "restore", length/1000, apply_unjam, id)
 	end
 
@@ -948,6 +949,13 @@ function monster_on_before_hit(monster,shit,bone_id, flags)
 	reduce_damage(monster, shit, bone_id, flags)
 end
 
+-- Clear jam mid animation with motion marks
+function actor_on_hud_animation_mark(state, mark)
+	if mark == "clear_jam" then
+		ResetTimeEvent("arti_jamming", "restore", 0)
+	end
+end
+
 function on_game_start()
 
 	-- add custom functors
@@ -960,4 +968,5 @@ function on_game_start()
 	RegisterScriptCallback("actor_on_first_update",actor_on_first_update)
 	RegisterScriptCallback("npc_on_before_hit",npc_on_before_hit)
 	RegisterScriptCallback("monster_on_before_hit",monster_on_before_hit)
+	RegisterScriptCallback("actor_on_hud_animation_mark",actor_on_hud_animation_mark)
 end
