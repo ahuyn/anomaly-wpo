@@ -6,6 +6,15 @@ math_random = math.random
 math_floor = math.floor
 local jammin = sound_object("wpo\\jammin")
 
+-- Enum for different types of jams
+JamType = {
+	OK = 0,
+	Misfire = 1, -- No discharge
+	FailureToEject = 2, -- Discharge
+	DoubleFeed = 3, -- Discharge, Need to remove magazine
+	Classic = 4, -- Just reload
+}
+
 -- associate jammed guns to type of jam
 local jammed_guns 	= {}
 --[[
@@ -317,10 +326,10 @@ local function calculate_jam(wpn)
 
 	if (math_random() < jam_chance) then
 		if wpn:get_ammo_in_magazine() > 0 and get_config("superjam") and (math_random() < (cgd.data.superjam_mult * jam_chance/2)) then
-			set_jam_status(wpn:id(), 2)
+			set_jam_status(wpn:id(), JamType.DoubleFeed)
 			print_dbg("Severe jam")
 		else
-			set_jam_status(wpn:id(), 1)
+			set_jam_status(wpn:id(), JamType.FailureToEject)
 			print_dbg("Normal jam")
 		end
 		start_jammin(2)
@@ -470,9 +479,16 @@ function actor_on_weapon_before_fire(flags)
 		flags.ret_value = false
 		return
 	end
+	-- FTE/Double feed
+	if not get_jammed(id) then
+		calculate_jam(wpn)
+		if get_jammed(id) then
+			return
+		end
+	end
 	-- hard misfire
 	if not get_jammed(id) and math_random() < misfire_chance then
-		set_jam_status(id, 1)
+		set_jam_status(id, JamType.Misfire)
 	end
 	
 	local str = ""
@@ -503,7 +519,7 @@ function actor_on_weapon_before_fire(flags)
 		--ADDED jam_swearing()
 		jam_swearing()			
 		start_jammin(2)
-		if (get_jam_status(id) == 2) then
+		if (get_jam_status(id) == JamType.DoubleFeed) then
 			str = "ui_st_superjam"
 		else
 			str = "ui_st_jam"
@@ -532,9 +548,9 @@ function actor_on_weapon_fired(obj, wpn, ammo_elapsed, grenade_elapsed, ammo_typ
 	if get_jammed(id) then
 		level.release_action(bind_to_dik(key_bindings.kWPN_FIRE))
 	end
-	if not cgd.parts or is_empty(cgd.parts) then return 
-	elseif (not get_jammed(id)) then
-		calculate_jam(wpn)
+	if not cgd.parts or is_empty(cgd.parts) then return
+	elseif (not get_jammed(id) or get_jam_status(id) == JamType.FailureToEject
+							   or get_jam_status(id) == JamType.DoubleFeed) then
 		calculate_damage(wpn)
 	end
 
@@ -659,6 +675,10 @@ function unjam_simple_timed(slot, id, sound, message)
 end
 -- unjam held weapon with animation
 function unjam_anim(weapon)
+	-- don't unjam if weapon is still in Fire state
+	if weapon:get_state() == 5 then
+		return
+	end
 	stop_jammin()
 	local str = gc("ui_st_unjam")
 	local id = weapon:id()
@@ -670,7 +690,7 @@ function unjam_anim(weapon)
 		local to_search = utils_item.addon_attached(weapon ,"gl") and "anm_reload_misfire_w_gl" or "anm_reload_misfire"
 		local unjam_sound = ini_sys:r_string_ex(sec, "snd_reload_misfire") or ini_sys:r_string_ex(sec, "snd_reload_1") or "$no_sound"
 		-- shorten time so that jam is cleared before the next animation plays
-		length = play_anim(weapon, to_search, unjam_sound) - 10
+		local length = play_anim(weapon, to_search, unjam_sound) - 10
 		CreateTimeEvent("arti_jamming", "restore", length/1000, apply_unjam, id)
 	end
 
@@ -779,40 +799,48 @@ function inv_unjam_replace(weapon)
 end
 
 -- conditions:
--- unjam type? ok (0), misfire/feed (just 1), doublefeed(3), classic (4)
+-- unjam type? ok (0), misfire/feed (just 1), failure to eject(2), doublefeed(3), classic (4)
 -- currently held?
 -- has animation?
 -- these functions will be completely responsible for what happens
 local unjam_router = {
 	-- held or not
 	held = {
-		[0] = {
+		[JamType.OK] = {
 			anim = check_anim,
 			no_anim = check_simple
 		},
-		[1] = {
+		[JamType.Misfire] = {
 			anim = unjam_anim,
 			no_anim = unjam_simple
 		},
-		[2] = {
+		[JamType.FailureToEject] = {
+			anim = unjam_anim,
+			no_anim = unjam_simple
+		},
+		[JamType.DoubleFeed] = {
 			anim = unjam_super_anim,
 			no_anim = unjam_super_simple
 		},
-		[3] = {
+		[JamType.Classic] = {
 			anim = unjam_replace_anim,
 			no_anim = unjam_replace_simple
 		}
 	},
 	inventory = {
-		[1] = {
+		[JamType.Misfire] = {
 			anim = inv_unjam,
 			no_anim = inv_unjam
 		},
-		[2] = {
+		[JamType.FailureToEject] = {
 			anim = inv_unjam,
 			no_anim = inv_unjam
 		},
-		[3] = {
+		[JamType.DoubleFeed] = {
+			anim = inv_unjam,
+			no_anim = inv_unjam
+		},
+		[JamType.Classic] = {
 			anim = inv_unjam_replace,
 			no_anim = inv_unjam_replace
 		}
@@ -892,12 +920,12 @@ function actor_on_weapon_jammed(actor)
 	local wpn = db.actor:active_item()
 	if not get_jammed(wpn:id()) then
 		if not pcall(function(wpn)
-			wpn:cast_Weapon():SetMisfire(false)
-			set_jam_status(wpn:id(), 1)
+			set_jam_status(wpn:id(), JamType.FailureToEject)
 		end, wpn) then
-			set_jam_status(wpn:id(), 3)
+			set_jam_status(wpn:id(), JamType.Classic)
 		end
 	end
+	wpn:cast_Weapon():SetMisfire(false)
 	jam_swearing()
 	play_sound(nil, 2, wpn:section(), "jam_sound")
 end
@@ -908,7 +936,7 @@ function actor_on_weapon_reload(wpn)
 	if jam_lv then
 		if magazines and magazines.do_interrupt_reload then magazines.do_interrupt_reload() end
 		-- drop mag if simplejam enabled and superjammed
-		if get_config("simplejam") and jam_lv == 2 then
+		if get_config("simplejam") and jam_lv == JamType.DoubleFeed then
 			-- on simplejam, unload the magazine
 			mag_support.eject_mag(wpn)
 		end
