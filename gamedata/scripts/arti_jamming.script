@@ -147,18 +147,19 @@ function sec_has_parts(sec)
 	end
 end
 
-function missing_parts(wpn)
+function missing_parts(wpn, check_broken)
+	local comp = check_broken and -1 or 0
 	if wpn:id() == cgd.id then
 		if not cgd.has_parts then return false end
-		if cgd.barrel_con == -1 then return true end
+		if cgd.barrel_con < comp then return true end
 		for k,v in pairs(cgd.parts) do
-			if v == -1 then return true end
+			if v < comp then return true end
 		end
 	else
 		local parts = item_parts.get_parts_con(wpn, nil, true)
 		if not parts or is_empty(parts) then return false end
 		for k,v in pairs(parts) do
-			if is_part(k) and v == -1 then return true end
+			if is_part(k) and v < comp then return true end
 		end
 	end
 	return false
@@ -286,6 +287,7 @@ function update_current()
 		local parent = parent_section(sec)
 		if not ini_weapon:section_exist(parent) then parent = "base" end
 		cgd.data.jam_chance = larp.str_explode_num(ini_weapon:r_string_ex(parent, "jam_chance") or "0.001, 0.03, 0.09, 0.27, 0.81", ",")
+		cgd.data.max_jam_chance = ini_weapon:r_float_ex(parent, "max_jam_chance") or 1
 		cgd.data.misfire_chance = larp.str_explode_num(ini_weapon:r_string_ex(parent, "misfire_chance"), ",")
 		cgd.data.superjam_mult = ini_weapon:r_float_ex(parent, "superjam_mult") or 1
 		cgd.data.damage_chance_mult = ini_weapon:r_float_ex(parent, "damage_chance_mult") or 1
@@ -294,33 +296,25 @@ function update_current()
 	end
 end
 
+function get_ammo_impair(wpn)
+	if wpn:id() ~= cgd.id or not get_config("oldammo") then return 1 end
+	local ammo = cgd.ammo_data[wpn:get_ammo_type()+1]
+	return ammo and SYS_GetParam(2, ammo, "impair") or 1
+end
+
 -- returns true if using ammo with impair > 1
 function using_old_ammo(wpn)
-	if wpn:id() ~= cgd.id or not get_config("oldammo") then return false end
-	local ammo = cgd.ammo_data[wpn:get_ammo_type()+1]
-	return ammo and SYS_GetParam(2, ammo, "impair") > 1
+	return get_ammo_impair(wpn) > 1
 end
 
 -- individually calculate jam based on weapon parts, and jam the weapon if applicable
 -- Average jam chance based on damage level of each component.
 local function calculate_jam(wpn)
 	if guarantee_not_jam > 0 then
-		guarantee_not_jam = guarantee_not_jam - 1
 		return
 	end
 	
 	jam_chance = calculate_jam_chance(wpn)
-
-	-- enhancing jam chance
-	jam_chance = jam_chance * get_config("jamchance")
-	-- also apply condition
-	local cond = wpn:condition()
-	local ratio = cond < 0.9 and 1 + (0.9-cond)/0.45 or 1
-	jam_chance = jam_chance * ratio
-
-	if using_old_ammo(wpn) then
-		jam_chance = jam_chance + 0.02
-	end
 
 	print_dbg("Final jam chance: %s", jam_chance)
 
@@ -344,7 +338,8 @@ local function calculate_jam(wpn)
 end
 
 -- assumes weapon being used is current
-function calculate_jam_chance(wpn)
+function calculate_jam_chance(wpn, extra)
+	-- compute base chance from quality of weapon parts
 	local count = 0
 	local mechanism_cond = #cgd.parts
 	for k, v in pairs(cgd.parts) do -- skip barrel
@@ -352,19 +347,47 @@ function calculate_jam_chance(wpn)
 		mechanism_cond = mechanism_cond + cgd.data.jam_chance[severity]
 		count = count + 1
 	end
-	return mechanism_cond/count
+	jam_chance = mechanism_cond/count
+	if not extra then return jam_chance end
+	-- apply ammo, mcm and condition enhancements
+	local ammo_impair = get_ammo_impair(wpn)
+	if ammo_impair > 0 then
+		if jam_chance == 0 then jam_chance = clamp(0.1 * (ammo_impair - 1), 0, 0.05)
+		else
+			jam_chance = jam_chance * ammo_impair
+		end
+	end
+	-- enhancing jam chance
+	jam_chance = jam_chance * get_config("jamchance")
+	-- condition can increase jam chance by up to 3x
+	local cond = wpn:condition()
+	local ratio = cond < 0.9 and 1 + (0.9-cond)/0.45 or 1
+	jam_chance = jam_chance * ratio
+
+	jam_chance = clamp(jam_chance, 0, cgd.data.max_jam_chance)
+
+	return jam_chance
 end
 
 -- Randomly damage 1 part of the weapon by DAMAGE, skipping barrels
-local function damage_part(wpn)
+-- wear reduces damage and happens more frequently
+local function damage_part(wpn, wear)
 	local to_damage = random_key_table(cgd.parts)
 	local part_con = cgd.parts[to_damage]
-	cgd.parts[to_damage] = clamp(part_con - math_random(5, 12), 0, 99)
+	local amt = wear and 1 or math_random(5, 12)
+	cgd.parts[to_damage] = clamp(part_con - amt, 0, 99)
 
-	print_dbg("%s damaged to %s condition", to_damage, cgd.parts[to_damage])
+	print_dbg("%s damaged %s amt to %s condition", to_damage, amt, cgd.parts[to_damage])
 	if get_config("verbosity") then
 		news_manager.send_tip(db.actor, gc("ui_st_parts_damage"), nil, "swiss_knife", 6000)
 	end
+	if not wear then
+		CreateTimeEvent("arti_jamming", "damsound", 0.1, 
+		function()
+			play_sound(nil, 0.5, wpn:section(), "damage_sound")
+			return true
+		end)
+	 end
 end
 
 -- Calculate chance to damage based on weapon condition
@@ -372,20 +395,26 @@ local function calculate_damage(wpn)
 	local cond = wpn and wpn:condition() or 1
 	local damaged = false
 	local roll = math_random()
-	local threshold = (get_config("threshold") or 85)/100
-	local old_ammo = using_old_ammo(wpn)
-	local damage_chance = calculate_damage_chance(wpn, old_ammo)
+	local damage_chance = calculate_damage_chance(wpn)
+
 
 	if (roll < damage_chance) then
 		damage_part(wpn)
 		damaged = true
+	else
+		-- wear is mostly an omnipresent threat
+		wear_chance = clamp(damage_chance * 1.5, 0, 1)
+		if math_random() < wear_chance then
+		damage_part(wpn, true)
+		damaged = true
+		end
 	end
 
 	-- calculate random condition damage
 	if wpn:condition() > 0.2 then
 		local chance = 2 * calculate_jam_chance(wpn)
 		if math_random() < chance then
-			local degrade = math_random(5)/100
+			local degrade = math_random(3)/100
 			wpn:set_condition(wpn:condition() - degrade, 0, 1)
 			damaged = true
 		end
@@ -403,36 +432,30 @@ local function calculate_damage(wpn)
 	
 	if damaged then
 		persist_current_weapon()
-		CreateTimeEvent("arti_jamming", "damsound", 0.1, 
-		function(sec, key)
-			play_sound(nil, 0.5, sec, key)
-			return true
-		end
-		, wpn:section(), "damage_sound")
 	end
 end
 
-function calculate_damage_chance(wpn, old_ammo)
+-- damage chance is 0-1
+function calculate_damage_chance(wpn)
 	local cond = wpn and wpn:condition() or 1
 	local threshold = (get_config("threshold") or 85)/100
 	local damage_chance = 0
-	old_ammo = old_ammo or using_old_ammo(wpn)
+	old_ammo = get_ammo_impair(wpn)
 	if (cond < threshold) then
 		-- 200 x (threshold - condition) * per shot decrease, should result in pretty small chances
 		damage_chance = (threshold - cond) * cgd.current_wpn_shot_dec * 200 * (cgd.data.damage_chance_mult or 1)
-		-- add flat 2% chance of damage w. old ammo
-		if old_ammo then
-			damage_chance = damage_chance + 0.02
+		if old_ammo > 1 then
+			damage_chance = damage_chance * old_ammo
 		end
 	else
-		if old_ammo then damage_chance = 0.005 end
+		if old_ammo > 1 then damage_chance = clamp(0.1 * (ammo_impair - 1), 0, 0.05) end
 	end
 	return damage_chance
 end
 
-function calculate_barrel_wear(wpn, old_ammo)
-	old_ammo = old_ammo or using_old_ammo(wpn)
-	return old_ammo and cgd.data.barrel_wear * 2 or cgd.data.barrel_wear
+function calculate_barrel_wear(wpn)
+	old_ammo = using_old_ammo(wpn) and 2 or 1
+	return old_ammo * cgd.data.barrel_wear
 end
 
 -- calculate misfire change of held weapon
@@ -461,7 +484,7 @@ function actor_on_weapon_before_fire(flags)
 	if not wpn or id ~= cgd.id or wpn:get_ammo_in_magazine() == 0 or not cgd.has_parts or wpn:weapon_in_grenade_mode() then return end
 
 	-- if missing parts do not roll for misfire
-	if missing_parts(wpn) then
+	if missing_parts(wpn, true) then
 		send_msg("ui_st_missing")
 		flags.ret_value = false
 		return
@@ -475,10 +498,10 @@ function actor_on_weapon_before_fire(flags)
 	local misfire_chance = calculate_misfire()
 	print_dbg("Misfire chance: "..misfire_chance)
 	-- soft misfire
-	if math_random() < clamp(misfire_chance * 3, 0, 1) then
-		flags.ret_value = false
-		return
-	end
+	-- if math_random() < clamp(misfire_chance * 3, 0, 1) then
+	-- 	flags.ret_value = false
+	-- 	return
+	-- end
 	-- FTE/Double feed
 	if not get_jammed(id) then
 		calculate_jam(wpn)
@@ -549,8 +572,9 @@ function actor_on_weapon_fired(obj, wpn, ammo_elapsed, grenade_elapsed, ammo_typ
 		level.release_action(bind_to_dik(key_bindings.kWPN_FIRE))
 	end
 	if not cgd.parts or is_empty(cgd.parts) then return
-	elseif (not get_jammed(id) or get_jam_status(id) == JamType.FailureToEject
-							   or get_jam_status(id) == JamType.DoubleFeed) then
+	elseif (not get_jammed(id) 
+	or get_jam_status(id) == JamType.FailureToEject 
+	or get_jam_status(id) == JamType.DoubleFeed) then
 		calculate_damage(wpn)
 	end
 
