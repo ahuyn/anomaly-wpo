@@ -1,4 +1,5 @@
 -- Currently unimplemented.
+-- Project heat bar and automatically jam gun when it fills.
 
 local time_quant
 local decrease_quant

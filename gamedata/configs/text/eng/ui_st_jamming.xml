@@ -173,13 +173,13 @@
 		<text>Change Repair Type</text>
 	</string>
 	<string id="st_wpn_clean_0">
-		<text>Clean Weapon Only</text>
+		<text>Clean Weapon</text>
 	</string>
 	<string id="st_wpn_clean_1">
 		<text>Clean Parts</text>
 	</string>
 	<string id="st_wpn_clean_2">
-		<text>Full Service</text>
+		<text>Replace Parts</text>
 	</string>
 	<string id="ui_mcm_wpo_wpoecon_altroll">
 		<text>Weighted weapon conditions</text>
@@ -276,7 +276,7 @@
 		<text>This weapon has no parts to remove.</text>
 	</string>
 	<string id="ui_st_missing">
-		<text>This weapon is missing parts.</text>
+		<text>This weapon is missing parts or has a destroyed part.</text>
 	</string>
 
 	

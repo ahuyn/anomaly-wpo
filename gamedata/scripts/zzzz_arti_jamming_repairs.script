@@ -11,6 +11,7 @@ local ini_custom_repair = ini_file("repair\\importer.ltx")
 
 gc = game.translate_string
 has_parts = arti_jamming.has_parts
+sec_has_parts = arti_jamming.sec_has_parts
 is_part = arti_jamming.is_part
 print_dbg = arti_jamming.print_dbg
 print_ws = ui_workshop.print_ws
@@ -370,12 +371,6 @@ function ui_workshop.UIWorkshopRepair:Repair()
 	self:Close()
 end
 
-function section_has_parts(sec)
-	local psec = ini_sys:r_string_ex(sec,"parent_section") or sec
-	local parts = ini_parts:r_string_ex("con_parts_list", psec)
-	return parts ~= nil
-end
-
 --[[
 	0 = clean only
 	1 = clean parts (req. basic)
@@ -387,6 +382,7 @@ rtype = 0
 function ui_inventory.UIInventory:rotate()
 	rtype = math.fmod(rtype+1, 3)
 	self.repair_type_txt:SetText(gc("st_wpn_clean_"..rtype))
+	check_init_item(self)
 end
 
 function ui_inventory.UIInventory:InitRepairTypeButton()
@@ -422,15 +418,12 @@ function GUI_on_show(name, path)
 	if (not instance.repair_type_btn) then
 		instance:InitRepairTypeButton()
 	end
-	-- local partner = instance:GetPartner()
-
-	-- instance.repair_type_btn:Show(instance.mode == "repair")
 end
 
 InitItem = ui_inventory.UIInventory.RMode_InitItem
 function ui_inventory.UIInventory:RMode_InitItem(obj, bag, idx)
 	InitItem(self, obj, bag, idx)
-	local is_wep = IsWeapon(obj) and section_has_parts(obj:section())
+	local is_wep = IsWeapon(obj) and sec_has_parts(obj:section())
 	if not self.repair_type_btn then self:InitRepairTypeButton() end
 	self.repair_type_btn:Show(is_wep)
 	self.repair_type_txt:Show(is_wep)
@@ -442,21 +435,30 @@ function ui_inventory.UIInventory:Close()
 	rtype = 0
 end
 
+-- todo check if the cost and repair toggle adjust correctly
 HowMuch = inventory_upgrades_mp.how_much_repair
 function inventory_upgrades_mp.how_much_repair( item_name, item_condition )
 	local base_cost = HowMuch(item_name, item_condition)
-	if not section_has_parts(item_name) then return base_cost end
-	local cof = game_difficulties.get_eco_factor("repair") or 1.67
-	local id = inventory_upgrades_mp.get_repair_id()
+	if not sec_has_parts(item_name) then return base_cost 
+	else return get_cost(item_name, item_condition) end
+end
 
-	local wpncoef = arti_jamming.sec_has_parts(item_name) and 0.2 or 1
-	
-	local parts_cost = repair_parts_price(inventory_upgrades_mp.get_repair_id())
-	return math_floor((base_cost * wpncoef) + (parts_cost * cof))
+function get_cost(item_name, item_condition)
+	local base_cost = HowMuch(item_name, item_condition)
+	local cof = game_difficulties.get_eco_factor("repair") or 1.67
+	if rtype == 0 then
+		local wpncoef = sec_has_parts(item_name) and 0.2 or 1
+		return math_floor(base_cost * wpncoef)
+	else
+		local id = inventory_upgrades_mp.get_repair_id()
+		local parts_cost = repair_parts_price(id)
+		return parts_cost * cof
+	end
 end
 
 -- determine extra cost from parts and stuff
 function repair_parts_price(id)
+	if not id then return 0 end
 	local obj = get_object_by_id(id)
 	local parts = item_parts.get_parts_con(obj)
 	if rtype == 0 or not obj or not parts then return 0 end
@@ -493,9 +495,31 @@ OnUIRepair = ui_inventory.UIInventory.RMode_RepairYes
 function ui_inventory.UIInventory:RMode_RepairYes()
     
 	local obj = get_object_by_id(self.upgr.id)
-    OnUIRepair(self)
-    if has_parts(obj) then
+	if not has_parts(obj) or rtype == 0 then
+		OnUIRepair(self)
+	else
+		local price = repair_parts_price( self.upgr.id )
+		db.actor:give_money(-price)
 		tech_restore_parts(obj)
+		self:On_Item_Update()
+		-- Repair button state goes off (cause full repaired)
+		self.npc_up_repair:Enable(false)
+	end
+end
+OnUiInit = ui_inventory.UIInventory.RMode_InitItem
+function ui_inventory.UIInventory:RMode_InitItem(obj, bag, idx)
+	OnUiInit(self, obj, bag, idx)
+	check_init_item(self)
+end
+
+function check_init_item(ui)
+	if not ui.upgr.id then return end
+	local obj = get_object_by_id(ui.upgr.id)
+	if not (obj and IsWeapon(obj) and sec_has_parts(obj:section()))then return end
+	if get_cost(obj:section(), obj:condition()) > 0 then
+		ui.npc_up_repair:Enable(true)
+	else
+		ui.npc_up_repair:Enable(false)
 	end
 end
 
