@@ -448,7 +448,7 @@ function calculate_damage_chance(wpn)
 			damage_chance = damage_chance * old_ammo
 		end
 	else
-		if old_ammo > 1 then damage_chance = clamp(0.1 * (ammo_impair - 1), 0, 0.05) end
+		if old_ammo > 1 then damage_chance = clamp(0.1 * (old_ammo - 1), 0, 0.05) end
 	end
 	return damage_chance
 end
