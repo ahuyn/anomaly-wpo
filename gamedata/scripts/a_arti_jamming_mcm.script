@@ -114,6 +114,8 @@ function on_mcm_load()
                     {id = "profanity", type = "check", val = 1, def = true},
                     {id = "profanity_timeout", type = "check", val = 1, def = true},
                     {id = "profanity_language", type = "radio_h",  content={ {"eng","eng"} , {"rus","rus"}} ,val = 0, def ="rus"},
+                    {id = "display", type = "check", val = 1, def = true},
+
                     {id = "verbosity", type = "check", val = 1, def = true},
                     {id = "fun", type = "list", val = 2, content={ {0,"no"} , {1,"yes"}, {2,"ofc"}}, def=0},
                 }

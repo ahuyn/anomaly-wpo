@@ -235,6 +235,9 @@
 	<string id="ui_mcm_wpo_wpomisc_profanity_timeout_desc">
 		<text>Adds a timeout to jam profanity if true. Use if you hate fun.</text>
 	</string>
+	<string id="ui_mcm_wpo_wpomisc_display">
+		<text>Display part condition</text>
+	</string>
 	<string id="ui_mcm_wpo_wpomisc_profanity_language">
 		<text>Profanity language</text>
 	</string>

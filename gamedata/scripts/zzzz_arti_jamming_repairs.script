@@ -603,7 +603,7 @@ function ui_item.build_desc_header(obj, sec, str)
 	local _str = ""
 	local _str2 = original_build_desc_header(obj, sec, str)
 	
-	if obj and IsWeapon(obj) and not IsAmmo(obj) and arti_jamming.has_parts(obj) then
+	if get_config("display") and obj and IsWeapon(obj) and not IsAmmo(obj) and arti_jamming.has_parts(obj) then
 		local parts = item_parts.get_parts_con(obj, nil, true)
 		local display_str = ""
 		for k,v in pairs(parts) do
