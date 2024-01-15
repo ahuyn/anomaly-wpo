@@ -47,6 +47,8 @@ local mcm_map = {
     ["verbosity"] = "wpomisc",
     ["debug"] = "wpomisc",
     ["fun"] = "wpomisc",
+    ["display"] = "wpomisc"
+
 }
 
 local last_click = nil
