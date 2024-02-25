@@ -594,6 +594,12 @@ end
 -- 	Close(self)
 -- end
 
+HowMuch = inventory_upgrades_mp.how_much_repair
+function inventory_upgrades_mp.how_much_repair( item_name, item_condition )
+	local base_cost = HowMuch(item_name, item_condition)
+	local cof = sec_has_parts(item_name) and 0.25 or 1
+	return math_floor(base_cost * cof)
+end
 local clean_costs = {
 	["pistol"] = 950,
 	["shotgun"] = 1050,
