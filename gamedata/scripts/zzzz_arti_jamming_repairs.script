@@ -377,152 +377,241 @@ end
 	2 = full service
 ]]
 
-rtype = 0
-
-function ui_inventory.UIInventory:rotate()
-	rtype = math.fmod(rtype+1, 3)
-	self.repair_type_txt:SetText(gc("st_wpn_clean_"..rtype))
-	check_init_item(self)
+-- check the existing weapon and what services are available for it
+function analyze_weapon(npc, wpn)
+	local parts = item_parts.get_parts_con(wpn, nil, true)
+	local to_do = {}
+	for k,v in pairs(parts) do
+		if not string.find(k, "prt_w") or v > 98 then
+			-- weapon part or something, do nothing
+		elseif v >= 60 then
+			-- also add pricing
+			to_do[#to_do + 1] = {
+				part = k,
+				name = get_part_short_name(k),
+				action = "clean",
+				cost = get_service_cost(wpn:section())
+			}
+		elseif npc:object(k) ~= nil and  v < 60 then
+			to_do[#to_do + 1] = {
+				part = k,
+				name = get_part_short_name(k),
+				action = "replace",
+				cost = get_service_cost(wpn:section(), k)
+			}
+		end
+	end
+	return to_do
 end
 
-function ui_inventory.UIInventory:InitRepairTypeButton()
-	self.repair_type_btn = self.xml:Init3tButton("npc:trade_delimiter:trade_buy_button", self.npc_up_dialog)
+-- up to 5 buttons, one for each thing
 
-	self.repair_type_txt = self.xml:InitTextWnd("npc:trade_delimiter:trade_price", self.npc_up_dialog)
+-- create all buttons on the left that hides everything
+-- button_sort_tab_6
+function ui_inventory.UIInventory:InitRepairPartsButton()
+	self.repair_xml = CScriptXmlInit()
+	self.repair_xml:ParseFile("ui_wpo_repair.xml")
 
-	local txt_x = self.npc_up_name:GetWndPos().x
-	local txt_y = self.npc_up_money:GetWndPos().y
-	local btn_y = self.npc_up_repair:GetWndPos().y
-
-	self.repair_type_txt:SetWndPos(vector2():set(
-		txt_x,
-		txt_y
-	))
-	self.repair_type_btn:SetWndPos(vector2():set(
-		txt_x,
-		btn_y
-	))
-
-	self.repair_type_txt:SetText(gc("st_wpn_clean_"..rtype))
-	self.repair_type_btn:TextControl():SetText(gc("st_wpn_clean_cycle"))
+	self.repair_parts_togglebtn = self.repair_xml:Init3tButton("button", self.npc_up_dialog)
+	self:Register(self.repair_parts_togglebtn, "repair_parts_toggle")
+	-- to the left of the repair button
+	self.repair_parts_togglebtn:SetWndPos(vector2():set(
+		self.npc_up_repair:GetWndPos().x - self.repair_parts_togglebtn:GetWidth(),
+		self.npc_up_repair:GetWndPos().y
+	))	
+	self:AddCallback("repair_parts_toggle", ui_events.BUTTON_CLICKED, self.repair_parts_toggle, self)
+	self.repair_parts_togglebtn:Show(false)
 	
-	self:Register(self.repair_type_btn, "repair_type")
-	self:AddCallback("repair_type", ui_events.BUTTON_CLICKED, self.rotate, self)
+	-- bg
+	self.repair_parts_bkg = self.repair_xml:InitStatic("background", self.npc_up_dialog)
+	self:Register(self.repair_parts_bkg, "repair_parts_bkg")
 
+	self.repair_parts_bkg:SetWndPos(vector2():set(
+		self.repair_parts_togglebtn:GetWndPos().x,
+		self.repair_parts_togglebtn:GetWndPos().y
+	))
+	self.repair_parts_buttons = {}
+	self.repair_parts_texts = {}
+	self.repair_parts_info = {} -- this holds the info the buttons use
+	
+	starting_y = self.repair_parts_togglebtn:GetWndPos().y + self.repair_parts_togglebtn:GetHeight()
+	for i=1,5 do
+		self.repair_parts_buttons[i] = self.repair_xml:Init3tButton("button2", self.npc_up_dialog)
+		self:Register(self.repair_parts_buttons[i], "repair_parts_buttons"..i)
+
+		self.repair_parts_texts[i] = self.repair_xml:InitTextWnd("txt_box", self.npc_up_dialog)
+		self:Register(self.repair_parts_texts[i], "repair_parts_texts"..i)
+		
+		self.repair_parts_buttons[i]:SetWndPos(vector2():set(
+			self.repair_parts_togglebtn:GetWndPos().x,
+			starting_y
+		))
+		self.repair_parts_texts[i]:SetWndPos(vector2():set(
+			self.repair_parts_togglebtn:GetWndPos().x + self.repair_parts_buttons[i]:GetWidth(),
+			starting_y
+		))
+
+		starting_y = starting_y + self.repair_parts_buttons[i]:GetHeight()
+	end
+
+	self:AddCallback("repair_parts_buttons1", ui_events.BUTTON_CLICKED, self.repair_part1, self)
+	self:AddCallback("repair_parts_buttons2", ui_events.BUTTON_CLICKED, self.repair_part2, self)
+	self:AddCallback("repair_parts_buttons3", ui_events.BUTTON_CLICKED, self.repair_part3, self)
+	self:AddCallback("repair_parts_buttons4", ui_events.BUTTON_CLICKED, self.repair_part4, self)
+	self:AddCallback("repair_parts_buttons5", ui_events.BUTTON_CLICKED, self.repair_part5, self)
+	-- message box
+	
+	self.message_box_parts		  = CUIMessageBoxEx()
+	self:Register(self.message_box_parts, "mbpr")
+
+	self:AddCallback("mbpr", ui_events.MESSAGE_BOX_YES_CLICKED, self.repair_part_confirm, self)
+	self:AddCallback("mbpr", ui_events.MESSAGE_BOX_NO_CLICKED, self.Discard, self)
 end
 
-function GUI_on_show(name, path)
-	local instance = ui_inventory.GUI
-	if name ~= "UIInventory" or (not instance ) then return end
-
-	if (not instance.repair_type_btn) then
-		instance:InitRepairTypeButton()
+function ui_inventory.UIInventory:repair_parts_purge()
+	self.repair_parts_info = {}
+	self.repair_parts_bkg:Show(false)
+	for i=1,5 do
+		self.repair_parts_buttons[i]:Enable(false)
+		self.repair_parts_buttons[i]:Show(false)
+		self.repair_parts_texts[i]:SetText("")
+		self.repair_parts_texts[i]:Show(false)
 	end
 end
 
+-- show/hide the five small buttons
+function ui_inventory.UIInventory:repair_parts_toggle()
+	-- show and hide the five sub-buttons
+	if (not self.upgr.id) then return end
+	
+	local wpn = level.object_by_id(self.upgr.id)
+	if (not wpn) then
+		return
+	end
+	-- hide all buttons
+	for i=1,5 do
+		self.repair_parts_buttons[i]:Enable(false)
+		self.repair_parts_buttons[i]:Show(false)
+		self.repair_parts_texts[i]:SetText("")
+		self.repair_parts_texts[i]:Show(false)
+	end
+	if self.repair_parts_bkg:IsShown() then
+		self.repair_parts_bkg:Show(false)
+		return
+	else
+		self.repair_parts_bkg:Show(true)
+	end
+
+	local actions = analyze_weapon(mob_trade.GetTalkingNpc(), wpn)
+	if is_empty(actions) then return end
+	self.repair_parts_info = actions
+	for k,v in pairs(self.repair_parts_info) do
+		self.repair_parts_texts[k]:SetText(v.action .. " " .. game.translate_string("st_name_"..v.name))
+		self.repair_parts_texts[k]:Show(true)
+		self.repair_parts_buttons[k]:Enable(true)
+		self.repair_parts_buttons[k]:Show(true)
+	end
+	
+end
+
+function ui_inventory.UIInventory:repair_part1()
+	self:repair_part(1)
+end
+function ui_inventory.UIInventory:repair_part2()
+	self:repair_part(2)
+end
+function ui_inventory.UIInventory:repair_part3()
+	self:repair_part(3)
+end
+function ui_inventory.UIInventory:repair_part4()
+	self:repair_part(4)
+end
+function ui_inventory.UIInventory:repair_part5()
+	self:repair_part(5)
+end
+function ui_inventory.UIInventory:repair_part(ind)
+	local wpn = level.object_by_id(self.upgr.id)
+	if (not wpn) then
+		return
+	end
+	-- calculate cost and part
+	local part =  self.repair_parts_info[ind].action == "replace" and  self.repair_parts_info[ind].part
+	local cost = self.repair_parts_info[ind].cost
+	local str = game.translate_string("st_wpn_service_cost").." " .. cost .. " RU"
+	if db.actor:money() >= cost then
+		self.repair_part_idx = ind
+		-- cost will be xxx
+		self.message_box_parts:InitMessageBox("message_box_yes_no")
+	else
+		self.message_box_parts:InitMessageBox("message_box_ok")
+	end
+	self.message_box_parts:SetText(str)
+	self.message_box_parts:ShowDialog(true)
+	-- reset ui
+end
+
+function ui_inventory.UIInventory:repair_part_confirm()
+
+	local wpn = level.object_by_id(self.upgr.id)
+	if (not wpn) then
+		printf("No weapon")
+		return
+	end
+	local parts = item_parts.get_parts_con(wpn, nil, true)
+	local part_to_fix = self.repair_parts_info[self.repair_part_idx]
+	if part_to_fix.action == "replace" then
+		local tech = mob_trade.GetTalkingNpc()
+		local tech_part = tech:object(part_to_fix.part)
+		alife_release_id(tech_part:id())
+	end
+	parts[part_to_fix.part] = 99
+	item_parts.set_parts_con(self.upgr.id, parts)
+	local cost = part_to_fix.cost
+	db.actor:give_money(-cost)
+	reset_cgd()
+	-- reset
+	self.repair_part_idx = nil
+	self:repair_parts_purge()
+	self:repair_parts_toggle()
+end
+
+-- B
 InitItem = ui_inventory.UIInventory.RMode_InitItem
 function ui_inventory.UIInventory:RMode_InitItem(obj, bag, idx)
 	InitItem(self, obj, bag, idx)
+	-- initial creation
+	if not self.repair_parts_togglebtn then self:InitRepairPartsButton() end
+	-- purge
 	local is_wep = IsWeapon(obj) and sec_has_parts(obj:section())
-	if not self.repair_type_btn then self:InitRepairTypeButton() end
-	self.repair_type_btn:Show(is_wep)
-	self.repair_type_txt:Show(is_wep)
+	-- re render
+	self:repair_parts_purge()
+	self.repair_parts_togglebtn:Show(is_wep)
 end
 
-Close = ui_inventory.UIInventory.Close
-function ui_inventory.UIInventory:Close()
-	Close(self)
-	rtype = 0
-end
+-- Close = ui_inventory.UIInventory.Close
+-- function ui_inventory.UIInventory:Close()
+-- 	self:repair_parts_purge()
+-- 	Close(self)
+-- end
 
--- todo check if the cost and repair toggle adjust correctly
-HowMuch = inventory_upgrades_mp.how_much_repair
-function inventory_upgrades_mp.how_much_repair( item_name, item_condition )
-	local base_cost = HowMuch(item_name, item_condition)
-	if not sec_has_parts(item_name) then return base_cost 
-	else return get_cost(item_name, item_condition) end
-end
-
-function get_cost(item_name, item_condition)
-	local base_cost = HowMuch(item_name, item_condition)
+local clean_costs = {
+	["pistol"] = 950,
+	["shotgun"] = 1050,
+	["rifle_5"] = 1200,
+	["rifle_7"] = 1500,
+}
+function get_service_cost(item_name, part)
 	local cof = game_difficulties.get_eco_factor("repair") or 1.67
-	if rtype == 0 then
-		local wpncoef = sec_has_parts(item_name) and 0.2 or 1
-		return math_floor(base_cost * wpncoef)
+	cof = 0.5 + cof/2
+	local repair_type = SYS_GetParam(0, item_name, "repair_type")
+	if not part then
+		return cof * (clean_costs[repair_type])
 	else
-		local id = inventory_upgrades_mp.get_repair_id()
-		local parts_cost = repair_parts_price(id)
-		return parts_cost * cof
-	end
+		-- pay 1.5x cleaning cost plus part
+		-- should lock behind toolkit? maybe later
+		return cof * (1.5 * clean_costs[repair_type] + (parts_list[part] or 0))
+	end	
 end
-
--- determine extra cost from parts and stuff
-function repair_parts_price(id)
-	if not id then return 0 end
-	local obj = get_object_by_id(id)
-	local parts = item_parts.get_parts_con(obj)
-	if rtype == 0 or not obj or not parts then return 0 end
-	local cost = 0
-	for k,v in pairs(parts) do
-		local part_cost = parts_list[k] or 0
-		-- pay replacement
-		if v < 60 and rtype == 2 then
-			cost = cost + part_cost
-		-- pay a 20% fractional cleaning fee
-		elseif v < 99 and rtype > 0 then
-			cost = cost + (part_cost / 5)
-		end
-	end
-	return cost
-end
-
-function tech_restore_parts(obj)
-	local parts = item_parts.get_parts_con(obj)
-	for k,v in pairs(parts) do
-		if rtype == 2 then
-			parts[k] = 99
-		-- pay a 20% fractional cleaning fee
-		elseif v > 59 and rtype == 1 then
-			parts[k] = 99
-		end
-	end
-	item_parts.set_parts_con(obj:id(), parts)
-	reset_cgd()
-end
-
-OnUIRepair = ui_inventory.UIInventory.RMode_RepairYes
-
-function ui_inventory.UIInventory:RMode_RepairYes()
-    
-	local obj = get_object_by_id(self.upgr.id)
-	if not has_parts(obj) or rtype == 0 then
-		OnUIRepair(self)
-	else
-		local price = repair_parts_price( self.upgr.id )
-		db.actor:give_money(-price)
-		tech_restore_parts(obj)
-		self:On_Item_Update()
-		-- Repair button state goes off (cause full repaired)
-		self.npc_up_repair:Enable(false)
-	end
-end
-OnUiInit = ui_inventory.UIInventory.RMode_InitItem
-function ui_inventory.UIInventory:RMode_InitItem(obj, bag, idx)
-	OnUiInit(self, obj, bag, idx)
-	check_init_item(self)
-end
-
-function check_init_item(ui)
-	if not ui.upgr.id then return end
-	local obj = get_object_by_id(ui.upgr.id)
-	if not (obj and IsWeapon(obj) and sec_has_parts(obj:section()))then return end
-	if get_cost(obj:section(), obj:condition()) > 0 then
-		ui.npc_up_repair:Enable(true)
-	else
-		ui.npc_up_repair:Enable(false)
-	end
-end
-
 quality_map = {
 	[0] = "broken",
 	[1] = "damaged",
@@ -549,6 +638,7 @@ name_mapping = {
 	"barrel",
 	"trigger"
 }
+
 --Patching ui_item.script
 local string_find         = string.find
 local math_ceil           = math.ceil
@@ -559,18 +649,13 @@ local clr_y  = utils_xml.get_color("yellow")
 local clr_g  = utils_xml.get_color("d_green")
 local clr_p  = utils_xml.get_color("d_purple")
 
-function process_part(name, condition)
-	local severity = condition == -1 and "missing" or math_floor(condition / 20)
-	local clr = clr_o
-	if condition > 79 then clr = clr_g
-	elseif condition > 59 then clr = clr_y 
-	elseif condition == -1 then clr = clr_r end
+function get_part_short_name(name)
+	if not string_find(name, "prt_w") then return "" end
+	local i = 1
 	local part_name = ""
 	if unique_mapping[name] then
 		part_name = unique_mapping[name]
 	else
-		if not string_find(name, "prt_w") then return "" end
-		local i = 1
 		while part_name == "" and i < 7 do
 			-- print_dbg("it %s, name %s", i, name)
 			if string_find(name, name_mapping[i]) then
@@ -579,6 +664,18 @@ function process_part(name, condition)
 			i = i + 1
 		end
 	end
+	return part_name
+end
+
+
+function process_part(name, condition)
+	local severity = condition == -1 and "missing" or math_floor(condition / 20)
+	local clr = clr_o
+	if condition > 79 then clr = clr_g
+	elseif condition > 59 then clr = clr_y 
+	elseif condition == -1 then clr = clr_r end
+	local part_name = get_part_short_name(name)
+	if part_name == "" then return "" end
 	print_dbg("part %s, category %s, sev %s", name, part_name, severity)
 
 	return " " .. clr .. gc("st_dot") .. " " .. gc("st_damage_"..severity) .. " " .. gc("st_name_"..part_name) .. "\\n"
@@ -975,5 +1072,4 @@ function on_game_start()
 	custom_functor_autoinject.add_functor("arti_fieldstrip", has_parts_fieldstrip, name_fieldstrip, nil, init_fieldstrip_menu, true)
 	custom_functor_autoinject.add_functor("arti_maintain", check_maintain, name_maintain, nil, init_maintenance_menu, false)
     RegisterScriptCallback("ActorMenu_on_item_drag_drop",on_item_drag_dropped)
-	RegisterScriptCallback("GUI_on_show", GUI_on_show)
 end

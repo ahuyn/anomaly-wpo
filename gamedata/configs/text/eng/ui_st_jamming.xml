@@ -158,7 +158,7 @@
 	<string id="ui_mcm_wpo_wpoecon_repairkit_desc">
 		<text>Has repair kits replace parts (restore to 100). If not enabled, repair kits only add 25%. Stretches out the difficulty if disabled.</text>
 	</string>
-	<string id="ui_mcm_wpo_wpoecon_fullservice">
+	<!-- <string id="ui_mcm_wpo_wpoecon_fullservice">
 		<text>Technician Service Level</text>
 	</string>
 	<string id="ui_mcm_wpo_wpoecon_fullservice_desc">
@@ -167,19 +167,16 @@
 			\n\n Clean Parts: Restores base weapon condition and cleans parts, if applicable.
 			\n\n Full service: Restores base condition, fixes parts, replaces parts.
 		</text>
-	</string>
+	</string> -->
 	
-	<string id="st_wpn_clean_cycle">
-		<text>Change Repair Type</text>
+	<string id="st_wpn_service_cost">
+		<text>Cost of service:</text>
 	</string>
-	<string id="st_wpn_clean_0">
-		<text>Clean Weapon</text>
+	<string id="st_wpn_service_hint">
+		<text>Maintain parts</text>
 	</string>
-	<string id="st_wpn_clean_1">
-		<text>Clean Parts</text>
-	</string>
-	<string id="st_wpn_clean_2">
-		<text>Replace Parts</text>
+	<string id="st_wpn_service_dropdown">
+		<text>Open the part maintenance menu</text>
 	</string>
 	<string id="ui_mcm_wpo_wpoecon_altroll">
 		<text>Weighted weapon conditions</text>

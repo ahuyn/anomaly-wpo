@@ -1,0 +1,17 @@
+<w>
+    
+    <background x="34" y="354" width="130" height="162" stretch="1">
+        <texture>ui_inGame2_workshop_craft_recipes</texture>
+    </background>
+    
+    <button x="145" y="0" width="28" height="29" hint="st_wpn_service_dropdown" stretch="1">
+        <texture>ui_inGame2_btn_sort_weapon</texture>
+    </button>
+    <button2 x="145" y="0" width="28" height="29" stretch="1">
+        <texture>ui_inGame2_btn_sort_utility</texture>
+    </button2>
+    
+    <txt_box x="302" y="742" width="68" height="29">
+        <text align="l" font="letterica16" color="ui_3"/>
+    </txt_box>
+</w>
