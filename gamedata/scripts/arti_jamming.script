@@ -1002,8 +1002,8 @@ function monster_on_before_hit(monster,shit,bone_id, flags)
 end
 
 -- Clear jam mid animation with motion marks
-function actor_on_hud_animation_mark(state, mark)
-	if mark == "clear_jam" then
+function actor_on_hud_animation_mark(state, mark, hud_item, owner)
+	if mark == "clear_jam" and (owner and owner:id() == AC_ID or false) then
 		ResetTimeEvent("arti_jamming", "restore", 0)
 	end
 end
