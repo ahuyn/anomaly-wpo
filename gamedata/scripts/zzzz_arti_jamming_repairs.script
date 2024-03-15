@@ -10,19 +10,20 @@ local ini_custom_repair = ini_file("repair\\importer.ltx")
 
 
 gc = game.translate_string
-has_parts = arti_jamming.has_parts
-sec_has_parts = arti_jamming.sec_has_parts
-is_part = arti_jamming.is_part
-print_dbg = arti_jamming.print_dbg
+has_parts = wpn_part_manager.has_parts
+sec_has_parts = wpn_part_manager.sec_has_parts
+is_part = wpn_part_manager.is_part
+print_dbg = wpn_part_manager.print_dbg
+get_jammed = wpn_part_manager.get_jammed
 print_ws = ui_workshop.print_ws
 get_config = a_arti_jamming_mcm.get_config
 math_floor = math.floor
 math_random = math.random
-current_id = arti_jamming.current_id
-reset_cgd = arti_jamming.reset_cgd
+current_id = wpn_part_manager.current_id
+reset_cgd = wpn_part_manager.reset_cgd
 SetTip = ui_workshop.SetTip
-is_barrel = arti_jamming.is_barrel
-is_trigger = arti_jamming.is_trigger
+is_barrel = wpn_part_manager.is_barrel
+is_trigger = wpn_part_manager.is_trigger
 
 -- below here is all mostly copied from item repair and workshop, due to difficulty of patching
 
@@ -392,7 +393,7 @@ function analyze_weapon(npc, wpn)
 				action = "clean",
 				cost = get_service_cost(wpn:section())
 			}
-		elseif npc:object(k) ~= nil and  v < 60 then
+		elseif npc and npc:object(k) ~= nil and  v < 60 then
 			to_do[#to_do + 1] = {
 				part = k,
 				name = get_part_short_name(k),
@@ -501,8 +502,9 @@ function ui_inventory.UIInventory:repair_parts_toggle()
 	else
 		self.repair_parts_bkg:Show(true)
 	end
-
-	local actions = analyze_weapon(mob_trade.GetTalkingNpc(), wpn)
+	local npc = mob_trade.GetTalkingNpc()
+	if not npc then return end
+	local actions = analyze_weapon(npc, wpn)
 	if is_empty(actions) then return end
 	self.repair_parts_info = actions
 	for k,v in pairs(self.repair_parts_info) do
@@ -706,7 +708,7 @@ function ui_item.build_desc_header(obj, sec, str)
 	local _str = ""
 	local _str2 = original_build_desc_header(obj, sec, str)
 	
-	if get_config("display") and obj and IsWeapon(obj) and not IsAmmo(obj) and arti_jamming.has_parts(obj) then
+	if get_config("display") and obj and IsWeapon(obj) and not IsAmmo(obj) and has_parts(obj) then
 		local parts = item_parts.get_parts_con(obj, nil, true)
 		local display_str = ""
 		for k,v in pairs(parts) do
@@ -972,7 +974,7 @@ function act_fieldstrip(id, part_name)
 		end
 	end
 	item_parts.set_parts_con(id, parts)
-	if arti_jamming.get_jammed(id) then
+	if get_jammed(id) then
 		set_jam_status(id, nil)
 	end
 	-- send msg
