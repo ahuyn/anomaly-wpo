@@ -10,20 +10,20 @@ local ini_custom_repair = ini_file("repair\\importer.ltx")
 
 
 gc = game.translate_string
-has_parts = wpn_part_manager.has_parts
-sec_has_parts = wpn_part_manager.sec_has_parts
-is_part = wpn_part_manager.is_part
-print_dbg = wpn_part_manager.print_dbg
-get_jammed = wpn_part_manager.get_jammed
+has_parts = arti_jamming.has_parts
+sec_has_parts = arti_jamming.sec_has_parts
+is_part = arti_jamming.is_part
+print_dbg = arti_jamming.print_dbg
+get_jammed = arti_jamming.get_jammed
 print_ws = ui_workshop.print_ws
 get_config = a_arti_jamming_mcm.get_config
 math_floor = math.floor
 math_random = math.random
-current_id = wpn_part_manager.current_id
-reset_cgd = wpn_part_manager.reset_cgd
+current_id = arti_jamming.current_id
+reset_cgd = arti_jamming.reset_cgd
 SetTip = ui_workshop.SetTip
-is_barrel = wpn_part_manager.is_barrel
-is_trigger = wpn_part_manager.is_trigger
+is_barrel = arti_jamming.is_barrel
+is_trigger = arti_jamming.is_trigger
 
 -- below here is all mostly copied from item repair and workshop, due to difficulty of patching
 
