@@ -151,7 +151,9 @@ function missing_parts(wpn, check_broken)
 	local comp = check_broken and -1 or 0
 	if wpn:id() == cgd.id then
 		if not cgd.has_parts then return false end
-		if cgd.barrel_con < comp then return true end
+		if cgd.barrel_con ~= nil and cgd.barrel_con < comp then
+			return true
+		end
 		for k,v in pairs(cgd.parts) do
 			if v < comp then return true end
 		end
@@ -165,7 +167,6 @@ function missing_parts(wpn, check_broken)
 	return false
 end
 
-
 function play_anim(weapon, anim, sound)
 	local length = weapon:play_hud_motion(anim, true, 0, 1, 0)
 	print_dbg("playing animation %s for %s time", anim, length)
@@ -175,7 +176,6 @@ function play_anim(weapon, anim, sound)
 	return length
 end
 
-
 function persist_current_weapon()
 	if cgd.id and cgd.has_parts then
 		local saved_parts = se_load_var(cgd.id, nil, "parts")
@@ -184,7 +184,9 @@ function persist_current_weapon()
 		for k,v in pairs(cgd.parts) do
 			copy_parts[k] = v
 		end
-		copy_parts[cgd.barrel_name] = cgd.barrel_con
+		if cgd.barrel_name ~= nil then
+			copy_parts[cgd.barrel_name] = cgd.barrel_con
+		end
 		item_parts.set_parts_con(cgd.id, copy_parts)
 		print_dbg("Persisted parts for weapon %s", cgd.id)
 	end
@@ -391,12 +393,12 @@ local function damage_part(wpn, wear)
 end
 
 -- Calculate chance to damage based on weapon condition
+
 local function calculate_damage(wpn)
 	local cond = wpn and wpn:condition() or 1
 	local damaged = false
 	local roll = math_random()
 	local damage_chance = calculate_damage_chance(wpn)
-
 
 	if (roll < damage_chance) then
 		damage_part(wpn)
@@ -405,8 +407,8 @@ local function calculate_damage(wpn)
 		-- wear is mostly an omnipresent threat
 		wear_chance = clamp(damage_chance * 1.5, 0, 1)
 		if math_random() < wear_chance then
-		damage_part(wpn, true)
-		damaged = true
+			damage_part(wpn, true)
+			damaged = true
 		end
 	end
 
@@ -424,12 +426,14 @@ local function calculate_damage(wpn)
 
 	print_dbg("Calculating damage: Old ammo %s, barrel wear %s, Final: %s", old_ammo, barrel_wear, damage_chance)
 
-	if (roll < barrel_wear) then
+	if roll < barrel_wear then
 		print_dbg("Damaged barrel")
-		cgd.barrel_con = cgd.barrel_con > 0 and cgd.barrel_con - 1 or 0
+		if cgd.barrel_con ~= nil then
+			cgd.barrel_con = cgd.barrel_con > 0 and cgd.barrel_con - 1 or 0
+		end
 		damaged = true
 	end
-	
+
 	if damaged then
 		persist_current_weapon()
 	end
