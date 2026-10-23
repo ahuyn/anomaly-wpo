@@ -393,6 +393,7 @@ local function damage_part(wpn, wear)
 end
 
 -- Calculate chance to damage based on weapon condition
+
 local function calculate_damage(wpn)
 	local cond = wpn and wpn:condition() or 1
 	local damaged = false
