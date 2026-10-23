@@ -398,7 +398,6 @@ local function calculate_damage(wpn)
 	local roll = math_random()
 	local damage_chance = calculate_damage_chance(wpn)
 
-
 	if (roll < damage_chance) then
 		damage_part(wpn)
 		damaged = true
@@ -406,8 +405,8 @@ local function calculate_damage(wpn)
 		-- wear is mostly an omnipresent threat
 		wear_chance = clamp(damage_chance * 1.5, 0, 1)
 		if math_random() < wear_chance then
-		damage_part(wpn, true)
-		damaged = true
+			damage_part(wpn, true)
+			damaged = true
 		end
 	end
 
@@ -425,12 +424,14 @@ local function calculate_damage(wpn)
 
 	print_dbg("Calculating damage: Old ammo %s, barrel wear %s, Final: %s", old_ammo, barrel_wear, damage_chance)
 
-	if (roll < barrel_wear) then
+	if roll < barrel_wear then
 		print_dbg("Damaged barrel")
-		cgd.barrel_con = cgd.barrel_con > 0 and cgd.barrel_con - 1 or 0
+		if cgd.barrel_con ~= nil then
+			cgd.barrel_con = cgd.barrel_con > 0 and cgd.barrel_con - 1 or 0
+		end
 		damaged = true
 	end
-	
+
 	if damaged then
 		persist_current_weapon()
 	end
