@@ -176,7 +176,6 @@ function play_anim(weapon, anim, sound)
 	return length
 end
 
-
 function persist_current_weapon()
 	if cgd.id and cgd.has_parts then
 		local saved_parts = se_load_var(cgd.id, nil, "parts")
@@ -185,7 +184,9 @@ function persist_current_weapon()
 		for k,v in pairs(cgd.parts) do
 			copy_parts[k] = v
 		end
-		copy_parts[cgd.barrel_name] = cgd.barrel_con
+		if cgd.barrel_name ~= nil then
+			copy_parts[cgd.barrel_name] = cgd.barrel_con
+		end
 		item_parts.set_parts_con(cgd.id, copy_parts)
 		print_dbg("Persisted parts for weapon %s", cgd.id)
 	end
