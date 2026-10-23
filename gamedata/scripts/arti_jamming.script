@@ -151,7 +151,9 @@ function missing_parts(wpn, check_broken)
 	local comp = check_broken and -1 or 0
 	if wpn:id() == cgd.id then
 		if not cgd.has_parts then return false end
-		if cgd.barrel_con < comp then return true end
+		if cgd.barrel_con ~= nil and cgd.barrel_con < comp then
+			return true
+		end
 		for k,v in pairs(cgd.parts) do
 			if v < comp then return true end
 		end
@@ -164,7 +166,6 @@ function missing_parts(wpn, check_broken)
 	end
 	return false
 end
-
 
 function play_anim(weapon, anim, sound)
 	local length = weapon:play_hud_motion(anim, true, 0, 1, 0)
